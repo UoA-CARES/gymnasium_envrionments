@@ -6,8 +6,8 @@ from dm_control import suite
 
 import utils
 
-DOMAIN_NAME = "finger"
-TASK_NAME = "spin"
+DOMAIN_NAME = "acrobot"
+TASK_NAME = "swingup"
 
 # function for viewing all domain and tasks
 utils.all_env()
@@ -26,6 +26,7 @@ observations = []
 spec = env.action_spec()
 time_step = env.reset()
 
+
 while env.physics.data.time < duration:
 
     action = random_state.uniform(spec.minimum, spec.maximum, spec.shape)
@@ -37,6 +38,11 @@ while env.physics.data.time < duration:
     rewards.append(time_step.reward)
     observations.append(copy.deepcopy(time_step.observation))
     ticks.append(env.physics.data.time)
+
+    # Plot reward every second
+    if (round(env.physics.data.time % 1, 2)) <= 0.01:
+        plt.scatter(ticks, rewards)
+        plt.pause(0.001)
 
 
 # Save Video of animation
