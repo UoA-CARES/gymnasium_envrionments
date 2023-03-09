@@ -11,5 +11,10 @@ sudo apt-get install libglfw3 libglew2.1
 
 To run test code with random action:
 ```
-python3 random_action_demo.py
+python3 random_action_example.py
+```
+
+To run viewer with random action policy:
+```
+python3 viewer_example.py
 ```

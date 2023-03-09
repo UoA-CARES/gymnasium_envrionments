@@ -12,6 +12,7 @@ TASK_NAME = "swingup"
 # function for viewing all domain and tasks
 utils.all_env()
 
+
 # Load the environment
 random_state = np.random.RandomState(42)
 env = suite.load(DOMAIN_NAME, TASK_NAME, task_kwargs={"random": random_state})
@@ -28,7 +29,6 @@ time_step = env.reset()
 
 
 while env.physics.data.time < duration:
-
     action = random_state.uniform(spec.minimum, spec.maximum, spec.shape)
     time_step = env.step(action)
 
@@ -43,7 +43,8 @@ while env.physics.data.time < duration:
     if (round(env.physics.data.time % 1, 2)) <= 0.01:
         plt.scatter(ticks, rewards)
         plt.pause(0.001)
-
+        plt.xlabel("time(s)")
+        plt.ylabel("reward")
 
 # Save Video of animation
 video_name = DOMAIN_NAME + "_" + TASK_NAME + ".mp4"
@@ -51,6 +52,8 @@ utils.display_video(video_name, frames, framerate=1.0 / env.control_timestep())
 
 # Plot reward and observations
 num_sensors = len(time_step.observation)
+
+plt.close()
 
 _, ax = plt.subplots(1 + num_sensors, 1, sharex=True, figsize=(4, 8))
 ax[0].plot(ticks, rewards)
