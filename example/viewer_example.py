@@ -2,7 +2,7 @@ from dm_control import suite
 from dm_control import viewer
 import numpy as np
 
-env = suite.load(domain_name="acrobot", task_name="swingup")
+env = suite.load(domain_name="ball_in_cup", task_name="catch")
 action_spec = env.action_spec()
 
 # Define a uniform random policy.
