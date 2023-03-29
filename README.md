@@ -20,3 +20,8 @@ A reward graph is currently updated and displayed every second. Training video a
 python3 viewer_example.py
 ```
 DM control suite have a built-in viewer function(viewer_launch), providing visualization during training. The function can run a policy and display the trianing process. See https://github.com/deepmind/dm_control/tree/main/dm_control/viewer for more information.
+
+
+### To train a env policy:
+
+TODO instructions to be added here
