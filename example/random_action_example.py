@@ -1,13 +1,12 @@
 import copy
-
-import matplotlib.pyplot as plt
+import utils
 import numpy as np
 from dm_control import suite
+import matplotlib.pyplot as plt
 
-import utils
 
 DOMAIN_NAME = "acrobot"
-TASK_NAME = "swingup"
+TASK_NAME   = "swingup"
 
 # function for viewing all domain and tasks
 utils.all_env()
@@ -46,13 +45,9 @@ while env.physics.data.time < duration:
         plt.xlabel("time(s)")
         plt.ylabel("reward")
 
-# Save Video of animation
-video_name = DOMAIN_NAME + "_" + TASK_NAME + ".mp4"
-utils.display_video(video_name, frames, framerate=1.0 / env.control_timestep())
 
 # Plot reward and observations
 num_sensors = len(time_step.observation)
-
 plt.close()
 
 _, ax = plt.subplots(1 + num_sensors, 1, sharex=True, figsize=(4, 8))
