@@ -27,8 +27,8 @@ DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # testing Environments
 
-env = suite.load(domain_name="ball_in_cup", task_name="catch")
-#env = suite.load(domain_name="cartpole", task_name="swingup")  # swingup, balance
+#env = suite.load(domain_name="ball_in_cup", task_name="catch")
+env = suite.load(domain_name="cartpole", task_name="swingup")  # swingup, balance
 #env = suite.load(domain_name="cheetah", task_name="run")
 #env = suite.load(domain_name="walker", task_name="walk") # stand, walk, run
 #env = suite.load(domain_name="finger", task_name="spin")
@@ -45,7 +45,7 @@ CRITIC_LR  = 1e-3
 BATCH_SIZE = 32
 
 max_steps_exploration = 10_000
-max_steps_training    = 100_000
+max_steps_training    = 25_000 #100_000
 max_steps_evaluation  = 5_000
 
 SEED                  = 571
@@ -167,7 +167,7 @@ def main():
         device=DEVICE,
     )
 
-    #train(agent, memory, max_action_value, min_action_value, action_num, observation_type)
+    train(agent, memory, max_action_value, min_action_value, action_num, observation_type)
     evaluation(agent, observation_type)
 
 
