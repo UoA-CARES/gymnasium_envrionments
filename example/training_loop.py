@@ -67,10 +67,9 @@ def evaluation(agent, observation_type):
     fourcc = cv2.VideoWriter_fourcc(*'MP4V')
     for total_step_counter in range(int(max_steps_evaluation)):
         episode_timesteps += 1
-        #action = agent.select_action_from_policy(state, evaluation=True)
-        action = np.random.uniform(-1, 1, size=1)
+        action = agent.select_action_from_policy(state, evaluation=True)
         time_step = env.step(action)
-        next_state, reward, done = time_step.observation[observation_type], time_step.reward, time_step.last()
+        state, reward, done = time_step.observation[observation_type], time_step.reward, time_step.last()
         episode_reward += reward
         camera0 = env.physics.render(camera_id=0, height=200, width=200)
         camera1 = env.physics.render(camera_id=1, height=200, width=200)
