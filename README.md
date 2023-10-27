@@ -1,6 +1,8 @@
 # gymnasium_envrionment
 
-This repository includes a script that allows you to run any OpenAI Gymnasium (https://github.com/Farama-Foundation/Gymnasium) or Deep Mind Control Suite (https://github.com/google-deepmind/dm_control) environment – provided you comply with all the dependencies for that environment. This package relies on the cares_reinforcement_learning package for the networks and algorithms being developed within the team. This package serves as an example of how to develop and setup new environments - perticularly for the robotic environments. Consult the repository https://github.com/UoA-CARES/cares_reinforcement_learning/ for a guide on how to use the general RL package
+This repository includes a script that allows you to run any OpenAI Gymnasium (https://github.com/Farama-Foundation/Gymnasium) or Deep Mind Control Suite (https://github.com/google-deepmind/dm_control) environment – provided you comply with all the dependencies for that environment. 
+
+This package serves as an example of how to develop and setup new environments - perticularly for the robotic environments. Consult the repository https://github.com/UoA-CARES/cares_reinforcement_learning/ for a guide on how to use the general RL package
 
 ## Installation Instructions
 If you want to utilise the GPU with Pytorch install CUDA first - https://developer.nvidia.com/cuda-toolkit
