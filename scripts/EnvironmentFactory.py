@@ -13,7 +13,7 @@ from collections import deque
 # from typing import override
 from functools import cached_property
 
-from cares_reinforcement_learning.util.configurations import GymEnvironmentConfig
+from configurations import GymEnvironmentConfig
 
 class EnvironmentFactory:
     def __init__(self) -> None:
