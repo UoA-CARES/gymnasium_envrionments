@@ -102,13 +102,12 @@ class OpenAIGymImage(OpenAIGym):
 
     # @override
     def step(self, action):
-        time_step    = self.env.step(action)
-        reward, done = time_step.reward, time_step.last()
+        _, reward, done, truncated, _ = self.env.step(action)
         frame = self.grab_frame(height=self.frame_height, width=self.frame_width)
         frame = np.moveaxis(frame, -1, 0)
         self.frames_stacked.append(frame)
         stacked_frames = np.concatenate(list(self.frames_stacked), axis=0)
-        return stacked_frames, reward, done, False # for consistency with open ai gym just add false for truncated
+        return stacked_frames, reward, done, truncated
         
 class DMCS:
     def __init__(self, config: GymEnvironmentConfig) -> None:
