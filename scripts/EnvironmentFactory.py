@@ -33,7 +33,7 @@ class OpenAIGym:
     def __init__(self, config: GymEnvironmentConfig) -> None:
         logging.info(f"Training task {config.task}")
         self.env = gym.make(config.task, render_mode="rgb_array")
-    
+
     @cached_property
     def max_action_value(self):
         return self.env.action_space.high[0]
@@ -58,6 +58,7 @@ class OpenAIGym:
 
     def set_seed(self, seed):
         self.env.action_space.seed(seed)
+        _, _ = self.env.reset(seed=seed)
 
     def reset(self):
         state, _ = self.env.reset()
@@ -117,7 +118,7 @@ class DMCS:
         self.domain = config.domain
         self.task = config.task
         self.env = suite.load(self.domain, self.task)
-        
+
     @cached_property
     def min_action_value(self):
         return self.env.action_spec().minimum[0]

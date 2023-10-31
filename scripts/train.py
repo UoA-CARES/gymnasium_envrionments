@@ -60,18 +60,18 @@ def main():
 
         #create the record class - standardised results tracking
         log_dir = f"{seed}"
-        record = Record(glob_log_dir=glob_log_dir, 
-                        log_dir=log_dir, 
-                        algorithm=alg_config.algorithm, 
-                        task=env_config.task, 
-                        network=agent, 
-                        plot_frequency=training_config.plot_frequency, 
+        record = Record(glob_log_dir=glob_log_dir,
+                        log_dir=log_dir,
+                        algorithm=alg_config.algorithm,
+                        task=env_config.task,
+                        network=agent,
+                        plot_frequency=training_config.plot_frequency,
                         checkpoint_frequency=training_config.checkpoint_frequency)
-        
+
         record.save_config(env_config, "env_config")
         record.save_config(training_config, "train_config")
         record.save_config(alg_config, "alg_config")
-    
+
         # Train the policy or value based approach
         if alg_config.algorithm == "PPO":
             ppe.ppo_train(env, agent, record, training_config, alg_config)
@@ -81,7 +81,7 @@ def main():
             vbe.value_based_train(env, agent, memory, record, training_config, alg_config)
         else:
             raise ValueError(f"Agent type is unkown: {agent.type}")
-        
+
         record.save()
 
 if __name__ == '__main__':
