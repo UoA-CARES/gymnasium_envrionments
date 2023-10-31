@@ -78,7 +78,7 @@ def policy_based_train(env, agent, memory, record, train_config: TrainingConfig,
 
     evaluate = False
 
-    state, _ = env.env.reset(seed=train_config.seeds[0])
+    state, _ = env.reset()
 
     episode_start = time.time()
     for total_step_counter in range(int(max_steps_training)):
