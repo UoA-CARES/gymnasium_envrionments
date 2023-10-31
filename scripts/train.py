@@ -10,9 +10,9 @@ from cares_reinforcement_learning.util import Record
 from cares_reinforcement_learning.util import RLParser
 from cares_reinforcement_learning.util import helpers as hlp
 
-import cares_reinforcement_learning.train_loops.policy_loop as pbe
-import cares_reinforcement_learning.train_loops.value_loop as vbe
-import cares_reinforcement_learning.train_loops.ppo_loop as ppe
+import train_loops.policy_loop as pbe
+import train_loops.value_loop as vbe
+import train_loops.ppo_loop as ppe
 
 from EnvironmentFactory import EnvironmentFactory
 from configurations import GymEnvironmentConfig
@@ -38,7 +38,7 @@ def main():
     env_factory = EnvironmentFactory()
     network_factory = NetworkFactory()
     memory_factory = MemoryFactory()
-    
+
     env = env_factory.create_environment(env_config)
 
     iterations_folder = f"{alg_config.algorithm}-{env_config.task}-{datetime.now().strftime('%y_%m_%d_%H:%M:%S')}"
