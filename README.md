@@ -15,8 +15,6 @@ Follow the instructions at https://github.com/UoA-CARES/cares_reinforcement_lear
 
 Run `pip3 install -r requirements.txt` in the **root directory** of the package
 
-To make the module **globally accessible** in your working environment run `pip3 install --editable .` in the **project root**
-
 ## Usage
 This package is a basic example of running the CARES RL algorithms on OpenAI/DMCS. 
 
