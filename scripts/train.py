@@ -34,23 +34,25 @@ def main():
     env_config = configurations["env_config"] 
     training_config = configurations["training_config"]
     alg_config = configurations["algorithm_config"]
-    
+
     env_factory = EnvironmentFactory()
     network_factory = NetworkFactory()
     memory_factory = MemoryFactory()
 
-    env = env_factory.create_environment(env_config)
+
 
     iterations_folder = f"{alg_config.algorithm}-{env_config.task}-{datetime.now().strftime('%y_%m_%d_%H:%M:%S')}"
     glob_log_dir = f'{Path.home()}/cares_rl_logs/{iterations_folder}'
 
     for training_iteration, seed in enumerate(training_config.seeds):
         logging.info(f"Training iteration {training_iteration+1}/{len(training_config.seeds)} with Seed: {seed}")
+        env = env_factory.create_environment(env_config)  # This line should be here for seed consistency issues
         hlp.set_seed(seed)
         env.set_seed(seed)
 
         logging.info(f"Algorithm: {alg_config.algorithm}")
         agent = network_factory.create_network(env.observation_space, env.action_num, alg_config)
+
         if agent == None:
             raise ValueError(f"Unkown agent for default algorithms {alg_config.algorithm}")
 
