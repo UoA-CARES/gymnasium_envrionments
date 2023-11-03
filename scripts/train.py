@@ -14,8 +14,8 @@ import train_loops.policy_loop as pbe
 import train_loops.value_loop as vbe
 import train_loops.ppo_loop as ppe
 
-from EnvironmentFactory import EnvironmentFactory
-from configurations import GymEnvironmentConfig
+from envrionments.EnvironmentFactory import EnvironmentFactory
+from util.configurations import GymEnvironmentConfig
 
 import gym
 from gym import spaces

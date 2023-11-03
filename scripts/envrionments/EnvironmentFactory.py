@@ -13,7 +13,7 @@ from collections import deque
 # from typing import override
 from functools import cached_property
 
-from configurations import GymEnvironmentConfig
+from util.configurations import GymEnvironmentConfig
 from envrionments.OpenAIGym import OpenAIGym, OpenAIGymImage
 from envrionments.DMCS import DMCS, DMCSImage
 
