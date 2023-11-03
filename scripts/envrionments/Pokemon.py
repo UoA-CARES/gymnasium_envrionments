@@ -102,42 +102,15 @@ class Pokemon:
         return frame
 
     def step(self, action):
-        self.run_action_on_emulator(action)
-        # self.append_agent_stats(action)
-
-        # self.recent_frames = np.roll(self.recent_frames, 1, axis=0)
-        # obs_memory = self.render()
-
-        # # trim off memory from frame for knn index
-        # frame_start = 2 * (self.memory_height + self.mem_padding)
-        # obs_flat = obs_memory[
-        #     frame_start:frame_start+self.output_shape[0], ...].flatten().astype(np.float32)
-
-        # if self.use_screen_explore:
-        #     self.update_frame_knn_index(obs_flat)
-        # else:
-        #     self.update_seen_coords()
-            
-        # self.update_heal_reward()
-        # self.party_size = self.read_m(0xD163)
-
-        # new_reward, new_prog = self.update_reward()
         
-        # self.last_health = self.read_hp_fraction()
-
-        # # shift over short term reward memory
-        # self.recent_memory = np.roll(self.recent_memory, 3)
-        # self.recent_memory[0, 0] = min(new_prog[0] * 64, 255)
-        # self.recent_memory[0, 1] = min(new_prog[1] * 64, 255)
-        # self.recent_memory[0, 2] = min(new_prog[2] * 128, 255)
-
-        # step_limit_reached = self.check_if_done()
-
-        # self.save_and_print_info(step_limit_reached, obs_memory)
-
-        # self.step_count += 1
-
-        # return state, reward, done, False # for consistency with open ai gym just add false for truncated
+        self.run_action_on_emulator(action)
+        
+        new_state = self._generate_state()
+        reward = self._calculate_reward(new_state)
+        done = self._check_if_done()
+        self.state = new_state
+      
+        return self.state, reward, done, False # for consistency with open ai gym just add false for truncated
     
     def run_action_on_emulator(self, action):
         # press button then release after some steps - enough to move 
@@ -146,6 +119,15 @@ class Pokemon:
             self.pyboy.tick()
             if i == 8: # ticks required to carry a "step" in the world
               self.pyboy.send_input(self.release_button[action])
+
+    def _generate_state(self):
+        pass
+      
+    def _calculate_reward(self, new_state):
+        pass
+    
+    def _check_if_done(self):
+        return False
 
     def append_agent_stats(self, action):
         x_pos = self.read_m(0xD362)
