@@ -64,8 +64,8 @@ def policy_based_train(env, agent, memory, record, train_config: TrainingConfig,
     intrinsic_on = alg_config.intrinsic_on if hasattr(alg_config, "intrinsic_on") else False 
 
     min_noise = alg_config.min_noise if hasattr(alg_config, "min_noise") else 0
-    noise_decay = alg_config.noise_decay if hasattr(alg_config, "noise_decay") else 0
-    noise_scale = alg_config.noise_scale if hasattr(alg_config, "noise_scale") else 0
+    noise_decay = alg_config.noise_decay if hasattr(alg_config, "noise_decay") else 1.0
+    noise_scale = alg_config.noise_scale if hasattr(alg_config, "noise_scale") else 0.1
 
     logging.info(f"Training {max_steps_training} Exploration {max_steps_exploration} Evaluation {number_steps_per_evaluation}")
 
