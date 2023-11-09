@@ -1,5 +1,16 @@
+import logging
+
+import cv2
+
 from util.configurations import GymEnvironmentConfig
-from envrionments.Pokemon import Pokemon
+from envrionments.PokemonEnvironment import PokemonEnvironment, PokemonImage
+
+def step(env, action):
+    state, reward, done, _  = env.step(action)
+
+    image = env.grab_frame()
+    cv2.imshow("State", image)
+    cv2.waitKey(0)
 
 if __name__ == '__main__':
     args = {
@@ -7,12 +18,14 @@ if __name__ == '__main__':
         'task' : 'pokemon',
     }
     config = GymEnvironmentConfig(**args)
-    env = Pokemon(config)
+    env = PokemonImage(config)
 
-    env.step(0)
-
-    env.step(1)
-
-    env.step(2)
-
-    env.step(3)
+    state = env.reset()
+    image = env.grab_frame()
+    cv2.imshow("State", image)
+    cv2.waitKey(0)
+    
+    step(env, 0)
+    step(env, 1)
+    step(env, 2)
+    step(env, 3)
