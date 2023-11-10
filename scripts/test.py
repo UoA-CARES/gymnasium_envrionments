@@ -3,12 +3,15 @@ import logging
 import cv2
 
 from util.configurations import GymEnvironmentConfig
-from envrionments.PokemonEnvironment import PokemonEnvironment, PokemonImage
+from envrionments.pokemon.PokemonEnvironment import PokemonEnvironment, PokemonImage
 
 def step(env, action):
     state, reward, done, _  = env.step(action)
 
     image = env.grab_frame()
+
+    stats = env._generate_game_stats()
+    logging.info(stats)
     cv2.imshow("State", image)
     cv2.waitKey(0)
 

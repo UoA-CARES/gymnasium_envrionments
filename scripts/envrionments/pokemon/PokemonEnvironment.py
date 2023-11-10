@@ -14,7 +14,7 @@ from collections import deque
 from functools import cached_property
 
 from util.configurations import GymEnvironmentConfig
-import envrionments.pokemon_constants as pkc
+import envrionments.pokemon.pokemon_constants as pkc
 
 class PokemonEnvironment:
     def __init__(self, config: GymEnvironmentConfig) -> None:
@@ -61,7 +61,7 @@ class PokemonEnvironment:
                 hide_window=hide_window,
             )
 
-        self.prior_game_stats = self._generate_game_stats(0)
+        self.prior_game_stats = self._generate_game_stats()
 
         with open(self.init_path, "rb") as f:
             self.pyboy.load_state(f)
@@ -101,7 +101,7 @@ class PokemonEnvironment:
     def step(self, action):
         self._run_action_on_emulator(action)
 
-        current_game_stats = self._generate_game_stats(action)
+        current_game_stats = self._generate_game_stats()
 
         reward = self._calculate_reward(current_game_stats)
         done = self._check_if_done(current_game_stats)
@@ -124,22 +124,57 @@ class PokemonEnvironment:
         state = []
         return state
 
-    def _generate_game_stats(self, action):
+    def _generate_game_stats(self):
         # https://datacrystal.romhacking.net/wiki/Pok%C3%A9mon_Red/Blue:RAM_map
         return {
             'location' : self.get_location(),
-            'pokemon_count': self.get_pokemon_count(),
-            'ids': self.read_party_id(), 
+            'party_size': self.get_party_size(),
+            'ids': self.read_party_id(),
+            'pokemon': [pkc.get_pokemon(id) for id in self.read_party_id()], 
             'levels': self.read_party_level(), 
-            'type': self.read_party_type(),
+            'type_id': self.read_party_type(),
+            'type': [pkc.get_type(id) for id in self.read_party_type()],
             'hp': self.read_party_hp(),
+            'xp': self.read_party_xp(),
             'status': self.read_party_status(),
             'badges': self.get_badge_count(),
+            'caught_pokemon': self.read_caught_pokemon_count(),
+            'seen_pokemon': self.read_seen_pokemon_count(),
+            'money': self.read_money(),
         }
 
     def _calculate_reward(self, new_state):
-        pass
+        print("generating rewards")
+        rewards = {
+            'caught_reward': self.caught_reward(new_state),
+            'seen_reward': self.seen_reward(new_state),
+            'xp_reward': self.xp_reward(new_state),
+            'levels_reward': self.levels_reward(new_state),
+            'badges_reward': self.badges_reward(new_state),
+            'money_reward': self.money_reward(new_state),
+        }
+        print(rewards)
+        reward = 0
+        return reward
     
+    def caught_reward(self, new_state):
+        return new_state["caught_pokemon"] - self.prior_game_stats["caught_pokemon"]
+
+    def seen_reward(self, new_state):
+        return new_state["seen_pokemon"] - self.prior_game_stats["seen_pokemon"]
+
+    def xp_reward(self, new_state):
+        return sum(new_state["xp"]) - sum(self.prior_game_stats["xp"])
+
+    def levels_reward(self, new_state):
+        return sum(new_state["levels"]) - sum(self.prior_game_stats["levels"])
+
+    def badges_reward(self, new_state):
+        return new_state["badges"] - self.prior_game_stats["badges"]
+
+    def money_reward(self, new_state):
+        return new_state["money"] - self.prior_game_stats["money"]
+
     def _check_if_done(self, game_stats):
         return False
     
@@ -150,9 +185,10 @@ class PokemonEnvironment:
 
         return {'x': x_pos, 
                 'y': y_pos, 
-                'map': map_n}
+                'map_id': map_n,
+                'map': pkc.get_map_location(map_n)}
 
-    def get_pokemon_count(self):
+    def get_party_size(self):
         return self.read_m(0xD163)
 
     def get_badge_count(self):
@@ -189,6 +225,9 @@ class PokemonEnvironment:
 
     def read_hp(self, start):
         return 256 * self.read_m(start) + self.read_m(start+1)
+
+    def read_caught_pokemon_count(self):
+        return sum([self.bit_count(self.read_m(i)) for i in range(0xD2F7, 0xD30A)])
 
     def read_seen_pokemon_count(self):
         return sum([self.bit_count(self.read_m(i)) for i in range(0xD30A, 0xD31D)])
@@ -270,6 +309,3 @@ class PokemonImage(PokemonEnvironment):
         stacked_frames = np.concatenate(list(self.frames_stacked), axis=0)
         return stacked_frames, reward, done, truncated
     
-
-
-
