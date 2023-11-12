@@ -7,13 +7,13 @@ from envrionments.pokemon.PokemonEnvironment import PokemonEnvironment, PokemonI
 
 def key_to_action(key):
     map = {
-        115: 0,
-        97: 1,
-        100: 2,
-        119: 3,
-        122: 4,
-        120: 5,
-        32: 6, 
+        115: 0, #s - down
+        97: 1,  #a - left
+        100: 2, #d - right
+        119: 3, #w - up
+        122: 4, #z - A
+        120: 5, #x - B
+        32: 6,  #space - start
     }
     if key in map.keys():
         return map[key]

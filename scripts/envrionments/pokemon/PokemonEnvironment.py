@@ -23,8 +23,8 @@ class PokemonEnvironment:
         self.task = config.task
 
         self.rom_path = f'{Path.home()}/cares_rl_configs/pokemon/PokemonRed.gb'
-        # self.init_path = f'{Path.home()}/cares_rl_configs/pokemon/init.state'has_pokedex
-        self.init_path = f'{Path.home()}/cares_rl_configs/pokemon/has_pokedex.state'
+        # self.init_path = f'{Path.home()}/cares_rl_configs/pokemon/init.state' # Full Initial 
+        self.init_path = f'{Path.home()}/cares_rl_configs/pokemon/has_pokedex.state' # Has Squirtle
         #config.rom_path
 
         self.valid_actions = [
@@ -154,6 +154,7 @@ class PokemonEnvironment:
         return {
             'caught_reward': self._caught_reward(new_state),
             'seen_reward': self._seen_reward(new_state),
+            'health_reward': self._health_reward(new_state),
             'xp_reward': self._xp_reward(new_state),
             'levels_reward': self._levels_reward(new_state),
             'badges_reward': self._badges_reward(new_state),
@@ -166,6 +167,9 @@ class PokemonEnvironment:
 
     def _seen_reward(self, new_state):
         return new_state["seen_pokemon"] - self.prior_game_stats["seen_pokemon"]
+
+    def _health_reward(self, new_state):
+        return sum(new_state["hp"]["current"]) - sum(self.prior_game_stats["hp"]["current"])
 
     def _xp_reward(self, new_state):
         return sum(new_state["xp"]) - sum(self.prior_game_stats["xp"])
