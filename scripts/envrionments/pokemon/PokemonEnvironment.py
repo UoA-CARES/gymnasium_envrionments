@@ -25,7 +25,6 @@ class PokemonEnvironment:
         self.rom_path = f'{Path.home()}/cares_rl_configs/pokemon/PokemonRed.gb'
         # self.init_path = f'{Path.home()}/cares_rl_configs/pokemon/init.state' # Full Initial 
         self.init_path = f'{Path.home()}/cares_rl_configs/pokemon/has_pokedex.state' # Has Squirtle
-        #config.rom_path
 
         self.valid_actions = [
             WindowEvent.PRESS_ARROW_DOWN,

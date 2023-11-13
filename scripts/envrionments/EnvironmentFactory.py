@@ -16,6 +16,14 @@ from functools import cached_property
 from util.configurations import GymEnvironmentConfig
 from envrionments.OpenAIGym import OpenAIGym, OpenAIGymImage
 from envrionments.DMCS import DMCS, DMCSImage
+from envrionments.pokemon.PokemonEnvironment import PokemonEnvironment, PokemonImage
+
+def create_pyboy_environment(config: GymEnvironmentConfig):
+    if config.task == "pokemon":
+        env = PokemonImage(config) if config.image_observation else PokemonEnvironment(config)
+    else:
+        raise ValueError(f"Unkown pyboy environment: {config.task}")
+    return env
 
 class EnvironmentFactory:
     def __init__(self) -> None:
@@ -27,6 +35,8 @@ class EnvironmentFactory:
             env = DMCSImage(config) if config.image_observation else DMCS(config)
         elif config.gym == "openai":
             env = OpenAIGymImage(config) if config.image_observation else OpenAIGym(config)
+        elif config.gym == "pyboy":# TODO extend to other pyboy games...maybe another repo?
+            env = create_pyboy_environment(config)
         else:
             raise ValueError(f"Unkown environment: {config.gym}")
         return env
