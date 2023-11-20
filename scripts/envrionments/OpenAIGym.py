@@ -2,8 +2,8 @@ import logging
 
 import cv2
 
-import gym
-from gym import spaces
+import gymnasium as gym
+from gymnasium import spaces
 
 import numpy as np
 from collections import deque
