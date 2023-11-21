@@ -103,37 +103,9 @@ class PokemonEnvironment:
         # Actions excluding start
         self.step_count += 1
 
-        if action >= -1 and action < -0.666666666667:
-            discrete_action = 0
-        elif action >= -0.666666666667 and action < -0.33333333334:
-            discrete_action = 1
-        elif action >= -0.33333333334 and action < -0.000000001:
-            discrete_action = 2
-        elif action >= -0.000000001 and action < 0.333333332:
-            discrete_action = 3
-        elif action >= 0.333333332 and action < 0.666666665:
-            discrete_action = 4
-        else:
-            discrete_action = 5
+        bins = np.linspace(self.min_action_value, self.max_action_value, num=len(self.valid_actions)+1)
+        discrete_action = np.digitize(action, bins)
         
-        # logging.info(discrete_action)
-
-        # 7 action version (Incl. start)
-        # if action >= -1 and action < -0.71428571429:
-        #     discrete_action = 0
-        # elif action >= -0.71428571429 and action < -0.428571429:
-        #     discrete_action = 1
-        # elif action >= -0.428571429 and action < -0.142857143:
-        #     discrete_action = 2
-        # elif action >= -0.142857143 and action < 0.142857143:
-        #     discrete_action = 3
-        # elif action >= 0.142857143 and action < 0.428571429:
-        #     discrete_action = 4
-        # elif action >= 0.428571429 and action < 0.71428571429:
-        #     discrete_action = 5
-        # else:
-        #     discrete_action = 6
-
         self._run_action_on_emulator(discrete_action)
 
         current_game_stats = self._generate_game_stats()
