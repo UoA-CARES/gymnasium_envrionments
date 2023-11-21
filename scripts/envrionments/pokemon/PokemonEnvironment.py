@@ -33,7 +33,8 @@ class PokemonEnvironment:
             WindowEvent.PRESS_ARROW_UP,
             WindowEvent.PRESS_BUTTON_A,
             WindowEvent.PRESS_BUTTON_B,
-            WindowEvent.PRESS_BUTTON_START,
+            # WindowEvent.PRESS_BUTTON_START,
+            # Removing start for now to reduce the complexity
         ]
         
         self.release_button = [
@@ -43,7 +44,7 @@ class PokemonEnvironment:
             WindowEvent.RELEASE_ARROW_UP,
             WindowEvent.RELEASE_BUTTON_A,
             WindowEvent.RELEASE_BUTTON_B,
-            WindowEvent.RELEASE_BUTTON_START,
+            # WindowEvent.RELEASE_BUTTON_START,
         ]
 
         self.act_freq = 24
@@ -59,16 +60,20 @@ class PokemonEnvironment:
 
         self.prior_game_stats = self._generate_game_stats()
         self.screen = self.pyboy.botsupport_manager().screen()
+
+        self.step_count = 0
+
+        self.pyboy.set_emulation_speed(0)
         
         self.reset()
 
     @cached_property
     def min_action_value(self):
-        return 0
+        return -1
     
     @cached_property
     def max_action_value(self):
-        return len(self.valid_actions)
+        return 1
 
     @cached_property
     def observation_space(self):
@@ -76,10 +81,11 @@ class PokemonEnvironment:
     
     @cached_property
     def action_num(self):
-        return len(self.valid_actions)
+        return 1
 
     def set_seed(self, seed):
-        self.seed = seed # There isn't a random element to set that I am aware of...
+        self.seed = seed
+        # There isn't a random element to set that I am aware of...
 
     def reset(self):
         # restart game, skipping credits and selecting first pokemon
@@ -89,11 +95,46 @@ class PokemonEnvironment:
     def grab_frame(self, height=240, width=300):
         frame = self.screen.screen_ndarray()
         frame = cv2.resize(frame, (width, height))
-        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB) # Convert to BGR for use with OpenCV
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        # Convert to BGR for use with OpenCV
         return frame
 
     def step(self, action):
-        self._run_action_on_emulator(action)
+        # Actions excluding start
+        self.step_count += 1
+
+        if action >= -1 and action < -0.666666666667:
+            discrete_action = 0
+        elif action >= -0.666666666667 and action < -0.33333333334:
+            discrete_action = 1
+        elif action >= -0.33333333334 and action < -0.000000001:
+            discrete_action = 2
+        elif action >= -0.000000001 and action < 0.333333332:
+            discrete_action = 3
+        elif action >= 0.333333332 and action < 0.666666665:
+            discrete_action = 4
+        else:
+            discrete_action = 5
+        
+        # logging.info(discrete_action)
+
+        # 7 action version (Incl. start)
+        # if action >= -1 and action < -0.71428571429:
+        #     discrete_action = 0
+        # elif action >= -0.71428571429 and action < -0.428571429:
+        #     discrete_action = 1
+        # elif action >= -0.428571429 and action < -0.142857143:
+        #     discrete_action = 2
+        # elif action >= -0.142857143 and action < 0.142857143:
+        #     discrete_action = 3
+        # elif action >= 0.142857143 and action < 0.428571429:
+        #     discrete_action = 4
+        # elif action >= 0.428571429 and action < 0.71428571429:
+        #     discrete_action = 5
+        # else:
+        #     discrete_action = 6
+
+        self._run_action_on_emulator(discrete_action)
 
         current_game_stats = self._generate_game_stats()
         state = self._stats_to_state(current_game_stats)
@@ -104,8 +145,10 @@ class PokemonEnvironment:
         done = self._check_if_done(current_game_stats)
         
         self.prior_game_stats = current_game_stats
+
+        truncated = True if self.step_count % 1000 == 0 else False
       
-        return state, reward, done, False # for consistency with open ai gym just add false for truncated
+        return state, reward, done, truncated
     
     def _run_action_on_emulator(self, action):
         # press button then release after some steps - enough to move 
@@ -144,6 +187,7 @@ class PokemonEnvironment:
         reward_total = 0
         for _, reward in reward_stats.items():
             reward_total += reward
+        # logging.info('total reward: {0}'.format(reward_total))
         return reward_total
 
     def _calculate_reward_stats(self, new_state):
@@ -186,7 +230,8 @@ class PokemonEnvironment:
         return sum(new_state["events"]) - sum(self.prior_game_stats["events"])
 
     def _check_if_done(self, game_stats):
-        return False
+        # Setting done to true if agent beats first gym (temporary)
+        return True if self.prior_game_stats['badges'] > 0 else False
     
     def _get_location(self):
         x_pos = self._read_m(0xD362)

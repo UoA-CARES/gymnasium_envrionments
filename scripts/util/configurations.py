@@ -13,7 +13,7 @@ class GymEnvironmentConfig(EnvironmentConfig):
     gym: str = Field(description='Gym Environment <openai, dmcs, pyboy>')
     task: str
     domain: Optional[str] = ""
-    image_observation: Optional[bool] = False
+    image_observation: Optional[bool] = True
 
 # class OpenAIEnvironmentConfig(GymEnvironmentConfig):
 #     gym: str = Field("openai", Literal=True)
