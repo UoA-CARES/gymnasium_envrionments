@@ -57,7 +57,7 @@ def main():
             raise ValueError(f"Unkown agent for default algorithms {alg_config.algorithm}")
 
         # TODO manage arguements for future memory types
-        memory = memory_factory.create_memory(alg_config.memory, args=[])
+        memory = memory_factory.create_memory(alg_config.memory, training_config.buffer_size, args=[])
         logging.info(f"Memory: {alg_config.memory}")
 
         #create the record class - standardised results tracking
