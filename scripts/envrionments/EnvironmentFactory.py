@@ -17,10 +17,13 @@ from util.configurations import GymEnvironmentConfig
 from envrionments.OpenAIGym import OpenAIGym, OpenAIGymImage
 from envrionments.DMCS import DMCS, DMCSImage
 from envrionments.pokemon.PokemonEnvironment import PokemonEnvironment, PokemonImage
+from envrionments.mario.MarioEnvironment import MarioEnvironment, MarioImage
 
 def create_pyboy_environment(config: GymEnvironmentConfig):
     if config.task == "pokemon":
         env = PokemonImage(config) if config.image_observation else PokemonEnvironment(config)
+    elif config.task == "mario":
+        env = MarioImage(config) if config.image_observation else MarioEnvironment(config)
     else:
         raise ValueError(f"Unkown pyboy environment: {config.task}")
     return env
