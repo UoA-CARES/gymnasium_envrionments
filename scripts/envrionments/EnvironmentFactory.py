@@ -16,8 +16,8 @@ from functools import cached_property
 from util.configurations import GymEnvironmentConfig
 from envrionments.OpenAIGym import OpenAIGym, OpenAIGymImage
 from envrionments.DMCS import DMCS, DMCSImage
-from envrionments.pokemon.PokemonEnvironment import PokemonEnvironment, PokemonImage
-from envrionments.mario.MarioEnvironment import MarioEnvironment, MarioImage
+from envrionments.pyboy.pokemon.PokemonEnvironment import PokemonEnvironment, PokemonImage
+from envrionments.pyboy.mario.MarioEnvironment import MarioEnvironment, MarioImage
 
 def create_pyboy_environment(config: GymEnvironmentConfig):
     if config.task == "pokemon":

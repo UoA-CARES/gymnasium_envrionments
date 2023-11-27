@@ -7,17 +7,16 @@ import numpy as np
 from collections import deque
 # from typing import override
 from functools import cached_property
+
 from util.configurations import GymEnvironmentConfig
+from envrionments.pyboy.PyboyEnvironment import PyboyEnvironment
 
-class MarioEnvironment:
+class MarioEnvironment(PyboyEnvironment):
     def __init__(self, config: GymEnvironmentConfig) -> None:
-        logging.info(f"Training with Task {config.task}")
-        headless = False
-        self.task = config.task
+        super().__init__(config, 
+                         rom_path = f'{Path.home()}/cares_rl_configs/mario/SuperMarioLand.gb',
+                         init_path = f'{Path.home()}/cares_rl_configs/mario/init.state')
         
-        self.rom_path = f'{Path.home()}/cares_rl_configs/mario/SuperMarioLand.gb'
-        self.init_path = f'{Path.home()}/cares_rl_configs/mario/init.state' # Full Initial
-
         self.valid_actions = [
             WindowEvent.PRESS_ARROW_DOWN,
             WindowEvent.PRESS_ARROW_LEFT,
@@ -38,88 +37,6 @@ class MarioEnvironment:
             WindowEvent.RELEASE_BUTTON_B,
             # WindowEvent.RELEASE_BUTTON_START,
         ]
-
-        self.act_freq = 24
-
-        head, hide_window = ['headless', True] if headless else ['SDL2', False]
-        self.pyboy = PyBoy(
-                self.rom_path,
-                debugging=False,
-                disable_input=False,
-                window_type=head,
-                hide_window=hide_window,
-            )
-        
-        self.prior_game_stats = self._generate_game_stats()
-        self.screen = self.pyboy.botsupport_manager().screen()
-
-        self.step_count = 0
-
-        self.pyboy.set_emulation_speed(0)
-        
-        self.reset()
-
-    @cached_property
-    def min_action_value(self):
-        return -1
-    
-    @cached_property
-    def max_action_value(self):
-        return 1
-    
-    @cached_property
-    def observation_space(self):
-        return self._stats_to_state(self._generate_game_stats())
-    
-    @cached_property
-    def action_num(self):
-        return 1
-    
-    def set_seed(self, seed):
-        self.seed = seed
-
-    def reset(self):
-        # restart game
-        with open(self.init_path, "rb") as f:
-            self.pyboy.load_state(f)
-
-    def grab_frame(self, height=240, width=300):
-        frame = self.screen.screen_ndarray()
-        frame = cv2.resize(frame, (width, height))
-        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        # Convert to BGR for use with OpenCV
-        return frame
-    
-    def step(self, action):
-        # Actions excluding start
-        self.step_count += 1
-
-        bins = np.linspace(self.min_action_value, self.max_action_value, num=len(self.valid_actions))
-        discrete_action = int(np.digitize(action, bins)) - 1 # number to index
-
-        self._run_action_on_emulator(discrete_action)
-
-        current_game_stats = self._generate_game_stats()
-        state = self._stats_to_state(current_game_stats)
-
-        reward_stats = self._calculate_reward_stats(current_game_stats)
-        reward = self._reward_stats_to_reward(reward_stats)
-
-        done = self._check_if_done(current_game_stats)
-
-        self.prior_game_stats = current_game_stats
-
-        truncated = True if self.step_count % 10000 == 0 else False
-
-        return state, reward, done, truncated
-    
-    def _run_action_on_emulator(self, action):
-        # press button then release after some steps - enough to move
-        self.pyboy.send_input(self.valid_actions[action])
-        for i in range(self.act_freq):
-            self.pyboy.tick()
-            if i == 8: # ticks required to carry a "step" in the world
-              self.pyboy.send_input(self.release_button[action])
 
     def _stats_to_state(self, game_stats):
         # TODO figure out exactly what our observation space is - note we will have an image based version of this class
@@ -229,23 +146,6 @@ class MarioEnvironment:
     
     def _get_game_over(self):
         return 1 if self._read_m(0xFFB3) == 0x39 else 0
-    
-    def _read_m(self, addr):
-        return self.pyboy.get_memory_value(addr)
-    
-    def _read_bit(self, addr, bit: int) -> bool:
-        # add padding so zero will read '0b100000000' instead of '0b0'
-        return bin(256 + self._read_m(addr))[-bit-1] == '1'
-    
-    # built-in since python 3.10
-    def _bit_count(self, bits):
-        return bin(bits).count('1')
-    
-    def _read_triple(self, start_add):
-        return 256*256*self._read_m(start_add) + 256*self._read_m(start_add+1) + self._read_m(start_add+2)
-    
-    def _read_bcd(self, num):
-        return 10 * ((num >> 4) & 0x0f) + (num & 0x0f)
     
 class MarioImage(MarioEnvironment):
     def __init__(self, config: GymEnvironmentConfig, k=3):
