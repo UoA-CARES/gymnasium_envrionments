@@ -16,14 +16,14 @@ from functools import cached_property
 from util.configurations import GymEnvironmentConfig
 from envrionments.OpenAIGym import OpenAIGym, OpenAIGymImage
 from envrionments.DMCS import DMCS, DMCSImage
-from envrionments.pyboy.pokemon.PokemonEnvironment import PokemonEnvironment, PokemonImage
-from envrionments.pyboy.mario.MarioEnvironment import MarioEnvironment, MarioImage
+from envrionments.pyboy.pokemon.Pokemon import Pokemon, PokemonImage
+from envrionments.pyboy.mario.Mario import Mario, MarioImage
 
 def create_pyboy_environment(config: GymEnvironmentConfig):
     if config.task == "pokemon":
-        env = PokemonImage(config) if config.image_observation else PokemonEnvironment(config)
+        env = PokemonImage(config) if config.image_observation else Pokemon(config)
     elif config.task == "mario":
-        env = MarioImage(config) if config.image_observation else MarioEnvironment(config)
+        env = MarioImage(config) if config.image_observation else Mario(config)
     else:
         raise ValueError(f"Unkown pyboy environment: {config.task}")
     return env

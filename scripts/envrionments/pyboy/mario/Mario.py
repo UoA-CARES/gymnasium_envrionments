@@ -9,13 +9,11 @@ from collections import deque
 from functools import cached_property
 
 from util.configurations import GymEnvironmentConfig
-from envrionments.pyboy.PyboyEnvironment import PyboyEnvironment
+from envrionments.pyboy.Pyboy import Pyboy
 
-class MarioEnvironment(PyboyEnvironment):
+class Mario(Pyboy):
     def __init__(self, config: GymEnvironmentConfig) -> None:
-        super().__init__(config, 
-                         rom_path = f'{Path.home()}/cares_rl_configs/mario/SuperMarioLand.gb',
-                         init_path = f'{Path.home()}/cares_rl_configs/mario/init.state')
+        super().__init__(config, rom_name='SuperMarioLand.gb', init_name='init.state')
         
         self.valid_actions = [
             WindowEvent.PRESS_ARROW_DOWN,
@@ -147,7 +145,7 @@ class MarioEnvironment(PyboyEnvironment):
     def _get_game_over(self):
         return 1 if self._read_m(0xFFB3) == 0x39 else 0
     
-class MarioImage(MarioEnvironment):
+class MarioImage(Mario):
     def __init__(self, config: GymEnvironmentConfig, k=3):
         self.k    = k  # number of frames to be stacked
         self.frames_stacked = deque([], maxlen=k)

@@ -16,14 +16,13 @@ from functools import cached_property
 from util.configurations import GymEnvironmentConfig
 import envrionments.pyboy.pokemon.pokemon_constants as pkc
 
-class PyboyEnvironment:
-    def __init__(self, config: GymEnvironmentConfig, rom_path : str, init_path : str) -> None:
+class Pyboy:
+    def __init__(self, config: GymEnvironmentConfig, rom_name : str, init_name : str) -> None:
         logging.info(f"Training with Task {config.task}")
-        headless = False
         self.task = config.task
 
-        self.rom_path = rom_path
-        self.init_path = init_path
+        self.rom_path = f'{config.rom_path}/{self.task}/{rom_name}'
+        self.init_path = f'{config.rom_path}/{self.task}/{init_name}'
 
         self.valid_actions = [
         ]
@@ -31,9 +30,9 @@ class PyboyEnvironment:
         self.release_button = [
         ]
 
-        self.act_freq = 24#config.act_freq
+        self.act_freq = config.act_freq
 
-        head, hide_window = ['headless', True] if headless else ['SDL2', False]
+        head, hide_window = ['headless', True] if config.headless else ['SDL2', False]
         self.pyboy = PyBoy(
                 self.rom_path,
                 debugging=False,
@@ -47,7 +46,7 @@ class PyboyEnvironment:
 
         self.step_count = 0
 
-        self.pyboy.set_emulation_speed(0)#config.emulation_speed)
+        self.pyboy.set_emulation_speed(config.emulation_speed)
         
         self.reset()
 
@@ -73,6 +72,7 @@ class PyboyEnvironment:
 
     def reset(self):
         # restart game, skipping credits and selecting first pokemon
+        print("reset")
         with open(self.init_path, "rb") as f:
             self.pyboy.load_state(f)
 

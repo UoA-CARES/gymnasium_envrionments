@@ -14,15 +14,12 @@ from collections import deque
 from functools import cached_property
 
 from util.configurations import GymEnvironmentConfig
-from envrionments.pyboy.PyboyEnvironment import PyboyEnvironment
+from envrionments.pyboy.Pyboy import Pyboy
 import envrionments.pyboy.pokemon.pokemon_constants as pkc
 
-class PokemonEnvironment(PyboyEnvironment):
+class Pokemon(Pyboy):
     def __init__(self, config: GymEnvironmentConfig) -> None:
-        
-        super().__init__(config, 
-                         rom_path = f'{Path.home()}/cares_rl_configs/pokemon/PokemonRed.gb', 
-                         init_path = f'{Path.home()}/cares_rl_configs/pokemon/has_pokedex.state')
+        super().__init__(config, 'PokemonRed.gb', 'has_pokedex.state')
 
         self.valid_actions = [
             WindowEvent.PRESS_ARROW_DOWN,
@@ -186,7 +183,7 @@ class PokemonEnvironment(PyboyEnvironment):
         # base_event_flags = 13
         return [self._bit_count(self._read_m(i)) for i in range(event_flags_start, event_flags_end)]
         
-class PokemonImage(PokemonEnvironment):
+class PokemonImage(Pokemon):
     def __init__(self, config: GymEnvironmentConfig, k=3):
         self.k    = k  # number of frames to be stacked
         self.frames_stacked = deque([], maxlen=k)
