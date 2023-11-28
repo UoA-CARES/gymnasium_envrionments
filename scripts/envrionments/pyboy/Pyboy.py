@@ -87,6 +87,7 @@ class Pyboy:
         return frame
 
     def step(self, action, discrete=False):
+    def step(self, action, discrete=False):
         # Actions excluding start
         self.step_count += 1
 
@@ -152,7 +153,6 @@ class Pyboy:
         return 256*256*self._read_m(start_add) + 256*self._read_m(start_add+1) + self._read_m(start_add+2)
     
     def _read_bcd(self, num):
-        return 10 * ((num >> 4) & 0x0f) + (num & 0x0f)
        
     def _get_sprites(self):
         ss = []
@@ -174,8 +174,7 @@ class Pyboy:
         height = game_area_section[3]
     
         tilemap_background = self.pyboy.botsupport_manager().tilemap_background()
-        # int64 because torch can't convert type uint32
-        game_area = np.asarray(tilemap_background[xx:xx + width, yy:yy + height], dtype=np.int64)
+        game_area = np.asarray(tilemap_background[xx:xx + width, yy:yy + height], dtype=np.uint32)
 
         ss = self._get_sprites()
         for s in ss:
