@@ -10,7 +10,7 @@ from collections import deque
 # from typing import override
 from functools import cached_property
 
-from configurations import GymEnvironmentConfig
+from util.configurations import GymEnvironmentConfig
 
 class DMCS:
     def __init__(self, config: GymEnvironmentConfig) -> None:

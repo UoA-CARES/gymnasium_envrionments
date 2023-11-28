@@ -20,12 +20,14 @@ This package is a basic example of running the CARES RL algorithms on OpenAI/DMC
 
 `train.py` takes in hyperparameters that allow you to customise the training run enviromment – OpenAI or DMCS Environment - or RL algorithm. Use `python3 train.py -h` for help on what parameters are available for customisation.
 
-An example is found below for running on the OpenAI and DMCS environments with TD3 through console
+An example is found below for running on the OpenAI, DMCS, and pyboy environments with TD3/NaSATD3 through console
 ```
 python train.py run --gym openai --task HalfCheetah-v4 TD3
 
 
 python3 train.py run --gym dmcs --domain ball_in_cup --task catch TD3
+
+python3 train.py run --gym pyboy --task pokemon NaSATD3 --image-observation=True
 ```
 
 An example is found below for running using pre-defined configuration files - note these directories will need to exist on your machine for this to function. Examples of each configuration can be found in the `configs` folder and under https://github.com/UoA-CARES/cares_reinforcement_learning/

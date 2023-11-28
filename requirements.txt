@@ -4,3 +4,5 @@ numpy==1.23.5
 opencv_python==4.8.1.78
 pydantic==1.10.13
 torch==2.0.1
+pyboy==1.6.7
+mediapy=1.1.9
