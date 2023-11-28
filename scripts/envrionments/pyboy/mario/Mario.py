@@ -38,11 +38,6 @@ class Mario(Pyboy):
             # WindowEvent.RELEASE_BUTTON_START,
         ]
 
-    def _stats_to_state(self, game_stats):
-        # TODO figure out exactly what our observation space is - note we will have an image based version of this class
-        state = []
-        return state
-    
     # @override
     def _run_action_on_emulator(self, action):
          # extra action for long jumping to the right
