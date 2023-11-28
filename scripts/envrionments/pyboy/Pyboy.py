@@ -24,6 +24,8 @@ class Pyboy:
         self.rom_path = f'{config.rom_path}/{self.task}/{rom_name}'
         self.init_path = f'{config.rom_path}/{self.task}/{init_name}'
 
+        self.combo_actions = 0
+
         self.valid_actions = [
         ]
         
@@ -87,7 +89,10 @@ class Pyboy:
         # Actions excluding start
         self.step_count += 1
 
-        bins = np.linspace(self.min_action_value, self.max_action_value, num=len(self.valid_actions))
+        # if action == 1 digitize sets discrete action to a new value
+        if action == 1:
+            action -= 0.001
+        bins = np.linspace(self.min_action_value, self.max_action_value, num=len(self.valid_actions) + 1 + self.combo_actions)
         discrete_action = int(np.digitize(action, bins)) - 1 # number to index
 
         self._run_action_on_emulator(discrete_action)
@@ -102,7 +107,7 @@ class Pyboy:
         
         self.prior_game_stats = current_game_stats
 
-        truncated = True if self.step_count % 1000 == 0 else False
+        truncated = True if self.step_count % 10000 == 0 else False
       
         return state, reward, done, truncated
     
