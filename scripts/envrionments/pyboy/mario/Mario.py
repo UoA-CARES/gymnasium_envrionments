@@ -103,7 +103,7 @@ class Mario(Pyboy):
         if new_state["lives"] - self.prior_game_stats["lives"] < 0:
             self.reset()
             logging.info('resetting')
-            return (new_state["lives"] - self.prior_game_stats["lives"]) * 5
+            return (new_state["lives"] - self.prior_game_stats["lives"]) * 10
         return 0
     
     def _score_reward(self, new_state):
