@@ -73,9 +73,6 @@ class Mario(Pyboy):
             'world': self._get_world(),
             'game_over': self._get_game_over(),
             'direction' : self._get_direction(),
-
-            # changes when the screen scrolls to the right
-            'x_scroll' : self._get_x_scroll(),  
         }
     
     def _reward_stats_to_reward(self, reward_stats):
@@ -91,6 +88,8 @@ class Mario(Pyboy):
 
         return {
             'lives_reward': self._lives_reward(new_state),
+
+            # we can remove the coin reward, and just use score, it will reward mario for power ups and defeating enemies as well
             # 'score_reward': self._score_reward(new_state),
             'powerup_reward': self._powerup_reward(new_state),
             'coins_reward': self._coins_reward(new_state),
@@ -102,6 +101,8 @@ class Mario(Pyboy):
     
     def _lives_reward(self, new_state):
         if new_state["lives"] - self.prior_game_stats["lives"] < 0:
+            self.reset()
+            logging.info('resetting')
             return (new_state["lives"] - self.prior_game_stats["lives"]) * 5
         return 0
     
@@ -123,13 +124,12 @@ class Mario(Pyboy):
             return 0
         
     def _direction_reward(self, new_state):
-        # TODO implement method to reward right direction while not rewarding
-        # going right when running into a wall
-        return 1 if (new_state['direction'] - self.prior_game_stats['direction'] == 1) else 0
+        # old code
+        # return 1 if (new_state['direction'] - self.prior_game_stats['direction'] == 1) else 0
 
         #new code, should work to stop running into walls
         
-        #return 1 if(new_state['x_scroll'] != self.prior_game_stats['x_scroll']) else 0
+        return 1 if(new_state['direction'] - self.prior_game_stats['direction'] > 0) else 0
     
     def _stage_reward(self, new_state):
         if new_state["stage"] - self.prior_game_stats["stage"] == -2:
@@ -180,10 +180,8 @@ class Mario(Pyboy):
         return 0
     
     def _get_direction(self):
-        return 1 if self._read_m(0xC20D) == 0x10 else 0
-    
-    def _get_x_scroll(self):
-        return self._read_m(0xFF43)
+        # return 1 if self._read_m(0xC20D) == 0x10 else 0
+        return self._read_m(0xC0AB)
     
 class MarioImage(Mario):
     def __init__(self, config: GymEnvironmentConfig, k=3):
