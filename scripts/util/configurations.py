@@ -13,7 +13,7 @@ class GymEnvironmentConfig(EnvironmentConfig):
     gym: str = Field(description='Gym Environment <openai, dmcs, pyboy>')
     task: str
     domain: Optional[str] = ""
-    image_observation: Optional[bool] = True
+    image_observation: Optional[bool] = False
 
     rom_path : Optional[str] = f'{Path.home()}/cares_rl_configs/'
     act_freq : Optional[int] = 24

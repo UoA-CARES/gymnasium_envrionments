@@ -2,8 +2,11 @@ import logging
 
 import cv2
 
+import pandas as pd
+
 from util.configurations import GymEnvironmentConfig
-from envrionments.pokemon.PokemonEnvironment import PokemonEnvironment, PokemonImage
+from envrionments.pyboy.pokemon.Pokemon import Pokemon, PokemonImage
+from envrionments.pyboy.mario.Mario import Mario, MarioImage
 
 def key_to_action(key):
     map = {
@@ -13,20 +16,24 @@ def key_to_action(key):
         119: 3, #w - up
         122: 4, #z - A
         120: 5, #x - B
-        32: 6,  #space - start
+        # 32: 6,  #space - start
     }
+    logging.info(f"Key: {key}")
     if key in map.keys():
+        logging.info(f"Map: {map[key]}")
         return map[key]
     else:
         return -1
 
 if __name__ == '__main__':
     args = {
-        'gym' : 'pokemon',
-        'task' : 'pokemon',
+        'gym' : 'pyboy',
+        # 'task' : 'pokemon',
+        'task' : 'mario',
     }
     config = GymEnvironmentConfig(**args)
-    env = PokemonImage(config)
+    # env = PokemonImage(config)
+    env = MarioImage(config)
 
     state = env.reset()
     image = env.grab_frame()
@@ -38,8 +45,15 @@ if __name__ == '__main__':
         if action == -1:
             break
 
-        state, reward, done, _  = env.step(action)
+        state, reward, done, _  = env.step(action, discrete=True)
         image = env.grab_frame()
 
         stats = env._generate_game_stats()
-        logging.info(stats)
+        # logging.info(stats)
+
+        game_area = env.game_area()
+
+        area = pd.DataFrame(game_area)        
+
+        print(area)
+        logging.info(game_area.shape)
