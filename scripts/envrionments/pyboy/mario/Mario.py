@@ -172,9 +172,9 @@ class MarioImage(Mario):
         return stacked_frames
     
     # @override
-    def step(self, action):
+    def step(self, action, discrete=False):
         # _, reward, done, truncated, _ = self.env.step(action)
-        _, reward, done, truncated = super().step(action)
+        _, reward, done, truncated = super().step(action, discrete)
 
         frame = self.grab_frame(height=self.frame_height, width=self.frame_width)
         frame = np.moveaxis(frame, -1, 0)

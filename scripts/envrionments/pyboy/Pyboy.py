@@ -83,12 +83,12 @@ class Pyboy:
         # Convert to BGR for use with OpenCV
         return frame
 
-    def step(self, action):
+    def step(self, action, discrete=False):
         # Actions excluding start
         self.step_count += 1
 
         bins = np.linspace(self.min_action_value, self.max_action_value, num=len(self.valid_actions))
-        discrete_action = int(np.digitize(action, bins)) - 1 # number to index
+        discrete_action = action if discrete else int(np.digitize(action, bins)) - 1 # number to index
 
         self._run_action_on_emulator(discrete_action)
         
@@ -145,4 +145,34 @@ class Pyboy:
     
     def _read_bcd(self, num):
         return 10 * ((num >> 4) & 0x0f) + (num & 0x0f)
-        
+       
+    def _get_sprites(self):
+        ss = []
+        for i in range(40): #game boy can only support 40 sprites on screen at a time
+            s = self.pyboy.botsupport_manager().sprite(i)
+            if s.on_screen:
+                ss.append(s)
+        return ss
+
+    # function is a work in progress
+    def game_area(self):
+        # shape = (20, 18)
+        shape = (20, 16)
+        game_area_section=(0, 2) + shape
+
+        xx = game_area_section[0]
+        yy = game_area_section[1]
+        width = game_area_section[2]
+        height = game_area_section[3]
+    
+        tilemap_background = self.pyboy.botsupport_manager().tilemap_background()
+        game_area = np.asarray(tilemap_background[xx:xx + width, yy:yy + height], dtype=np.uint32)
+
+        ss = self._get_sprites()
+        for s in ss:
+            _x = (s.x // 8) - xx
+            _y = (s.y // 8) - yy
+            if 0 <= _y < height and 0 <= _x < width:
+                game_area[_y][_x] = s.tile_identifier
+
+        return game_area
