@@ -62,6 +62,30 @@ class Mario(Pyboy):
         state = []
         return state
     
+    # @override
+    def _run_action_on_emulator(self, action):
+         # extra action for long jumping to the right
+        if action == 5:
+            self.pyboy.send_input(WindowEvent.PRESS_ARROW_RIGHT)
+            self.pyboy.send_input(WindowEvent.PRESS_BUTTON_A)
+            for i in range(self.act_freq):
+                self.pyboy.tick()
+                if i == 24:
+                    self.pyboy.send_input(WindowEvent.RELEASE_ARROW_RIGHT)
+                    self.pyboy.send_input(WindowEvent.RELEASE_BUTTON_A)
+        else:
+            # press button then release after some steps - enough to move
+            self.pyboy.send_input(self.valid_actions[action])
+            for i in range(self.act_freq):
+                self.pyboy.tick()
+                if i == 8: # ticks required to carry a "step" in the world
+                    self.pyboy.send_input(self.release_button[action])
+
+    def _stats_to_state(self, game_stats):
+        # TODO figure out exactly what our observation space is - note we will have an image based version of this class
+        state = []
+        return state
+    
     def _generate_game_stats(self):
         # https://datacrystal.romhacking.net/wiki/Super_Mario_Land:RAM_map
         return {
