@@ -54,7 +54,7 @@ if __name__ == "__main__":
         if action == -1:
             break
 
-        state, reward, done, _  = env.step(action)
+        state, reward, done, _  = env.step(action, discrete=True)
         image = env.grab_frame()
 
         stats = env._generate_game_stats()
