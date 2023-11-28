@@ -90,9 +90,9 @@ class Mario(Pyboy):
             'lives_reward': self._lives_reward(new_state),
 
             # we can remove the coin reward, and just use score, it will reward mario for power ups and defeating enemies as well
-            # 'score_reward': self._score_reward(new_state),
-            'powerup_reward': self._powerup_reward(new_state),
-            'coins_reward': self._coins_reward(new_state),
+            'score_reward': self._score_reward(new_state),
+            #'powerup_reward': self._powerup_reward(new_state),
+            #'coins_reward': self._coins_reward(new_state),
             'direction_reward': self._direction_reward(new_state),
             'stage_reward': self._stage_reward(new_state),
             'world_reward': self._world_reward(new_state),
