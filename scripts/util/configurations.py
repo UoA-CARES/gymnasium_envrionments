@@ -15,7 +15,7 @@ class GymEnvironmentConfig(EnvironmentConfig):
     domain: Optional[str] = ""
     image_observation: Optional[bool] = False
 
-    rom_path : Optional[str] = f'{Path.home()}/cares_rl_configs/'
+    rom_path : Optional[str] = f'{Path.home()}/cares_rl_configs'
     act_freq : Optional[int] = 24
     emulation_speed : Optional[int] = 0
     headless : Optional[bool] = False
