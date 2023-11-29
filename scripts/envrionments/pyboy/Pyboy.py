@@ -91,7 +91,7 @@ class Pyboy:
 
         bins = np.linspace(self.min_action_value, self.max_action_value, num=len(self.valid_actions) + 1 + self.combo_actions)
         discrete_action = action if discrete else int(np.digitize(action, bins)) - 1 # number to index
-        
+
         self._run_action_on_emulator(discrete_action)
         
         current_game_stats = self._generate_game_stats()
@@ -146,6 +146,7 @@ class Pyboy:
         return 256*256*self._read_m(start_add) + 256*self._read_m(start_add+1) + self._read_m(start_add+2)
     
     def _read_bcd(self, num):
+        return 10 * ((num >> 4) & 0x0f) + (num & 0x0f)
        
     def _get_sprites(self):
         ss = []
