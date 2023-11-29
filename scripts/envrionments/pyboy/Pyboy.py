@@ -90,8 +90,8 @@ class Pyboy:
         self.step_count += 1
 
         bins = np.linspace(self.min_action_value, self.max_action_value, num=len(self.valid_actions) + 1 + self.combo_actions)
-        discrete_action = int(np.digitize(action, bins)) - 1 # number to index
-
+        discrete_action = action if discrete else int(np.digitize(action, bins)) - 1 # number to index
+        
         self._run_action_on_emulator(discrete_action)
         
         current_game_stats = self._generate_game_stats()
