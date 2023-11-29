@@ -3,10 +3,7 @@ from cares_reinforcement_learning.util import helpers as hlp
 from cares_reinforcement_learning.memory import MemoryBuffer
 
 import time
-import gym
 import logging
-
-from timeit import default_timer as timer
 
 def evaluate_ppo_network(env, agent, config: TrainingConfig, record=None, total_steps=0):
     
