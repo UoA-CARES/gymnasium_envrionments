@@ -1,15 +1,10 @@
 from cares_reinforcement_learning.util.configurations import TrainingConfig, AlgorithmConfig
-from cares_reinforcement_learning.util import helpers as hlp
 
-import numpy as np
 import time
-import gym
 import logging
 import random
 
 from random import randrange
-
-from timeit import default_timer as timer
 
 def evaluate_value_network(env, agent, train_config: TrainingConfig, alg_config: AlgorithmConfig, record=None, total_steps=0):
 

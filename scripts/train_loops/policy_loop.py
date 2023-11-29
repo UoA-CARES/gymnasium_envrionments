@@ -1,9 +1,7 @@
 from cares_reinforcement_learning.util.configurations import TrainingConfig, AlgorithmConfig
 from cares_reinforcement_learning.util import helpers as hlp
 
-import cv2
 import time
-import gym
 import logging
 import numpy as np
 
@@ -60,7 +58,7 @@ def policy_based_train(env, agent, memory, record, train_config: TrainingConfig,
     max_steps_exploration = train_config.max_steps_exploration
     number_steps_per_evaluation = train_config.number_steps_per_evaluation
 
-    # Algorthm specific attributes - e.g. NaSA-TD3 
+    # Algorthm specific attributes - e.g. NaSA-TD3 dd
     intrinsic_on = alg_config.intrinsic_on if hasattr(alg_config, "intrinsic_on") else False 
 
     min_noise = alg_config.min_noise if hasattr(alg_config, "min_noise") else 0
@@ -89,7 +87,7 @@ def policy_based_train(env, agent, memory, record, train_config: TrainingConfig,
             # action range the env uses [e.g. -2 , 2 for pendulum]
             action_env = np.random.uniform(env.min_action_value, env.max_action_value, size=env.action_num)
             # algorithm range [-1, 1] - note for DMCS this is redudenant but required for openai
-            action = hlp.normalize(action_env, env.max_action_value, env.min_action_value)  
+            action = hlp.normalize(action_env, env.max_action_value, env.min_action_value)
         else:
             noise_scale *= noise_decay
             noise_scale = max(min_noise, noise_scale)
