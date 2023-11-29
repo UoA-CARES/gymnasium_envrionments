@@ -11,14 +11,14 @@ from collections import deque
 from functools import cached_property
 
 from util.configurations import GymEnvironmentConfig
+from envrionments.GymEnvironment import GymEnvironment
 
-class DMCS:
+class DMCS(GymEnvironment):
     def __init__(self, config: GymEnvironmentConfig) -> None:
+        super().__init__(config)
         logging.info(f"Training on Domain {config.domain}")
-        logging.info(f"Training with Task {config.task}")
-      
+
         self.domain = config.domain
-        self.task = config.task
         self.env = suite.load(self.domain, self.task)
 
     @cached_property
@@ -56,39 +56,3 @@ class DMCS:
         frame = self.env.physics.render(camera_id=camera_id, height=height, width=width)
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB) # Convert to BGR for use with OpenCV
         return frame
-
-# TODO paramatise the observation size 3x84x84
-class DMCSImage(DMCS):
-    def __init__(self, config: GymEnvironmentConfig, k=3):
-        self.k    = k  # number of frames to be stacked
-        self.frames_stacked = deque([], maxlen=k)
-
-        self.frame_width = 84
-        self.frame_height = 84
-        logging.info(f"Image Observation is on")
-        super().__init__(config)
-
-    # @override
-    @property
-    def observation_space(self):
-        return (9, self.frame_width, self.frame_height)
-
-    # @override
-    def reset(self):
-        _ = self.env.reset()
-        frame = self.grab_frame(height=self.frame_height, width=self.frame_width, camera_id=0)
-        frame = np.moveaxis(frame, -1, 0)                    
-        for _ in range(self.k):
-            self.frames_stacked.append(frame)
-        stacked_frames = np.concatenate(list(self.frames_stacked), axis=0)
-        return stacked_frames
-
-    # @override
-    def step(self, action):
-        time_step    = self.env.step(action)
-        reward, done = time_step.reward, time_step.last()
-        frame = self.grab_frame(height=self.frame_height, width=self.frame_width, camera_id=0)
-        frame = np.moveaxis(frame, -1, 0)
-        self.frames_stacked.append(frame)
-        stacked_frames = np.concatenate(list(self.frames_stacked), axis=0)
-        return stacked_frames, reward, done, False # for consistency with open ai gym just add false for truncated
