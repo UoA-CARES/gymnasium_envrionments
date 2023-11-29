@@ -89,9 +89,6 @@ class Pyboy:
         # Actions excluding start
         self.step_count += 1
 
-        # if action == 1 digitize sets discrete action to a new value
-        if action == 1:
-            action -= 0.001
         bins = np.linspace(self.min_action_value, self.max_action_value, num=len(self.valid_actions) + 1 + self.combo_actions)
         discrete_action = int(np.digitize(action, bins)) - 1 # number to index
 
