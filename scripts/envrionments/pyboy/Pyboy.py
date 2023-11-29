@@ -14,12 +14,12 @@ from collections import deque
 from functools import cached_property
 
 from util.configurations import GymEnvironmentConfig
+from envrionments.GymEnvironment import GymEnvironment
 import envrionments.pyboy.pokemon.pokemon_constants as pkc
 
-class Pyboy:
+class Pyboy(GymEnvironment):
     def __init__(self, config: GymEnvironmentConfig, rom_name : str, init_name : str) -> None:
-        logging.info(f"Training with Task {config.task}")
-        self.task = config.task
+        super().__init__(config)
 
         self.rom_path = f'{config.rom_path}/{self.task}/{rom_name}'
         self.init_path = f'{config.rom_path}/{self.task}/{init_name}'
@@ -62,7 +62,7 @@ class Pyboy:
 
     @cached_property
     def observation_space(self):
-        return self._stats_to_state(self._generate_game_stats())
+        return len(self._stats_to_state(self._generate_game_stats()))
     
     @cached_property
     def action_num(self):
@@ -74,7 +74,6 @@ class Pyboy:
 
     def reset(self):
         # restart game, skipping credits and selecting first pokemon
-        print("reset")
         with open(self.init_path, "rb") as f:
             self.pyboy.load_state(f)
 
