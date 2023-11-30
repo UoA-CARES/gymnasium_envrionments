@@ -97,7 +97,7 @@ class PokemonEnvironment(PyboyEnvironment):
 
     def _check_if_done(self, game_stats: Dict[str, any]) -> bool:
         # Setting done to true if agent beats first gym (temporary)
-        return self.prior_game_stats["badges"] > 0
+        return True if self.prior_game_stats["badges"] > 0 else False
 
     def _get_location(self) -> Dict[str, any]:
         x_pos = self._read_m(0xD362)

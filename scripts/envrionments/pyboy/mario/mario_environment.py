@@ -113,6 +113,8 @@ class MarioEnvironment(PyboyEnvironment):
         return reward_total
     
     def _calculate_reward_stats(self, new_state: Dict[str, int]) -> Dict[str, int]:
+        # need to check if x position does what i think it does
+        # score reward is low priority
         return {
             "lives_reward": self._lives_reward(new_state),
             "score_reward": self._score_reward(new_state),
@@ -168,7 +170,25 @@ class MarioEnvironment(PyboyEnvironment):
         return (new_state["world"] - self.prior_game_stats["world"]) * 5
 
     def _game_over_reward(self, new_state):
-        return -5 if new_state["game_over"] == 1 else 0
+        if new_state["game_over"] == 1:
+            return -5
+        else:
+            return 0
+        
+    def _stuck_reward(self, new_state):
+        if (new_state["direction"] == self.prior_game_stats["direction"] and new_state["x_pos"] == self.prior_game_stats["x_pos"]):
+            self.stuck_count += 1
+        else:
+            self.stuck_count = 0
+        
+        if self.stuck_count >= 10:
+            # self.stuck_count = 0
+            return -2
+        else:
+            return 0
+    
+    # def _jump_reward(self)
+    
 
     def _stuck_reward(self, new_state):
         if (new_state["screen"] == self.prior_game_stats["screen"] and 
