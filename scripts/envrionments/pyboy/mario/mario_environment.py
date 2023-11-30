@@ -142,6 +142,8 @@ class MarioEnvironment(PyboyEnvironment):
         return reward_total
     
     def _calculate_reward_stats(self, new_state: Dict[str, int]) -> Dict[str, int]:
+        # need to check if x position does what i think it does
+        # score reward is low priority
         return {
             "lives_reward": self._lives_reward(new_state),
             "score_reward": self._score_reward(new_state),
