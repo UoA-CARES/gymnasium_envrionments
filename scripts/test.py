@@ -1,16 +1,13 @@
 import logging
 
 import cv2
-
 import pandas as pd
-
+from envrionments.environment_factory import EnvironmentFactory
 from util.configurations import GymEnvironmentConfig
-from envrionments.pyboy.pokemon.Pokemon import Pokemon, PokemonImage
-from envrionments.pyboy.mario.Mario import Mario, MarioImage
 
 
-def key_to_action(key):
-    map = {
+def key_to_action(button: int):
+    key_map = {
         115: 0,  # s - down
         97: 1,  # a - left
         100: 2,  # d - right
@@ -19,10 +16,10 @@ def key_to_action(key):
         120: 5,  # x - B
         # 32: 6,  #space - start
     }
-    logging.info(f"Key: {key}")
-    if key in map.keys():
-        logging.info(f"Map: {map[key]}")
-        return map[key]
+    logging.info(f"Key: {button}")
+    if button in key_map:
+        logging.info(f"Map: {key_map[button]}")
+        return key_map[button]
     else:
         return -1
 
@@ -33,9 +30,13 @@ if __name__ == "__main__":
         # 'task' : 'pokemon',
         "task": "mario",
     }
-    config = GymEnvironmentConfig(**args)
-    # env = PokemonImage(config)
-    env = MarioImage(config)
+    env_config = GymEnvironmentConfig(**args)
+
+    env_factory = EnvironmentFactory()
+
+    env = env_factory.create_environment(
+        env_config
+    )  # This line should be here for seed consistency issues
 
     state = env.reset()
     image = env.grab_frame()
@@ -51,7 +52,6 @@ if __name__ == "__main__":
         image = env.grab_frame()
 
         stats = env._generate_game_stats()
-        # logging.info(stats)
 
         game_area = env.game_area()
 

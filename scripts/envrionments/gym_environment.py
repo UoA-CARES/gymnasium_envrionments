@@ -1,8 +1,5 @@
-import logging
-
 import abc
-
-# from typing import override
+import logging
 from functools import cached_property
 
 from util.configurations import GymEnvironmentConfig
@@ -46,5 +43,5 @@ class GymEnvironment(metaclass=abc.ABCMeta):
         raise NotImplementedError("Override this method")
 
     @abc.abstractmethod
-    def grab_frame(self, camera_id=0, height=240, width=300):
+    def grab_frame(self, height=240, width=300):
         raise NotImplementedError("Override this method")

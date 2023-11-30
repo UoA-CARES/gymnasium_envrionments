@@ -1,12 +1,13 @@
-from cares_reinforcement_learning.util.configurations import (
-    TrainingConfig,
-    AlgorithmConfig,
-)
-from cares_reinforcement_learning.util import helpers as hlp
-
-import time
 import logging
+import time
+
 import numpy as np
+
+from cares_reinforcement_learning.util import helpers as hlp
+from cares_reinforcement_learning.util.configurations import (
+    AlgorithmConfig,
+    TrainingConfig,
+)
 
 
 def evaluate_policy_network(
@@ -145,7 +146,7 @@ def policy_based_train(
         episode_reward += reward_extrinsic  # Note we only track the extrinsic reward for the episode for proper comparison
 
         if total_step_counter >= max_steps_exploration:
-            for i in range(G):
+            for _ in range(G):
                 experience = memory.sample(batch_size)
                 info = agent.train_policy(
                     (

@@ -17,10 +17,8 @@ class Pyboy(GymEnvironment):
         self.rom_path = f"{config.rom_path}/{self.task}/{rom_name}"
         self.init_path = f"{config.rom_path}/{self.task}/{init_name}"
 
-        self.combo_actions = 0
-
         self.valid_actions = []
-        
+
         self.release_button = []
 
         self.act_freq = config.act_freq
@@ -80,14 +78,8 @@ class Pyboy(GymEnvironment):
         # Actions excluding start
         self.step_count += 1
 
-        # action = action[0]
-
-        if action == 1:
-            action -= 0.001
-
         bins = np.linspace(
-            self.min_action_value, 
-            self.max_action_value, num=len(self.valid_actions) + 1 + self.combo_actions
+            self.min_action_value, self.max_action_value, num=len(self.valid_actions)
         )
         discrete_action = (
             action if discrete else int(np.digitize(action, bins)) - 1
@@ -105,8 +97,8 @@ class Pyboy(GymEnvironment):
 
         self.prior_game_stats = current_game_stats
 
-        truncated = True if self.step_count % 10000 == 0 else False
-      
+        truncated = True if self.step_count % 1000 == 0 else False
+
         return state, reward, done, truncated
 
     def _run_action_on_emulator(self, action: int) -> None:
@@ -143,16 +135,16 @@ class Pyboy(GymEnvironment):
     def _bit_count(self, bits: int) -> int:
         return bin(bits).count("1")
 
-    def _read_triple(self, start_add):
+    def _read_triple(self, start_add: int) -> int:
         return (
             256 * 256 * self._read_m(start_add)
             + 256 * self._read_m(start_add + 1)
             + self._read_m(start_add + 2)
         )
-    
+
     def _read_bcd(self, num: int) -> int:
         return 10 * ((num >> 4) & 0x0F) + (num & 0x0F)
-       
+
     def _get_sprites(self) -> list:
         ss = []
         for i in range(40):  # game boy can only support 40 sprites on screen at a time

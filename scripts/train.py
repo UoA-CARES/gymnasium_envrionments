@@ -1,35 +1,33 @@
-import sys
-import time
-import argparse
+"""
+This script is used to train reinforcement learning agents in DMCS/OpenAI/pyboy.
+The main function parses command-line arguments, creates the environment, network, 
+and memory instances, and then trains the agent using the specified algorithm.
+"""
 import logging
+from datetime import datetime
+from pathlib import Path
+
+import train_loops.policy_loop as pbe
+import train_loops.ppo_loop as ppe
+import train_loops.value_loop as vbe
+from envrionments.environment_factory import EnvironmentFactory
+from util.configurations import GymEnvironmentConfig
+
+from cares_reinforcement_learning.util import (
+    MemoryFactory,
+    NetworkFactory,
+    Record,
+    RLParser,
+)
+from cares_reinforcement_learning.util import helpers as hlp
 
 logging.basicConfig(level=logging.INFO)
 
-from cares_reinforcement_learning.util import NetworkFactory
-from cares_reinforcement_learning.util import MemoryFactory
-from cares_reinforcement_learning.util import Record
-from cares_reinforcement_learning.util import RLParser
-from cares_reinforcement_learning.util import helpers as hlp
-
-import train_loops.policy_loop as pbe
-import train_loops.value_loop as vbe
-import train_loops.ppo_loop as ppe
-
-from envrionments.EnvironmentFactory import EnvironmentFactory
-from util.configurations import GymEnvironmentConfig
-
-import gym
-from gym import spaces
-
-import json
-import torch
-import random
-import numpy as np
-from pathlib import Path
-from datetime import datetime
-
 
 def main():
+    """
+    The main function that orchestrates the training process.
+    """
     parser = RLParser(GymEnvironmentConfig)
 
     configurations = parser.parse_args()
@@ -59,7 +57,7 @@ def main():
             env.observation_space, env.action_num, alg_config
         )
 
-        if agent == None:
+        if agent is None:
             raise ValueError(
                 f"Unkown agent for default algorithms {alg_config.algorithm}"
             )

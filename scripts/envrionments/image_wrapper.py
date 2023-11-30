@@ -1,17 +1,12 @@
 import logging
-
-import cv2
-
-# from typing import override
+from collections import deque
 from functools import cached_property
 
-from collections import deque
 import numpy as np
+from envrionments.gym_environment import GymEnvironment
 
-from envrionments.GymEnvironment import GymEnvironment
 
-
-class ImageWrapper(GymEnvironment):
+class ImageWrapper:
     def __init__(self, gym: GymEnvironment, k=3):
         self.gym = gym
 
@@ -20,7 +15,7 @@ class ImageWrapper(GymEnvironment):
 
         self.frame_width = 84
         self.frame_height = 84
-        logging.info(f"Image Observation is on")
+        logging.info("Image Observation is on")
 
     @cached_property
     def observation_space(self):
@@ -54,7 +49,7 @@ class ImageWrapper(GymEnvironment):
         return stacked_frames
 
     def step(self, action):
-        state, reward, done, truncated = self.gym.step(action)
+        _, reward, done, truncated = self.gym.step(action)
         frame = self.grab_frame(height=self.frame_height, width=self.frame_width)
         frame = np.moveaxis(frame, -1, 0)
         self.frames_stacked.append(frame)
