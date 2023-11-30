@@ -21,8 +21,7 @@ pokemon = load_dict(f"{here}/pokemon_constants.json")
 def get_pokemon(pokemon_id):
     if pokemon_id in pokemon.keys():
         return pokemon[pokemon_id]
-    else:
-        return "Unknown Pokemon"
+    return "Unknown Pokemon"
 
 
 types = load_dict(f"{here}/type_constants.json")
@@ -31,16 +30,14 @@ types = load_dict(f"{here}/type_constants.json")
 def get_type(type_id):
     if type_id in types.keys():
         return types[type_id]
-    else:
-        return "Unknown Type"
+    return "Unknown Type"
 
 
 def get_status(status_id):
     status = {}
     if status_id in status.keys():
         return status[status_id]
-    else:
-        return "Unknown Status"
+    return "Unknown Status"
 
 
 map_locations = load_dict(f"{here}/map_constants.json")
@@ -50,8 +47,7 @@ def get_map_location(map_idx):
     # https://github.com/pret/pokered/blob/91dc3c9f9c8fd529bb6e8307b58b96efa0bec67e/constants/map_constants.asm
     if map_idx in map_locations.keys():
         return map_locations[map_idx]
-    else:
-        return "Unknown Location"
+    return "Unknown Location"
 
 
 if __name__ == "__main__":

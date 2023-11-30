@@ -40,4 +40,4 @@ jobs:
 
     - name: Analysing the code with pylint
       run: |
-        pylint $(git ls-files '*.py') --disable=logging-fstring-interpolation --extension-pkg-whitelist=cv2 --generated-members=cv2.*
+        pylint $(git ls-files '*.py') --disable=logging-fstring-interpolation --extension-pkg-whitelist=cv2 --generated-members=cv2.* --fail-under 9 --fail-on E
