@@ -10,14 +10,15 @@ from util.configurations import GymEnvironmentConfig
 from envrionments.pyboy.pokemon.pokemon_environment import PokemonEnvironment
 from envrionments.pyboy.mario.mario_environment import MarioEnvironment
 
+
 def key_to_action(key):
     map = {
-        115: 0, #s - down
-        97: 1,  #a - left
-        100: 2, #d - right
-        119: 3, #w - up
-        122: 4, #z - A
-        120: 5, #x - B
+        115: 0,  # s - down
+        97: 1,  # a - left
+        100: 2,  # d - right
+        119: 3,  # w - up
+        122: 4,  # z - A
+        120: 5,  # x - B
         # 32: 6,  #space - start
     }
     logging.info(f"Key: {key}")
@@ -30,9 +31,9 @@ def key_to_action(key):
 
 if __name__ == "__main__":
     args = {
-        'gym' : 'pyboy',
+        "gym": "pyboy",
         # 'task' : 'pokemon',
-        'task' : 'mario',
+        "task": "mario",
     }
     env_config = GymEnvironmentConfig(**args)
 
@@ -45,8 +46,6 @@ if __name__ == "__main__":
     state = env.reset()
     image = env.grab_frame()
 
-    env.pyboy.set_memory_value(0xDA15, 99)
-
     while True:
         cv2.imshow("State", image)
         key = cv2.waitKey(0)
@@ -54,7 +53,7 @@ if __name__ == "__main__":
         if action == -1:
             break
 
-        state, reward, done, _  = env.step(action, discrete=True)
+        state, reward, done, _ = env.step(action, discrete=True)
         image = env.grab_frame()
 
         stats = env._generate_game_stats()
@@ -62,7 +61,7 @@ if __name__ == "__main__":
 
         game_area = env.game_area()
 
-        area = pd.DataFrame(game_area)        
+        area = pd.DataFrame(game_area)
 
         print(area)
         logging.info(game_area.shape)

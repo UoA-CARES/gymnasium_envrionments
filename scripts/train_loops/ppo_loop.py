@@ -26,7 +26,7 @@ def evaluate_ppo_network(
 
         while not done and not truncated:
             episode_timesteps += 1
-            action, _ = agent.select_action_from_policy(state)
+            action, log_prob = agent.select_action_from_policy(state)
             action_env = hlp.denormalize(
                 action, env.max_action_value, env.min_action_value
             )
