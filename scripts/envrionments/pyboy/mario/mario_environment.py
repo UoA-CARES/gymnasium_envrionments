@@ -1,10 +1,11 @@
 from typing import Dict, List
-from pyboy.utils import WindowEvent
-from envrionments.pyboy.Pyboy import Pyboy
+
+from envrionments.pyboy.pyboy_environment import PyboyEnvironment
+from pyboy import WindowEvent
 from util.configurations import GymEnvironmentConfig
 
 
-class Mario(Pyboy):
+class MarioEnvironment(PyboyEnvironment):
     def __init__(self, config: GymEnvironmentConfig) -> None:
         super().__init__(config, rom_name="SuperMarioLand.gb", init_name="init.state")
 

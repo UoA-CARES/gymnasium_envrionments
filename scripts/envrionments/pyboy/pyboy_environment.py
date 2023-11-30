@@ -1,14 +1,13 @@
-import cv2
-import numpy as np
-
-from pyboy import PyBoy
 from functools import cached_property
 
+import cv2
+import numpy as np
+from envrionments.gym_environment import GymEnvironment
+from pyboy import PyBoy
 from util.configurations import GymEnvironmentConfig
-from envrionments.GymEnvironment import GymEnvironment
 
 
-class Pyboy(GymEnvironment):
+class PyboyEnvironment(GymEnvironment):
     def __init__(
         self, config: GymEnvironmentConfig, rom_name: str, init_name: str
     ) -> None:
@@ -36,6 +35,7 @@ class Pyboy(GymEnvironment):
         self.screen = self.pyboy.botsupport_manager().screen()
 
         self.step_count = 0
+        self.seed = 0
 
         self.pyboy.set_emulation_speed(config.emulation_speed)
 
@@ -97,7 +97,7 @@ class Pyboy(GymEnvironment):
 
         self.prior_game_stats = current_game_stats
 
-        truncated = True if self.step_count % 1000 == 0 else False
+        truncated = self.step_count % 1000 == 0
 
         return state, reward, done, truncated
 

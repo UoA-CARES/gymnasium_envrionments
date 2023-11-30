@@ -1,16 +1,14 @@
-import cv2
-
 import logging
-
-from dm_control import suite
-import numpy as np
-
 from functools import cached_property
-from envrionments.GymEnvironment import GymEnvironment
+
+import cv2
+import numpy as np
+from dm_control import suite
+from envrionments.gym_environment import GymEnvironment
 from util.configurations import GymEnvironmentConfig
 
 
-class DMCS(GymEnvironment):
+class DMCSEnvironment(GymEnvironment):
     def __init__(self, config: GymEnvironmentConfig) -> None:
         super().__init__(config)
         logging.info(f"Training on Domain {config.domain}")
@@ -29,9 +27,8 @@ class DMCS(GymEnvironment):
     @cached_property
     def observation_space(self) -> int:
         time_step = self.env.reset()
-        observation = np.hstack(
-            list(time_step.observation.values())
-        )  # # e.g. position, orientation, joint_angles
+        # e.g. position, orientation, joint_angles
+        observation = np.hstack(list(time_step.observation.values()))
         return len(observation)
 
     @cached_property
@@ -55,14 +52,10 @@ class DMCS(GymEnvironment):
             time_step.reward,
             time_step.last(),
         )
-        return (
-            state,
-            reward,
-            done,
-            False,
-        )  # for consistency with open ai gym just add false for truncated
+        # for consistency with open ai gym just add false for truncated
+        return state, reward, done, False
 
-    def grab_frame(self, camera_id=0, height=240, width=300) -> np.ndarray:
+    def grab_frame(self, height=240, width=300, camera_id=0) -> np.ndarray:
         frame = self.env.physics.render(camera_id=camera_id, height=height, width=width)
         # Convert to BGR for use with OpenCV
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)

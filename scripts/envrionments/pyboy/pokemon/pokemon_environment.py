@@ -1,12 +1,12 @@
-from typing import List, Dict
-from pyboy.utils import WindowEvent
+from typing import Dict, List
+
+from envrionments.pyboy.pokemon import pokemon_constants as pkc
+from envrionments.pyboy.pyboy_environment import PyboyEnvironment
+from pyboy import WindowEvent
 from util.configurations import GymEnvironmentConfig
-from envrionments.pyboy.Pyboy import Pyboy
-
-import envrionments.pyboy.pokemon.pokemon_constants as pkc
 
 
-class Pokemon(Pyboy):
+class PokemonEnvironment(PyboyEnvironment):
     def __init__(self, config: GymEnvironmentConfig) -> None:
         super().__init__(config, "PokemonRed.gb", "has_pokedex.state")
 
@@ -159,11 +159,11 @@ class Pokemon(Pyboy):
 
     def _read_party_hp(self) -> Dict[str, List[int]]:
         hp = [
-            self.read_hp(addr)
+            self._read_hp(addr)
             for addr in [0xD16C, 0xD198, 0xD1C4, 0xD1F0, 0xD21C, 0xD248]
         ]
         max_hp = [
-            self.read_hp(addr)
+            self._read_hp(addr)
             for addr in [0xD18D, 0xD1B9, 0xD1E5, 0xD211, 0xD23D, 0xD269]
         ]
         return {"current": hp, "max": max_hp}
@@ -174,7 +174,7 @@ class Pokemon(Pyboy):
             for addr in [0xD179, 0xD1A5, 0xD1D1, 0xD1FD, 0xD229, 0xD255]
         ]
 
-    def read_hp(self, start: int) -> int:
+    def _read_hp(self, start: int) -> int:
         return 256 * self._read_m(start) + self._read_m(start + 1)
 
     def _read_caught_pokemon_count(self) -> int:

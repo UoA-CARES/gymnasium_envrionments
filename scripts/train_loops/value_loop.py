@@ -1,13 +1,12 @@
-from cares_reinforcement_learning.util.configurations import (
-    TrainingConfig,
-    AlgorithmConfig,
-)
-
-import time
 import logging
 import random
-
+import time
 from random import randrange
+
+from cares_reinforcement_learning.util.configurations import (
+    AlgorithmConfig,
+    TrainingConfig,
+)
 
 
 def evaluate_value_network(

@@ -1,16 +1,14 @@
-import cv2
-
-import gymnasium as gym
-from gymnasium import spaces
-
-import numpy as np
-
 from functools import cached_property
-from envrionments.GymEnvironment import GymEnvironment
+
+import cv2
+import gymnasium as gym
+import numpy as np
+from envrionments.gym_environment import GymEnvironment
+from gymnasium import spaces
 from util.configurations import GymEnvironmentConfig
 
 
-class OpenAIGym(GymEnvironment):
+class OpenAIEnvrionment(GymEnvironment):
     def __init__(self, config: GymEnvironmentConfig) -> None:
         super().__init__(config)
         self.env = gym.make(config.task, render_mode="rgb_array")
@@ -29,9 +27,9 @@ class OpenAIGym(GymEnvironment):
 
     @cached_property
     def action_num(self) -> int:
-        if type(self.env.action_space) == spaces.Box:
+        if isinstance(self.env.action_space, spaces.Box):
             action_num = self.env.action_space.shape[0]
-        elif type(self.env.action_space) == spaces.Discrete:
+        elif isinstance(self.env.action_space, spaces.Discrete):
             action_num = self.env.action_space.n
         else:
             raise ValueError(
