@@ -1,4 +1,5 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 """
 Configuration class for Gym Environments.
 """
@@ -8,17 +9,29 @@ from typing import Optional
 =======
 import logging
 import json
+=======
+"""
+Configuration class for Gym Environments.
+"""
+>>>>>>> 3457986 (Pylint corrections)
 
 from pathlib import Path
+from typing import Optional
 
+<<<<<<< HEAD
 file_path = Path(__file__).parent.resolve()
 >>>>>>> d58b901 (type hinting + linting across the board)
 
+=======
+>>>>>>> 3457986 (Pylint corrections)
 from pydantic import Field
 
 from cares_reinforcement_learning.util.configurations import EnvironmentConfig
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 3457986 (Pylint corrections)
 file_path = Path(__file__).parent.resolve()
 
 
@@ -37,10 +50,13 @@ class GymEnvironmentConfig(EnvironmentConfig):
         headless (Optional[bool]): Whether to run in headless mode (default: False)
     """
 
+<<<<<<< HEAD
 =======
 
 class GymEnvironmentConfig(EnvironmentConfig):
 >>>>>>> d58b901 (type hinting + linting across the board)
+=======
+>>>>>>> 3457986 (Pylint corrections)
     gym: str = Field(description="Gym Environment <openai, dmcs, pyboy>")
     task: str
     domain: Optional[str] = ""
