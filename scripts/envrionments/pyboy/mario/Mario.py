@@ -6,6 +6,9 @@ from util.configurations import GymEnvironmentConfig
 
 class Mario(Pyboy):
     def __init__(self, config: GymEnvironmentConfig) -> None:
+        super().__init__(config, rom_name="SuperMarioLand.gb", init_name="init.state")
+
+        self.valid_actions: List[WindowEvent] = [
         super().__init__(config, rom_name='SuperMarioLand.gb', init_name='init.state')
 
         self.combo_actions = 1
@@ -28,10 +31,35 @@ class Mario(Pyboy):
             WindowEvent.RELEASE_BUTTON_B,
         ]
 
-    def _stats_to_state(self, game_stats):
-        # TODO figure out exactly what our observation space is - note we will have an image based version of this class
-        state = []
+    def _stats_to_state(self, game_stats: Dict[str, int]) -> List:
+        state: List = []
         return state
+    
+    # @override
+    def _run_action_on_emulator(self, action):
+         # extra action for long jumping to the right
+        if action == 5:
+            self.pyboy.send_input(WindowEvent.PRESS_ARROW_RIGHT)
+            self.pyboy.send_input(WindowEvent.PRESS_BUTTON_A)
+            for i in range(self.act_freq):
+                self.pyboy.tick()
+                if i == 24:
+                    self.pyboy.send_input(WindowEvent.RELEASE_ARROW_RIGHT)
+                    self.pyboy.send_input(WindowEvent.RELEASE_BUTTON_A)
+        else:
+            # press button then release after some steps - enough to move
+            self.pyboy.send_input(self.valid_actions[action])
+            for i in range(self.act_freq):
+                self.pyboy.tick()
+                if i == 8: # ticks required to carry a "step" in the world
+                    self.pyboy.send_input(self.release_button[action])
+
+    def _stats_to_state(self, game_stats: Dict[str, int]) -> List:
+        # TODO figure out exactly what our observation space is - note we will have an image based version of this class
+        state: List = []
+        return state
+
+    def _generate_game_stats(self) -> Dict[str, int]:
     
     # @override
     def _run_action_on_emulator(self, action):
@@ -125,7 +153,7 @@ class Mario(Pyboy):
             return 1
         else:
             return 0
-        
+
     def _stage_reward(self, new_state):
         if new_state["stage"] - self.prior_game_stats["stage"] == -2:
             return 0
@@ -139,7 +167,7 @@ class Mario(Pyboy):
             return -5
         else:
             return 0
-        
+
     def _check_if_done(self, game_stats):
         # Setting done to true if agent beats first level
         return True if game_stats["stage"] > self.prior_game_stats["stage"] else False
@@ -157,9 +185,13 @@ class Mario(Pyboy):
         else:
             return 0
 
+
     def _get_coins(self):
-        return self._read_m(0xFFFA)
-    
+        return self._bit_count(self._read_m(0xFFFA))
+
+    def _get_x_position(self):
+        return self._read_m(0xC202)
+
     def _get_stage(self):
         return self._read_m(0x982E)
 

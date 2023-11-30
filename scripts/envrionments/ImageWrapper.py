@@ -1,6 +1,7 @@
 import logging
 
 import cv2
+
 # from typing import override
 from functools import cached_property
 
@@ -8,6 +9,7 @@ from collections import deque
 import numpy as np
 
 from envrionments.GymEnvironment import GymEnvironment
+
 
 class ImageWrapper(GymEnvironment):
     def __init__(self, gym: GymEnvironment, k=3):
@@ -27,25 +29,25 @@ class ImageWrapper(GymEnvironment):
     @cached_property
     def action_num(self):
         return self.gym.action_num
-    
+
     @cached_property
     def min_action_value(self):
         return self.gym.min_action_value
-    
+
     @cached_property
     def max_action_value(self):
         return self.gym.max_action_value
-    
+
     def set_seed(self, seed):
         self.gym.set_seed(seed)
 
     def grab_frame(self, height=240, width=300):
         return self.gym.grab_frame(height=height, width=width)
-    
+
     def reset(self):
         _ = self.gym.reset()
         frame = self.grab_frame(height=self.frame_height, width=self.frame_width)
-        frame = np.moveaxis(frame, -1, 0)                    
+        frame = np.moveaxis(frame, -1, 0)
         for _ in range(self.k):
             self.frames_stacked.append(frame)
         stacked_frames = np.concatenate(list(self.frames_stacked), axis=0)
@@ -57,4 +59,4 @@ class ImageWrapper(GymEnvironment):
         frame = np.moveaxis(frame, -1, 0)
         self.frames_stacked.append(frame)
         stacked_frames = np.concatenate(list(self.frames_stacked), axis=0)
-        return stacked_frames, reward, done, truncated 
+        return stacked_frames, reward, done, truncated

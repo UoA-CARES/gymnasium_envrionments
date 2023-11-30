@@ -132,7 +132,6 @@ def policy_based_train(
             intrinsic_reward = agent.get_intrinsic_reward(state, action, next_state)
 
         total_reward = reward_extrinsic + intrinsic_reward
-        logging.info('total reward: {0}'.format(total_reward))
 
         memory.add(
             state=state,
