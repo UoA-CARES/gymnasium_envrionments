@@ -66,10 +66,9 @@ class MarioEnvironment(PyboyEnvironment):
     def _score_reward(self, new_state: Dict[str, int]) -> int:
         if new_state["score"] - self.prior_game_stats["score"] > 0:
             return 1
-        elif new_state["score"] - self.prior_game_stats["score"] == 0:
+        if new_state["score"] - self.prior_game_stats["score"] == 0:
             return 0
-        else:
-            return -1
+        return -1
 
     def _powerup_reward(self, new_state: Dict[str, int]) -> int:
         return new_state["powerup"] - self.prior_game_stats["powerup"]
@@ -77,14 +76,12 @@ class MarioEnvironment(PyboyEnvironment):
     def _coins_reward(self, new_state: Dict[str, int]) -> int:
         if new_state["coins"] - self.prior_game_stats["coins"] > 0:
             return 1
-        else:
-            return 0
+        return 0
 
     def _x_position_reward(self, new_state: Dict[str, int]) -> int:
         if new_state["x_position"] - self.prior_game_stats["x_position"] > 0:
             return 1
-        else:
-            return 0
+        return 0
 
     def _stage_reward(self, new_state):
         return (new_state["stage"] - self.prior_game_stats["stage"]) * 5
@@ -95,8 +92,7 @@ class MarioEnvironment(PyboyEnvironment):
     def _game_over_reward(self, new_state):
         if new_state["game_over"] == 1:
             return -5
-        else:
-            return 0
+        return 0
 
     def _check_if_done(self, game_stats):
         # Setting done to true if agent beats first level
@@ -113,8 +109,7 @@ class MarioEnvironment(PyboyEnvironment):
         # 0x00 = small, 0x01 = growing, 0x02 = big with or without superball, 0x03 = shrinking, 0x04 = invincibility blinking
         if self._read_m(0xFF99) == 0x02 or self._read_m(0xFF99) == 0x04:
             return 1
-        else:
-            return 0
+        return 0
 
     def _get_coins(self):
         return self._bit_count(self._read_m(0xFFFA))
