@@ -13,10 +13,8 @@ class PyboyEnvironment(GymEnvironment):
     ) -> None:
         super().__init__(config)
 
-        self.rom_path = f'{config.rom_path}/{self.task}/{rom_name}'
-        self.init_path = f'{config.rom_path}/{self.task}/{init_name}'
-
-        self.combo_actions = 0
+        self.rom_path = f"{config.rom_path}/{self.task}/{rom_name}"
+        self.init_path = f"{config.rom_path}/{self.task}/{init_name}"
 
         self.valid_actions = []
 
@@ -24,14 +22,14 @@ class PyboyEnvironment(GymEnvironment):
 
         self.act_freq = config.act_freq
 
-        head, hide_window = ['headless', True] if config.headless else ['SDL2', False]
+        head, hide_window = ["headless", True] if config.headless else ["SDL2", False]
         self.pyboy = PyBoy(
-                self.rom_path,
-                debugging=False,
-                disable_input=False,
-                window_type=head,
-                hide_window=hide_window,
-            )
+            self.rom_path,
+            debugging=False,
+            disable_input=False,
+            window_type=head,
+            hide_window=hide_window,
+        )
 
         self.prior_game_stats = self._generate_game_stats()
         self.screen = self.pyboy.botsupport_manager().screen()
@@ -40,7 +38,6 @@ class PyboyEnvironment(GymEnvironment):
         self.seed = 0
 
         self.pyboy.set_emulation_speed(config.emulation_speed)
-        
         self.reset()
 
     @cached_property
