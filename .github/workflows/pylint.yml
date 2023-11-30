@@ -27,7 +27,7 @@ jobs:
         owner: 'UoA-CARES'
         repository: 'cares_reinforcement_learning'
     
-    - name: Install cloned repository content
+    - name: Install cares_reinforcement_learning repository content
       run: |
         cd cares_reinforcement_learning
         pip install -r requirements.txt
@@ -40,4 +40,4 @@ jobs:
 
     - name: Analysing the code with pylint
       run: |
-        pylint $(git ls-files '*.py') --disable=logging-fstring-interpolation
+        pylint $(git ls-files '*.py') --disable=logging-fstring-interpolation --extension-pkg-whitelist=cv2
