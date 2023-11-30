@@ -215,13 +215,7 @@ class MarioEnvironment(PyboyEnvironment):
     def _game_over_reward(self, new_state):
         if new_state["game_over"] == 1:
             return -5
-        else:
-            return 0
-        
-    def _get_time(self):
-        # DA00       3    Timer (frames, seconds (Binary-coded decimal), 
-        # hundreds of seconds (Binary-coded decimal)) (frames count down from 0x28 to 0x01 in a loop)
-        return self._read_m(0xDA00)
+        return 0
 
     def _stuck_reward(self, new_state):
         if (new_state["screen"] == self.prior_game_stats["screen"] and 
