@@ -47,14 +47,4 @@ jobs:
 
     - name: Analysing the code with pylint
       run: |
-        pylint $(git ls-files '*.py') --disable=logging-fstring-interpolation \
-                                      --disable=too-few-public-methods \
-                                      --disable=missing-module-docstring \
-                                      --disable=missing-function-docstring \
-                                      --disable=missing-class-docstring \
-                                      --disable=too-many-locals \
-                                      --disable=W0511 \
-                                      --disable=too-many-arguments \
-                                      --max-line-length 130 \
-                                      --extension-pkg-whitelist=cv2 --generated-members=cv2.* \
-                                      --fail-under 9 --fail-on E
+        pylint $(git ls-files '*.py') --rcfile .pylintrc
