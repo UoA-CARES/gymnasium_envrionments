@@ -20,8 +20,7 @@ def key_to_action(button: int):
     if button in key_map:
         logging.info(f"Map: {key_map[button]}")
         return key_map[button]
-    else:
-        return -1
+    return -1
 
 
 if __name__ == "__main__":
@@ -48,7 +47,8 @@ if __name__ == "__main__":
         if action == -1:
             break
 
-        state, reward, done, _ = env.step(action, discrete=True)
+        # TODO - action needs to be made continuous
+        state, reward, done, _ = env.step(action)
         image = env.grab_frame()
 
         stats = env._generate_game_stats()
