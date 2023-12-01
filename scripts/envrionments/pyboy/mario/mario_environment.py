@@ -189,9 +189,7 @@ class MarioEnvironment(PyboyEnvironment):
         return (new_state["world"] - self.prior_game_stats["world"]) * 5
 
     def _game_over_reward(self, new_state):
-        if new_state["game_over"] == 1:
-            return -5
-        return 0
+        return -5 if new_state["game_over"] == 1 else 0
 
     def _stuck_reward(self, new_state):
         if (new_state["screen"] == self.prior_game_stats["screen"] and 
