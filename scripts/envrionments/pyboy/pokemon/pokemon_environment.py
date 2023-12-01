@@ -97,7 +97,7 @@ class PokemonEnvironment(PyboyEnvironment):
 
     def _check_if_done(self, game_stats: Dict[str, any]) -> bool:
         # Setting done to true if agent beats first gym (temporary)
-        return True if self.prior_game_stats["badges"] > 0 else False
+        return self.prior_game_stats["badges"] > 0
 
     def _get_location(self) -> Dict[str, any]:
         x_pos = self._read_m(0xD362)
@@ -178,10 +178,14 @@ class PokemonEnvironment(PyboyEnvironment):
         return 256 * self._read_m(start) + self._read_m(start + 1)
 
     def _read_caught_pokemon_count(self) -> int:
-        return sum([self._bit_count(self._read_m(i)) for i in range(0xD2F7, 0xD30A)])
+        return sum(
+            list(self._bit_count(self._read_m(i)) for i in range(0xD2F7, 0xD30A))
+        )
 
     def _read_seen_pokemon_count(self) -> int:
-        return sum([self._bit_count(self._read_m(i)) for i in range(0xD30A, 0xD31D)])
+        return sum(
+            list(self._bit_count(self._read_m(i)) for i in range(0xD30A, 0xD31D))
+        )
 
     def _read_money(self) -> int:
         return (

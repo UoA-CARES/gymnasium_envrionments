@@ -159,7 +159,7 @@ class MarioEnvironment(PyboyEnvironment):
 
     def _check_if_done(self, game_stats):
         # Setting done to true if agent beats first level
-        return True if game_stats["stage"] > self.prior_game_stats["stage"] else False
+        return game_stats["stage"] > self.prior_game_stats["stage"]
 
     def _get_lives(self):
         return self._read_m(0xDA15)
@@ -168,10 +168,12 @@ class MarioEnvironment(PyboyEnvironment):
         return self._bit_count(self._read_m(0xC0A0))
 
     def _get_powerup(self):
-        # 0x00 = small, 0x01 = growing, 0x02 = big with or without superball, 0x03 = shrinking, 0x04 = invincibility blinking
-        if self._read_m(0xFF99) == 0x02 or self._read_m(0xFF99) == 0x04:
-            return 1
-        return 0
+        # 0x00 = small,
+        # 0x01 = growing,
+        # 0x02 = big with or without superball,
+        # 0x03 = shrinking,
+        # 0x04 = invincibility blinking
+        return 1 if self._read_m(0xFF99) == 0x02 or self._read_m(0xFF99) == 0x04 else 0
 
     def _get_coins(self):
         return self._read_m(0xFFFA)
