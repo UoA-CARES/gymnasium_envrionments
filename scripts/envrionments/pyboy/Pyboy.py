@@ -62,7 +62,8 @@ class Pyboy:
 
     @cached_property
     def observation_space(self):
-        return self._stats_to_state(self._generate_game_stats())
+        # TODO should be 20 but double check
+        return 20
     
     @cached_property
     def action_num(self):
@@ -88,6 +89,11 @@ class Pyboy:
     def step(self, action, discrete=False):
         # Actions excluding start
         self.step_count += 1
+
+        # action = action[0]
+
+        if action == 1:
+            action -= 0.001
 
         bins = np.linspace(self.min_action_value, self.max_action_value, num=len(self.valid_actions) + 1 + self.combo_actions)
         discrete_action = action if discrete else int(np.digitize(action, bins)) - 1 # number to index
@@ -168,7 +174,8 @@ class Pyboy:
         height = game_area_section[3]
     
         tilemap_background = self.pyboy.botsupport_manager().tilemap_background()
-        game_area = np.asarray(tilemap_background[xx:xx + width, yy:yy + height], dtype=np.uint32)
+        # int64 because torch can't convert type uint32
+        game_area = np.asarray(tilemap_background[xx:xx + width, yy:yy + height], dtype=np.int64)
 
         ss = self._get_sprites()
         for s in ss:

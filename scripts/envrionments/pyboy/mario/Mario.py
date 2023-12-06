@@ -15,7 +15,9 @@ class Mario(Pyboy):
     def __init__(self, config: GymEnvironmentConfig) -> None:
         super().__init__(config, rom_name='SuperMarioLand.gb', init_name='init.state')
 
-        self.combo_actions = 1
+        self.stuck_count = 0
+
+        self.combo_actions = 2
         
         self.valid_actions = [
             WindowEvent.PRESS_ARROW_DOWN,
@@ -49,6 +51,14 @@ class Mario(Pyboy):
                 if i == 24:
                     self.pyboy.send_input(WindowEvent.RELEASE_ARROW_RIGHT)
                     self.pyboy.send_input(WindowEvent.RELEASE_BUTTON_A)
+        elif action == 6:
+            self.pyboy.send_input(WindowEvent.PRESS_ARROW_LEFT)
+            self.pyboy.send_input(WindowEvent.PRESS_BUTTON_A)
+            for i in range(self.act_freq):
+                self.pyboy.tick()
+                if i == 24:
+                    self.pyboy.send_input(WindowEvent.RELEASE_ARROW_LEFT)
+                    self.pyboy.send_input(WindowEvent.RELEASE_BUTTON_A)
         else:
             # press button then release after some steps - enough to move
             self.pyboy.send_input(self.valid_actions[action])
@@ -59,7 +69,7 @@ class Mario(Pyboy):
 
     def _stats_to_state(self, game_stats):
         # TODO figure out exactly what our observation space is - note we will have an image based version of this class
-        state = []
+        state = self.game_area()
         return state
     
     def _generate_game_stats(self):
@@ -73,6 +83,8 @@ class Mario(Pyboy):
             'world': self._get_world(),
             'game_over': self._get_game_over(),
             'direction' : self._get_direction(),
+            'x_pos' :self._get_x_position(),
+            # 'stuck': self._get_stuck(),
         }
     
     def _reward_stats_to_reward(self, reward_stats):
@@ -97,13 +109,14 @@ class Mario(Pyboy):
             'stage_reward': self._stage_reward(new_state),
             'world_reward': self._world_reward(new_state),
             'game_over_reward': self._game_over_reward(new_state),
+            'stuck': self._stuck_reward(new_state),
         }
     
     def _lives_reward(self, new_state):
         if new_state["lives"] - self.prior_game_stats["lives"] < 0:
             self.reset()
             logging.info('resetting')
-            return (new_state["lives"] - self.prior_game_stats["lives"]) * 10
+            return (new_state["lives"] - self.prior_game_stats["lives"]) * 20
         return 0
     
     def _score_reward(self, new_state):
@@ -129,7 +142,7 @@ class Mario(Pyboy):
 
         #new code, should work to stop running into walls
         
-        return 1 if(new_state['direction'] - self.prior_game_stats['direction'] > 0) else 0
+        return 0.3 if(new_state['direction'] - self.prior_game_stats['direction'] > 0) else 0
     
     def _stage_reward(self, new_state):
         if new_state["stage"] - self.prior_game_stats["stage"] == -2:
@@ -145,6 +158,21 @@ class Mario(Pyboy):
         else:
             return 0
         
+    def _stuck_reward(self, new_state):
+        if (new_state["direction"] == self.prior_game_stats["direction"] and new_state["x_pos"] == self.prior_game_stats["x_pos"]):
+            self.stuck_count += 1
+        else:
+            self.stuck_count = 0
+        
+        if self.stuck_count >= 10:
+            # self.stuck_count = 0
+            return -2
+        else:
+            return 0
+    
+    # def _jump_reward(self)
+    
+
     def _check_if_done(self, game_stats):
         # Setting done to true if agent beats first level
         return True if game_stats['stage'] > self.prior_game_stats['stage'] else False
@@ -180,19 +208,27 @@ class Mario(Pyboy):
         return 0
     
     def _get_direction(self):
-        # return 1 if self._read_m(0xC20D) == 0x10 else 0
         return self._read_m(0xC0AB)
+    
+    def _get_x_position(self):
+        return self._read_m(0xC202)
+    
+    # def _get_y_postion(self):
+    #     return self._read_m(0xC201)
+    
     
 class MarioImage(Mario):
     def __init__(self, config: GymEnvironmentConfig, k=3):
         self.k    = k  # number of frames to be stacked
         self.frames_stacked = deque([], maxlen=k)
-
+        
+        # self.stuck = set()
+        
         self.frame_width = 84
         self.frame_height = 84
 
         logging.info(f"Image Observation is on")
-        super().__init__(config)
+        super().__init__(config)        
 
     # @override
     @property
