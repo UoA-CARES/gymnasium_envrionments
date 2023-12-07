@@ -1,15 +1,17 @@
-from cares_reinforcement_learning.util.configurations import TrainingConfig, PPOConfig
-from cares_reinforcement_learning.util import helpers as hlp
-from cares_reinforcement_learning.memory import MemoryBuffer
-
-import time
 import logging
+import time
 
-def evaluate_ppo_network(env, agent, config: TrainingConfig, record=None, total_steps=0):
-    
+from cares_reinforcement_learning.memory import MemoryBuffer
+from cares_reinforcement_learning.util import helpers as hlp
+from cares_reinforcement_learning.util.configurations import PPOConfig, TrainingConfig
+
+
+def evaluate_ppo_network(
+    env, agent, config: TrainingConfig, record=None, total_steps=0
+):
     if record is not None:
         frame = env.grab_frame()
-        record.start_video(total_steps+1, frame)
+        record.start_video(total_steps + 1, frame)
 
     number_eval_episodes = int(config.number_eval_episodes)
 
@@ -21,11 +23,13 @@ def evaluate_ppo_network(env, agent, config: TrainingConfig, record=None, total_
         episode_num = 0
         done = False
         truncated = False
-        
+
         while not done and not truncated:
             episode_timesteps += 1
-            action, log_prob = agent.select_action_from_policy(state)
-            action_env = hlp.denormalize(action, env.max_action_value, env.min_action_value)
+            action, _ = agent.select_action_from_policy(state)
+            action_env = hlp.denormalize(
+                action, env.max_action_value, env.min_action_value
+            )
 
             state, reward, done, truncated = env.step(action_env)
             episode_reward += reward
@@ -37,12 +41,12 @@ def evaluate_ppo_network(env, agent, config: TrainingConfig, record=None, total_
             if done or truncated:
                 if record is not None:
                     record.log_eval(
-                            total_steps=total_steps+1,
-                            episode=eval_episode_counter+1, 
-                            episode_reward=episode_reward,
-                            display=True
-                        )
-                
+                        total_steps=total_steps + 1,
+                        episode=eval_episode_counter + 1,
+                        episode_reward=episode_reward,
+                        display=True,
+                    )
+
                 # Reset environment
                 state = env.reset()
                 episode_reward = 0
@@ -51,7 +55,8 @@ def evaluate_ppo_network(env, agent, config: TrainingConfig, record=None, total_
 
     record.stop_video()
 
-def ppo_train(env, agent, record, train_config: TrainingConfig, alg_config : PPOConfig):
+
+def ppo_train(env, agent, record, train_config: TrainingConfig, alg_config: PPOConfig):
     start_time = time.time()
 
     max_steps_training = train_config.max_steps_training
@@ -76,40 +81,55 @@ def ppo_train(env, agent, record, train_config: TrainingConfig, alg_config : PPO
         action_env = hlp.denormalize(action, env.max_action_value, env.min_action_value)
 
         next_state, reward, done, truncated = env.step(action_env)
-        memory.add(state=state, action=action, reward=reward, next_state=next_state, done=done, log_prob=log_prob)
+        memory.add(
+            state=state,
+            action=action,
+            reward=reward,
+            next_state=next_state,
+            done=done,
+            log_prob=log_prob,
+        )
 
         state = next_state
         episode_reward += reward
 
-        if (total_step_counter+1) % max_steps_per_batch == 0:
+        if (total_step_counter + 1) % max_steps_per_batch == 0:
             experience = memory.flush()
-            info = agent.train_policy((
-                experience['state'],
-                experience['action'],
-                experience['reward'],
-                experience['next_state'],
-                experience['done'],
-                experience['log_prob']
-            ))
+            agent.train_policy(
+                (
+                    experience["state"],
+                    experience["action"],
+                    experience["reward"],
+                    experience["next_state"],
+                    experience["done"],
+                    experience["log_prob"],
+                )
+            )
             # record.log_info(info, display=False)
 
-        if (total_step_counter+1) % number_steps_per_evaluation == 0:
+        if (total_step_counter + 1) % number_steps_per_evaluation == 0:
             evaluate = True
 
         if done or truncated:
             episode_time = time.time() - episode_start
             record.log_train(
-                total_steps = total_step_counter + 1,
-                episode = episode_num + 1,
+                total_steps=total_step_counter + 1,
+                episode=episode_num + 1,
                 episode_steps=episode_timesteps,
-                episode_reward = episode_reward,
-                episode_time = episode_time,
-                display = True
+                episode_reward=episode_reward,
+                episode_time=episode_time,
+                display=True,
             )
 
             if evaluate:
                 logging.info("*************--Evaluation Loop--*************")
-                evaluate_ppo_network(env, agent, train_config, record=record, total_steps=total_step_counter)
+                evaluate_ppo_network(
+                    env,
+                    agent,
+                    train_config,
+                    record=record,
+                    total_steps=total_step_counter,
+                )
                 logging.info("--------------------------------------------")
                 evaluate = False
 
@@ -122,4 +142,4 @@ def ppo_train(env, agent, record, train_config: TrainingConfig, alg_config : PPO
 
     end_time = time.time()
     elapsed_time = end_time - start_time
-    print('Training time:', time.strftime("%H:%M:%S", time.gmtime(elapsed_time)))
+    print("Training time:", time.strftime("%H:%M:%S", time.gmtime(elapsed_time)))
