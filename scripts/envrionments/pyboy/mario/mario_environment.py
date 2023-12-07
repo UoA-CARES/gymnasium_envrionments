@@ -8,9 +8,9 @@ from util.configurations import GymEnvironmentConfig
 class MarioEnvironment(PyboyEnvironment):
     def __init__(self, config: GymEnvironmentConfig) -> None:
         super().__init__(config, rom_name="SuperMarioLand.gb", init_name="init.state")
-        
-        self.combo_actions = 2
 
+        self.combo_actions = 1
+        
         self.valid_actions: List[WindowEvent] = [
             WindowEvent.PRESS_ARROW_DOWN,
             WindowEvent.PRESS_ARROW_LEFT,
@@ -28,7 +28,7 @@ class MarioEnvironment(PyboyEnvironment):
             WindowEvent.RELEASE_BUTTON_A,
             WindowEvent.RELEASE_BUTTON_B,
         ]
-
+    
     # @override
     def _run_action_on_emulator(self, action):
          # extra action for long jumping to the right
@@ -39,14 +39,6 @@ class MarioEnvironment(PyboyEnvironment):
                 self.pyboy.tick()
                 if i == 24:
                     self.pyboy.send_input(WindowEvent.RELEASE_ARROW_RIGHT)
-                    self.pyboy.send_input(WindowEvent.RELEASE_BUTTON_A)
-        elif action == 6:
-            self.pyboy.send_input(WindowEvent.PRESS_ARROW_LEFT)
-            self.pyboy.send_input(WindowEvent.PRESS_BUTTON_A)
-            for i in range(self.act_freq):
-                self.pyboy.tick()
-                if i == 24:
-                    self.pyboy.send_input(WindowEvent.RELEASE_ARROW_LEFT)
                     self.pyboy.send_input(WindowEvent.RELEASE_BUTTON_A)
         else:
             # press button then release after some steps - enough to move
@@ -60,21 +52,21 @@ class MarioEnvironment(PyboyEnvironment):
         # TODO figure out exactly what our observation space is - note we will have an image based version of this class
         state: List = []
         return state
-
+    
     def _generate_game_stats(self) -> Dict[str, int]:
         return {
             "lives": self._get_lives(),
             "score": self._get_score(),
             "powerup": self._get_powerup(),
             "coins": self._get_coins(),
-            "x_position": self._get_x_position(),
             "stage": self._get_stage(),
             "world": self._get_world(),
             "game_over": self._get_game_over(),
             "direction" : self._get_direction(),
             "x_pos" :self._get_x_position(),
+            "time": self._get_time(),
         }
-
+    
     def _reward_stats_to_reward(self, reward_stats: Dict[str, int]) -> int:
         reward_total: int = 0
         for _, reward in reward_stats.items():
@@ -86,9 +78,9 @@ class MarioEnvironment(PyboyEnvironment):
         # score reward is low priority
         return {
             "lives_reward": self._lives_reward(new_state),
+            # "score_reward": self._score_reward(new_state),
             "powerup_reward": self._powerup_reward(new_state),
             "coins_reward": self._coins_reward(new_state),
-            "x_position_reward": self._x_position_reward(new_state),
             "stage_reward": self._stage_reward(new_state),
             "world_reward": self._world_reward(new_state),
             "game_over_reward": self._game_over_reward(new_state),
@@ -122,12 +114,6 @@ class MarioEnvironment(PyboyEnvironment):
         
         return 0.3 if(new_state['direction'] - self.prior_game_stats['direction'] > 0) else 0
     
-        
-    def _x_position_reward(self, new_state: Dict[str, int]) -> int:
-        if new_state["x_position"] - self.prior_game_stats["x_position"] > 0:
-            return 1
-        return 0
-
     def _stage_reward(self, new_state):
         if new_state["stage"] - self.prior_game_stats["stage"] == -2:
             return 0
@@ -142,7 +128,17 @@ class MarioEnvironment(PyboyEnvironment):
         else:
             return 0
         
+    # TODO test
+    def _get_time(self):
+        # DA00       3    Timer (frames, seconds (Binary-coded decimal), 
+        # hundreds of seconds (Binary-coded decimal)) (frames count down from 0x28 to 0x01 in a loop)
+        # 9831       1    Timer - Hundreds
+        # 9832       1    Timer - Tens
+        # 9833       1    Timer - Ones
+        return self._read_m(0xDA00)
+
     def _stuck_reward(self, new_state):
+        # if new_state['time'] != self.prior_game_stats['time']:
         if (new_state["direction"] == self.prior_game_stats["direction"] and new_state["x_pos"] == self.prior_game_stats["x_pos"]):
             self.stuck_count += 1
         else:
@@ -153,10 +149,9 @@ class MarioEnvironment(PyboyEnvironment):
             return -2
         else:
             return 0
+        # return 0
     
-    # def _jump_reward(self)
     
-
     def _check_if_done(self, game_stats):
         # Setting done to true if agent beats first level
         return game_stats["stage"] > self.prior_game_stats["stage"]
@@ -166,77 +161,33 @@ class MarioEnvironment(PyboyEnvironment):
     
     def _get_score(self):
         return self._bit_count(self._read_m(0xC0A0))
-
+    
     def _get_powerup(self):
-        # 0x00 = small,
-        # 0x01 = growing,
-        # 0x02 = big with or without superball,
-        # 0x03 = shrinking,
-        # 0x04 = invincibility blinking
-        return 1 if self._read_m(0xFF99) == 0x02 or self._read_m(0xFF99) == 0x04 else 0
-
+        # 0x00 = small, 0x01 = growing, 0x02 = big with or without superball, 0x03 = shrinking, 0x04 = invincibility blinking
+        if self._read_m(0xFF99) == 0x02 or self._read_m(0xFF99) == 0x04:
+            return 1
+        else:
+            return 0
+        
     def _get_coins(self):
         return self._read_m(0xFFFA)
     
     def _get_stage(self):
         return self._read_m(0x982E)
-
+    
     def _get_world(self):
         return self._read_m(0x982C)
-
+    
     def _get_game_over(self):
         # Resetting game so that the agent doesn't need to use start button to start game
         if self._read_m(0xFFB3) == 0x3A:
             self.reset()
-            logging.info('resetting')
             return 1
         return 0
     
     def _get_direction(self):
         return self._read_m(0xC0AB)
-    
+        
     def _get_x_position(self):
         return self._read_m(0xC202)
     
-    # def _get_y_postion(self):
-    #     return self._read_m(0xC201)
-    
-    
-class MarioImage(Mario):
-    def __init__(self, config: GymEnvironmentConfig, k=3):
-        self.k    = k  # number of frames to be stacked
-        self.frames_stacked = deque([], maxlen=k)
-        
-        # self.stuck = set()
-        
-        self.frame_width = 84
-        self.frame_height = 84
-
-        logging.info(f"Image Observation is on")
-        super().__init__(config)        
-
-    # @override
-    @property
-    def observation_space(self):
-        return (9, self.frame_width, self.frame_height)
-    
-    # @override
-    def reset(self):
-        super().reset()
-        frame = self.grab_frame(height=self.frame_height, width=self.frame_width)
-        frame = np.moveaxis(frame, -1, 0)
-        for _ in range(self.k):
-            self.frames_stacked.append(frame)
-        stacked_frames = np.concatenate(list(self.frames_stacked), axis=0)
-        return stacked_frames
-    
-    # @override
-    def step(self, action, discrete=False):
-        # _, reward, done, truncated, _ = self.env.step(action)
-        _, reward, done, truncated = super().step(action, discrete)
-
-        frame = self.grab_frame(height=self.frame_height, width=self.frame_width)
-        frame = np.moveaxis(frame, -1, 0)
-        self.frames_stacked.append(frame)
-        stacked_frames = np.concatenate(list(self.frames_stacked), axis=0)
-        return stacked_frames, reward, done, truncated

@@ -1,21 +1,22 @@
-import cv2
-import numpy as np
-
-from pyboy import PyBoy
 from functools import cached_property
 
+import cv2
+import numpy as np
+from envrionments.gym_environment import GymEnvironment
+from pyboy import PyBoy
 from util.configurations import GymEnvironmentConfig
-from envrionments.GymEnvironment import GymEnvironment
 
 
-class Pyboy(GymEnvironment):
+class PyboyEnvironment(GymEnvironment):
     def __init__(
         self, config: GymEnvironmentConfig, rom_name: str, init_name: str
     ) -> None:
         super().__init__(config)
 
-        self.rom_path = f"{config.rom_path}/{self.task}/{rom_name}"
-        self.init_path = f"{config.rom_path}/{self.task}/{init_name}"
+        self.rom_path = f'{config.rom_path}/{self.task}/{rom_name}'
+        self.init_path = f'{config.rom_path}/{self.task}/{init_name}'
+
+        self.combo_actions = 0
 
         self.valid_actions = []
 
@@ -23,14 +24,14 @@ class Pyboy(GymEnvironment):
 
         self.act_freq = config.act_freq
 
-        head, hide_window = ["headless", True] if config.headless else ["SDL2", False]
+        head, hide_window = ['headless', True] if config.headless else ['SDL2', False]
         self.pyboy = PyBoy(
-            self.rom_path,
-            debugging=False,
-            disable_input=False,
-            window_type=head,
-            hide_window=hide_window,
-        )
+                self.rom_path,
+                debugging=False,
+                disable_input=False,
+                window_type=head,
+                hide_window=hide_window,
+            )
 
         self.prior_game_stats = self._generate_game_stats()
         self.screen = self.pyboy.botsupport_manager().screen()
@@ -38,7 +39,7 @@ class Pyboy(GymEnvironment):
         self.step_count = 0
 
         self.pyboy.set_emulation_speed(config.emulation_speed)
-
+        
         self.reset()
 
     @cached_property
@@ -81,32 +82,31 @@ class Pyboy(GymEnvironment):
         bins = np.linspace(
             self.min_action_value, self.max_action_value, num=len(self.valid_actions)
         )
-        # number to index
         discrete_action = int(np.digitize(action, bins)) - 1
 
         self._run_action_on_emulator(discrete_action)
-
+        
         current_game_stats = self._generate_game_stats()
         state = self._stats_to_state(current_game_stats)
 
         reward_stats = self._calculate_reward_stats(current_game_stats)
         reward = self._reward_stats_to_reward(reward_stats)
-
+        
         done = self._check_if_done(current_game_stats)
-
+        
         self.prior_game_stats = current_game_stats
 
         truncated = True if self.step_count % 1000 == 0 else False
-
+      
         return state, reward, done, truncated
-
+    
     def _run_action_on_emulator(self, action: int) -> None:
-        # press button then release after some steps - enough to move
+        # press button then release after some steps - enough to move 
         self.pyboy.send_input(self.valid_actions[action])
         for i in range(self.act_freq):
             self.pyboy.tick()
-            if i == 8:  # ticks required to carry a "step" in the world
-                self.pyboy.send_input(self.release_button[action])
+            if i == 8: # ticks required to carry a "step" in the world
+              self.pyboy.send_input(self.release_button[action])
 
     def _stats_to_state(self, game_stats: dict) -> np.ndarray:
         raise NotImplementedError("Override this method in the child class")
@@ -140,7 +140,7 @@ class Pyboy(GymEnvironment):
             + 256 * self._read_m(start_add + 1)
             + self._read_m(start_add + 2)
         )
-
+        
     def _read_bcd(self, num: int) -> int:
         return 10 * ((num >> 4) & 0x0F) + (num & 0x0F)
 
