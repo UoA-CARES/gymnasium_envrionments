@@ -175,7 +175,17 @@ class MarioEnvironment(PyboyEnvironment):
         else:
             return 0
         
+    # TODO test
+    def _get_time(self):
+        # DA00       3    Timer (frames, seconds (Binary-coded decimal), 
+        # hundreds of seconds (Binary-coded decimal)) (frames count down from 0x28 to 0x01 in a loop)
+        # 9831       1    Timer - Hundreds
+        # 9832       1    Timer - Tens
+        # 9833       1    Timer - Ones
+        return self._read_m(0xDA00)
+
     def _stuck_reward(self, new_state):
+        # if new_state['time'] != self.prior_game_stats['time']:
         if (new_state["direction"] == self.prior_game_stats["direction"] and new_state["x_pos"] == self.prior_game_stats["x_pos"]):
             self.stuck_count += 1
         else:
@@ -186,6 +196,7 @@ class MarioEnvironment(PyboyEnvironment):
             return -2
         else:
             return 0
+        # return 0
     
     # def _jump_reward(self)
     
