@@ -46,9 +46,8 @@ def main():
         logging.info(
             f"Training iteration {training_iteration+1}/{len(training_config.seeds)} with Seed: {seed}"
         )
-        env = env_factory.create_environment(
-            env_config
-        )  # This line should be here for seed consistency issues
+        # This line should be here for seed consistency issues
+        env = env_factory.create_environment(env_config)
         hlp.set_seed(seed)
         env.set_seed(seed)
 

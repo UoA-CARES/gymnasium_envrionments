@@ -16,4 +16,4 @@ max-line-length=130
 extension-pkg-whitelist=cv2
 
 [TYPECHECK]
-generated-members=cv2.*
+generated-members=cv2.*, numpy.*, torch.*
