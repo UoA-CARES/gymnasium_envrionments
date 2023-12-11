@@ -60,6 +60,12 @@ class MarioEnvironment(PyboyEnvironment):
                     self.pyboy.send_input(WindowEvent.RELEASE_ARROW_RIGHT)
                 if i == 11:
                     self.pyboy.send_input(WindowEvent.RELEASE_BUTTON_A)
+        elif action == 3:
+            self.pyboy.send_input(WindowEvent.PRESS_BUTTON_A)
+            for i in range(self.act_freq):
+                self.pyboy.tick()
+                if i == 11:
+                    self.pyboy.send_input(WindowEvent.RELEASE_BUTTON_A)
         else:
             # press button then release after some steps - enough to move
             self.pyboy.send_input(self.valid_actions[action])
@@ -67,7 +73,7 @@ class MarioEnvironment(PyboyEnvironment):
                 self.pyboy.tick()
                 if i == 8: # ticks required to carry a "step" in the world
                     self.pyboy.send_input(self.release_button[action])
-
+            
     def _stats_to_state(self, game_stats: Dict[str, int]) -> List:
         # TODO figure out exactly what our observation space is - note we will have an image based version of this class
         state: List = np.array([
@@ -111,7 +117,7 @@ class MarioEnvironment(PyboyEnvironment):
             "lives_reward": self._lives_reward(new_state),
             "score_reward": self._score_reward(new_state),
             "screen_reward": self._screen_reward(new_state),
-            # "powerup_reward": self._powerup_reward(new_state),
+            "powerup_reward": self._powerup_reward(new_state),
             # "coins_reward": self._coins_reward(new_state),
             "stage_reward": self._stage_reward(new_state),
             "world_reward": self._world_reward(new_state),
@@ -120,17 +126,29 @@ class MarioEnvironment(PyboyEnvironment):
         }
     
     def _lives_reward(self, new_state: Dict[str, int]) -> int:
-        return (new_state["lives"] - self.prior_game_stats["lives"]) * 5
+        if new_state["lives"] - self.prior_game_stats["lives"] < 0:
+            self.reset()
+        
+        return (new_state["lives"] - self.prior_game_stats["lives"]) * 20
     
     def _score_reward(self, new_state: Dict[str, int]) -> int:
         if new_state["score"] - self.prior_game_stats["score"] > 0:
-            return 1
+            return 0.5
         if new_state["score"] - self.prior_game_stats["score"] == 0:
             return 0
-        return -1
+        return -0.5
 
     def _powerup_reward(self, new_state: Dict[str, int]) -> int:
-        return new_state["powerup"] - self.prior_game_stats["powerup"]
+        # Return positive reward for gaining powerup. Negative reward for 
+        # losing powerup except for when starman runs out of time
+        if new_state["powerup"] - self.prior_game_stats["powerup"] < 0:
+            if self.prior_game_stats["powerup"] == 3:
+                return 0
+            else:
+                return -1
+        elif new_state["powerup"] - self.prior_game_stats["powerup"] > 0:
+            return 1
+        return 0
 
     def _coins_reward(self, new_state: Dict[str, int]) -> int:
         if new_state["coins"] - self.prior_game_stats["coins"] > 0:
