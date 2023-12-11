@@ -22,11 +22,13 @@ This package is a basic example of running the CARES RL algorithms on OpenAI/DMC
 
 An example is found below for running on the OpenAI, DMCS, and pyboy environments with TD3/NaSATD3 through console
 ```
+python train.py run --gym openai --task CartPole-v1 DQN
+
 python train.py run --gym openai --task HalfCheetah-v4 TD3
 
 python3 train.py run --gym dmcs --domain ball_in_cup --task catch TD3
 
-python3 train.py run --gym pyboy --task pokemon NaSATD3 --image_observation=True
+python3 train.py run --gym pyboy --task pokemon NaSATD3 --image_observation=1
 ```
 
 An example is found below for running using pre-defined configuration files - note these directories will need to exist on your machine for this to function. Examples of each configuration can be found in the `configs` folder and under https://github.com/UoA-CARES/cares_reinforcement_learning/
