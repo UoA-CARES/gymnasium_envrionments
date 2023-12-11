@@ -99,7 +99,10 @@ class MarioEnvironment(PyboyEnvironment):
             game_stats["stuck"], 
             game_stats["land"][0], 
             game_stats["land"][1], 
-            game_stats["projectiles"]
+            game_stats["projectiles"],
+            game_stats["nearby_enemies"], 
+            game_stats["midrange_enemies"], 
+            game_stats["far_enemies"],
             ])
         return state
     
@@ -120,6 +123,9 @@ class MarioEnvironment(PyboyEnvironment):
             "airbourne": self._get_airbourne(),
             "land": self._get_land(),
             "projectiles": self._get_front_projectiles(),
+            "nearby_enemies": self._get_nearby_enemies(),
+            "midrange_enemies": self._get_midrange_enemies(),
+            "far_enemies": self._get_far_enemies(),
         }
     
     def _reward_stats_to_reward(self, reward_stats: Dict[str, int]) -> int:
@@ -268,7 +274,9 @@ class MarioEnvironment(PyboyEnvironment):
         # add function to check if mario big or small
 
         width = 2
-        height = 3 if (self.prior_game_stats["powerup"] != 0) else 2
+        height = 2
+        if self._get_powerup() == 1 or self._get_powerup() == 2:
+            height = 3
         
         top_boundary = self.mario_y_position - y_distance
         bot_boundary = self.mario_y_position + y_distance + height
@@ -288,12 +296,12 @@ class MarioEnvironment(PyboyEnvironment):
         return (top_boundary, bot_boundary, left_boundary, right_boundary)    
 
     def _get_enemies(self, top_boundary, bot_boundary, left_boundary, right_boundary):
-        for i in range (left_boundary, right_boundary):
-            for j in range(top_boundary, bot_boundary):
+        for i in range (top_boundary, bot_boundary):
+            for j in range(left_boundary, right_boundary):
                 # game area variable not added yet so add it in
-                if self.game_area[i][j] in self.stompable_enemies:
+                if self.game_area()[i][j] in self.stompable_enemies:
                     return 1
-                elif self.game_area[i][j] in self.unstompable_enemies:
+                elif self.game_area()[i][j] in self.unstompable_enemies:
                     return 2
                 # add projectiles later        
         return 0    
