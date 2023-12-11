@@ -64,5 +64,5 @@ if __name__ == "__main__":
 
         area = pd.DataFrame(game_area)        
 
-        # print(area)
-        # logging.info(game_area.shape)
+        print(area)
+        logging.info(game_area.shape)
