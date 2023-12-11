@@ -1,5 +1,7 @@
 dm_control==1.0.15
 gymnasium==0.29.0
+gymnasium[classic-control]==0.29.0
+gymnasium[mujoco]==0.29.0
 numpy==1.23.5
 opencv-contrib-python==4.6.0.66
 pydantic==1.10.13

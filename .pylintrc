@@ -13,7 +13,7 @@ disable=
 max-line-length=130
 
 [MASTER]
-extension-pkg-whitelist=cv2
+extension-pkg-whitelist=cv2, pydantic
 
 [TYPECHECK]
 generated-members=cv2.*, numpy.*, torch.*

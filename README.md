@@ -22,6 +22,8 @@ This package is a basic example of running the CARES RL algorithms on OpenAI/DMC
 
 An example is found below for running on the OpenAI, DMCS, and pyboy environments with TD3/NaSATD3 through console
 ```
+python train.py run --gym openai --task CartPole-v1 DQN
+
 python train.py run --gym openai --task HalfCheetah-v4 TD3
 
 python3 train.py run --gym dmcs --domain ball_in_cup --task catch TD3
