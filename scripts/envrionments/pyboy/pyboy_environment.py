@@ -37,6 +37,7 @@ class PyboyEnvironment(GymEnvironment):
         self.screen = self.pyboy.botsupport_manager().screen()
 
         self.step_count = 0
+        self.seed = 0
 
         self.pyboy.set_emulation_speed(config.emulation_speed)
         
@@ -78,7 +79,9 @@ class PyboyEnvironment(GymEnvironment):
     def step(self, action: int) -> tuple:
         # Actions excluding start
         self.step_count += 1
-
+        
+        # For test.py: Comment out bins & discrete_action and uncomment following line
+        # discrete_action = action
         bins = np.linspace(
             self.min_action_value, self.max_action_value, num=len(self.valid_actions)
         )

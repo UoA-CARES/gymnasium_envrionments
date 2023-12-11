@@ -7,8 +7,8 @@ import pandas as pd
 import pandas as pd
 from envrionments.environment_factory import EnvironmentFactory
 from util.configurations import GymEnvironmentConfig
-from envrionments.pyboy.pokemon.Pokemon import Pokemon, PokemonImage
-from envrionments.pyboy.mario.Mario import Mario, MarioImage
+from envrionments.pyboy.pokemon.pokemon_environment import PokemonEnvironment
+from envrionments.pyboy.mario.mario_environment import MarioEnvironment
 
 def key_to_action(key):
     map = {
@@ -45,6 +45,8 @@ if __name__ == "__main__":
     state = env.reset()
     image = env.grab_frame()
 
+    env.pyboy.set_memory_value(0xDA15, 99)
+
     while True:
         cv2.imshow("State", image)
         key = cv2.waitKey(0)
@@ -52,7 +54,7 @@ if __name__ == "__main__":
         if action == -1:
             break
 
-        state, reward, done, _  = env.step(action, discrete=True)
+        state, reward, done, _  = env.step(action)
         image = env.grab_frame()
 
         stats = env._generate_game_stats()
@@ -62,5 +64,5 @@ if __name__ == "__main__":
 
         area = pd.DataFrame(game_area)        
 
-        print(area)
-        logging.info(game_area.shape)
+        # print(area)
+        # logging.info(game_area.shape)
