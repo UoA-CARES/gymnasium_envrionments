@@ -78,11 +78,8 @@ class MarioEnvironment(PyboyEnvironment):
                     self.pyboy.send_input(WindowEvent.RELEASE_BUTTON_A)
         elif action == 3:
             self.pyboy.send_input(WindowEvent.PRESS_BUTTON_A)
-            self.pyboy.send_input(WindowEvent.PRESS_ARROW_RIGHT)
             for i in range(self.act_freq):  
                 self.pyboy.tick()
-                if i == 10:
-                    self.pyboy.send_input(WindowEvent.RELEASE_ARROW_RIGHT)
                 if i == 11:
                     self.pyboy.send_input(WindowEvent.RELEASE_BUTTON_A)
         else:
@@ -200,7 +197,7 @@ class MarioEnvironment(PyboyEnvironment):
     def _stuck_reward(self, new_state):
         if (new_state["screen"] == self.prior_game_stats["screen"] and 
             new_state["x_pos"] == self.prior_game_stats["x_pos"] and
-            new_state["time"] not == self.prior_game_stats["time"]):
+            new_state["time"] != self.prior_game_stats["time"]):
             self.stuck_count += 1
         else:
             self.stuck_count = 0
