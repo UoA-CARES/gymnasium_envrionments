@@ -76,7 +76,7 @@ def policy_based_train(
 
     # Algorthm specific attributes - e.g. NaSA-TD3 dd
     intrinsic_on = (
-        alg_config.intrinsic_on if hasattr(alg_config, "intrinsic_on") else False
+        bool(alg_config.intrinsic_on) if hasattr(alg_config, "intrinsic_on") else False
     )
 
     min_noise = alg_config.min_noise if hasattr(alg_config, "min_noise") else 0
