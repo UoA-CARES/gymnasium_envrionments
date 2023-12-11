@@ -26,6 +26,22 @@ class MarioEnvironment(PyboyEnvironment):
 
         self.projectiles = {172, 188, 196, 197, 212, 213, 226, 227, 221, 222}
 
+        self.stompable_enemies = {144, 50, 151, 152, 153, 160, 161, 162, 163, 176, 177, 178, 179, 192, 193, 194, 195, 208, 209, 210, 211, 
+        164, 165, 166, 167, 180, 181, 182, 183}
+        self.unstompable_enemies = {146, 147, 148, 149}
+
+        self.mario_tiles = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29,
+        30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60,
+        61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80}
+        
+        self.neutral_blocks = {142, 143, 231, 232, 233, 234, 235, 236, 301, 302, 303, 304, 319, 340, 352, 353, 355, 356, 357, 358, 359,
+        360, 361, 362, 381, 382, 383}
+
+        self.projectiles = {172, 188, 196, 197, 212, 213, 226, 227, 221, 222}
+
+        self.mario_x_position = 0
+        self.mario_y_position = 0
+
         self.combo_actions = 1
 
         super().__init__(config, rom_name="SuperMarioLand.gb", init_name="init.state")        
@@ -62,8 +78,11 @@ class MarioEnvironment(PyboyEnvironment):
                     self.pyboy.send_input(WindowEvent.RELEASE_BUTTON_A)
         elif action == 3:
             self.pyboy.send_input(WindowEvent.PRESS_BUTTON_A)
-            for i in range(self.act_freq):
+            self.pyboy.send_input(WindowEvent.PRESS_ARROW_RIGHT)
+            for i in range(self.act_freq):  
                 self.pyboy.tick()
+                if i == 10:
+                    self.pyboy.send_input(WindowEvent.RELEASE_ARROW_RIGHT)
                 if i == 11:
                     self.pyboy.send_input(WindowEvent.RELEASE_BUTTON_A)
         else:
@@ -113,8 +132,6 @@ class MarioEnvironment(PyboyEnvironment):
         return reward_total
     
     def _calculate_reward_stats(self, new_state: Dict[str, int]) -> Dict[str, int]:
-        # need to check if x position does what i think it does
-        # score reward is low priority
         return {
             "lives_reward": self._lives_reward(new_state),
             "score_reward": self._score_reward(new_state),
@@ -175,36 +192,15 @@ class MarioEnvironment(PyboyEnvironment):
         else:
             return 0
         
-    # TODO test
     def _get_time(self):
         # DA00       3    Timer (frames, seconds (Binary-coded decimal), 
         # hundreds of seconds (Binary-coded decimal)) (frames count down from 0x28 to 0x01 in a loop)
-        # 9831       1    Timer - Hundreds
-        # 9832       1    Timer - Tens
-        # 9833       1    Timer - Ones
         return self._read_m(0xDA00)
-
-    def _stuck_reward(self, new_state):
-        # if new_state['time'] != self.prior_game_stats['time']:
-        if (new_state["direction"] == self.prior_game_stats["direction"] and new_state["x_pos"] == self.prior_game_stats["x_pos"]):
-            self.stuck_count += 1
-        else:
-            self.stuck_count = 0
-        
-        if self.stuck_count >= 10:
-            # self.stuck_count = 0
-            return -2
-        else:
-            return 0
-        # return 0
-    
-    # def _jump_reward(self)
-    
 
     def _stuck_reward(self, new_state):
         if (new_state["screen"] == self.prior_game_stats["screen"] and 
             new_state["x_pos"] == self.prior_game_stats["x_pos"] and
-            new_state["time"] != self.prior_game_stats["time"]):
+            new_state["time"] not == self.prior_game_stats["time"]):
             self.stuck_count += 1
         else:
             self.stuck_count = 0
@@ -212,7 +208,7 @@ class MarioEnvironment(PyboyEnvironment):
         if self.stuck_count >= 10:
             return -2
         else:
-            return 0
+            return 0    
     
     def _check_if_done(self, game_stats):
         # Setting done to true if agent beats first level

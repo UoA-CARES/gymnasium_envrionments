@@ -40,6 +40,8 @@ if __name__ == "__main__":
     state = env.reset()
     image = env.grab_frame()
 
+    env.pyboy.set_memory_value(0xDA15, 99)
+
     while True:
         cv2.imshow("State", image)
         key = cv2.waitKey(0)
