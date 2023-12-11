@@ -8,7 +8,10 @@ import numpy as np
 
 class MarioEnvironment(PyboyEnvironment):
     def __init__(self, config: GymEnvironmentConfig) -> None:
-        super().__init__(config, rom_name="SuperMarioLand.gb", init_name="init.state")
+        self.stuck_count = 0
+
+        self.mario_x_position = 0
+        self.mario_y_position = 0
 
         self.stompable_enemies = {144, 50, 151, 152, 153, 160, 161, 162, 163, 176, 177, 178, 179, 192, 193, 194, 195, 208, 209, 210, 211, 
         164, 165, 166, 167, 180, 181, 182, 183}
@@ -23,10 +26,9 @@ class MarioEnvironment(PyboyEnvironment):
 
         self.projectiles = {172, 188, 196, 197, 212, 213, 226, 227, 221, 222}
 
-        self.mario_x_position = 0
-        self.mario_y_position = 0
-
         self.combo_actions = 1
+
+        super().__init__(config, rom_name="SuperMarioLand.gb", init_name="init.state")        
         
         self.valid_actions: List[WindowEvent] = [
             WindowEvent.PRESS_ARROW_DOWN,
@@ -68,7 +70,15 @@ class MarioEnvironment(PyboyEnvironment):
 
     def _stats_to_state(self, game_stats: Dict[str, int]) -> List:
         # TODO figure out exactly what our observation space is - note we will have an image based version of this class
-        state: List = []
+        state: List = np.array([
+            game_stats["lives"], 
+            game_stats["score"], 
+            game_stats["powerup"], 
+            game_stats["stuck"], 
+            game_stats["land"][0], 
+            game_stats["land"][1], 
+            game_stats["projectiles"]
+            ])
         return state
     
     def _generate_game_stats(self) -> Dict[str, int]:
@@ -83,8 +93,11 @@ class MarioEnvironment(PyboyEnvironment):
             "screen" : self._get_screen(),
             # "direction" : self._get_direction(),
             "x_pos" :self._get_x_position(),
+            "stuck": self._get_stuck(),
             "time": self._get_time(),
-            "airbourne": self._get_airbourne()
+            "airbourne": self._get_airbourne(),
+            "land": self._get_land(),
+            "projectiles": self._get_front_projectiles(),
         }
     
     def _reward_stats_to_reward(self, reward_stats: Dict[str, int]) -> int:
@@ -103,7 +116,7 @@ class MarioEnvironment(PyboyEnvironment):
             "stage_reward": self._stage_reward(new_state),
             "world_reward": self._world_reward(new_state),
             "game_over_reward": self._game_over_reward(new_state),
-            "stuck": self._stuck_reward(new_state),
+            "stuck_reward": self._stuck_reward(new_state),
         }
     
     def _lives_reward(self, new_state: Dict[str, int]) -> int:
@@ -141,16 +154,11 @@ class MarioEnvironment(PyboyEnvironment):
             return -5
         else:
             return 0
-        
-    def _get_time(self):
-        # DA00       3    Timer (frames, seconds (Binary-coded decimal), 
-        # hundreds of seconds (Binary-coded decimal)) (frames count down from 0x28 to 0x01 in a loop)
-        return self._read_m(0xDA00)
 
     def _stuck_reward(self, new_state):
         if (new_state["screen"] == self.prior_game_stats["screen"] and 
             new_state["x_pos"] == self.prior_game_stats["x_pos"] and
-            new_state["time"] not == self.prior_game_stats["time"]):
+            new_state["time"] != self.prior_game_stats["time"]):
             self.stuck_count += 1
         else:
             self.stuck_count = 0
@@ -159,7 +167,6 @@ class MarioEnvironment(PyboyEnvironment):
             return -2
         else:
             return 0
-    
     
     def _check_if_done(self, game_stats):
         # Setting done to true if agent beats first level
@@ -205,6 +212,16 @@ class MarioEnvironment(PyboyEnvironment):
             return 2
         return 3
 
+    def _get_time(self):
+        # DA00       3    Timer (frames, seconds (Binary-coded decimal), 
+        # hundreds of seconds (Binary-coded decimal)) (frames count down from 0x28 to 0x01 in a loop)
+        return self._read_m(0xDA00)
+
+    def _get_stuck(self):
+        if self.stuck_count >= 10:
+            return 1
+        return 0
+
     def _get_airbourne(self):
         return self._read_m(0xC20A)
 
@@ -226,7 +243,7 @@ class MarioEnvironment(PyboyEnvironment):
             
         if self.mario_y_position - y_distance <= 0:
             top_boundary = self.mario_y_position
-        elif self.mario_y_position + y_distance + height >= 20:
+        elif self.mario_y_position + y_distance + height >= 16:
             bot_boundary = self.mario_y_position
         
         return (top_boundary, bot_boundary, left_boundary, right_boundary)    
