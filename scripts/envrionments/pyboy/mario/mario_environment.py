@@ -20,11 +20,18 @@ class MarioEnvironment(PyboyEnvironment):
         self.mario_tiles = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29,
         30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60,
         61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80}
-        
-        self.neutral_blocks = {142, 143, 231, 232, 233, 234, 235, 236, 301, 302, 303, 304, 319, 340, 352, 353, 355, 356, 357, 358, 359,
-        360, 361, 362, 381, 382, 383}
 
-        self.projectiles = {172, 188, 196, 197, 212, 213, 226, 227, 221, 222}
+        # moving_blocks = [230, 238, 239] (added to neutral blocks)
+        # pushable_blocks = [128, 130, 354] (added to neutral blocks)
+
+        self.neutral_blocks = {129, 142, 143, 231, 232, 233, 234, 235, 236, 301, 302, 303, 304, 319, 340, 352, 353, 355, 356, 357, 358, 359,
+        360, 361, 362, 381, 382, 383, 230, 238, 239, 128, 130, 354}
+
+        # explosion = [157, 158] (added to projectiles)
+
+        self.projectiles = {172, 188, 196, 197, 212, 213, 226, 227, 221, 222, 157, 158}
+
+        self.air = {300, 305, 306, 320, 321, 322, 324, 325, 326, 339, 350, 369, 370, 371}
 
         self.combo_actions = 1
 
@@ -308,7 +315,7 @@ class MarioEnvironment(PyboyEnvironment):
         width = 2
         height = 3 if (self.prior_game_stats["powerup"] != 0) else 2
 
-        (top_boundary, bot_boundary, left_boundary, right_boundary) = self._get_boundaries(2, 1)
+        (_, bot_boundary, left_boundary, right_boundary) = self._get_boundaries(2, 1)
         
         mario_bot = self.mario_y_position + height
         mario_left = self.mario_x_position
@@ -399,3 +406,71 @@ class MarioEnvironment(PyboyEnvironment):
                 game_area[_y][_x] = s.tile_identifier
 
         return game_area
+
+    def _search_array(self, search_area, search_size, mario_added, searching_below_mario):
+        new_tile_selection = []
+        for i in range(search_size):
+            print(f'tile: {search_area[i]}')
+            # Adds mario only if not added yet
+            if search_area[i] in self.mario_tiles and not mario_added:
+                new_tile_selection.append(0)
+            elif search_area[i] in self.projectiles:
+                new_tile_selection.append(1)
+            elif search_area[i] in self.unstompable_enemies:
+                new_tile_selection.append(2)
+            elif search_area[i] in self.stompable_enemies:
+                new_tile_selection.append(3)
+            elif search_area[i] in self.neutral_blocks:
+                new_tile_selection.append(5)
+            else:
+                # Ideally find all the air tiles but works for now
+                new_tile_selection.append(4)
+
+        print(f'new tile: {min(new_tile_selection)}')
+        # Returns lowest value because 0 = highest priority
+        new_tile = min(new_tile_selection)
+
+        # Prioritises blocks if searching above mario, air if searching below mario
+        if not searching_below_mario:
+            if new_tile == 4 and 5 in new_tile_selection:
+                new_tile = 5
+        return new_tile
+
+
+    def game_area_red(self):
+        # TODO doesn't work completely yet because game area itself is not working
+        # Reduces game area to 1/4 of original size
+        # 0 = Mario, 1 = projectile, 2 = unstompable enemy, 3 = stompable enemy, 4 = air, 5 = block
+        game_area_array = self.game_area()
+
+        rows = game_area_array.shape[0]
+        cols = game_area_array.shape[1]
+
+        new_area = np.zeros((int(rows/2), int(cols/2)), dtype=np.int32)
+
+        search_size = 4
+
+        mario_added = False
+
+        for i in range(0, rows - 1 , 2):
+            searching_below_mario = False
+            for j in range(0, cols - 1, 2):
+                search_area = [
+                    game_area_array[i][j],
+                    game_area_array[i][j+1],
+                    game_area_array[i+1][j],
+                    game_area_array[i+1][j+1]
+                    ]
+
+                if j >= self.mario_y_position:
+                    searching_below_mario = True
+
+                new_tile = self._search_array(search_area, search_size, mario_added, searching_below_mario)
+                
+                if not mario_added and new_tile == 0:
+                    mario_added = True
+
+                new_area[int(i/2)][int(j/2)] = new_tile
+
+        return new_area
+
