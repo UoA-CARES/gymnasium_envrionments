@@ -4,7 +4,7 @@ from envrionments.pyboy.pokemon import pokemon_constants as pkc
 from envrionments.pyboy.pyboy_environment import PyboyEnvironment
 from pyboy import WindowEvent
 from util.configurations import GymEnvironmentConfig
-
+import numpy as np
 
 class PokemonEnvironment(PyboyEnvironment):
     def __init__(self, config: GymEnvironmentConfig) -> None:
@@ -203,46 +203,6 @@ class PokemonEnvironment(PyboyEnvironment):
             self._bit_count(self._read_m(i))
             for i in range(event_flags_start, event_flags_end)
         ]
-
-    def _get_screen_background_tilemap(self):
-        ### SIMILAR TO CURRENT pyboy.game_wrapper()._game_area_np(), BUT ONLY FOR BACKGROUND TILEMAP, SO NPC ARE SKIPPED
-        bsm = self.pyboy.botsupport_manager()
-        ((scx, scy), (wx, wy)) = bsm.screen().tilemap_position()
-        tilemap = np.array(bsm.tilemap_background()[:, :])
-        return np.roll(np.roll(tilemap, -scy // 8, axis=0), -scx // 8, axis=1)[:18, :20]
-
-    def _get_screen_walkable_matrix(self):
-        walkable_tiles_indexes = []
-        collision_ptr = self.pyboy.get_memory_value(0xD530) + (self.pyboy.get_memory_value(0xD531) << 8)
-        tileset_type = self.pyboy.get_memory_value(0xFFD7)
-        if tileset_type > 0:
-            grass_tile_index = self.pyboy.get_memory_value(0xD535)
-            if grass_tile_index != 0xFF:
-                walkable_tiles_indexes.append(grass_tile_index + 0x100)
-        for i in range(0x180):
-            tile_index = self.pyboy.get_memory_value(collision_ptr + i)
-            if tile_index == 0xFF:
-                break
-            else:
-                walkable_tiles_indexes.append(tile_index + 0x100)
-        screen_tiles = self._get_screen_background_tilemap()
-        bottom_left_screen_tiles = screen_tiles[1:1 + screen_tiles.shape[0]:2, ::2]
-        walkable_matrix = np.isin(bottom_left_screen_tiles, walkable_tiles_indexes).astype(np.uint8)
-        return walkable_matrix
-
-    def game_area_collision(self):
-        shape = (20, 18)
-        game_area_section=(0, 0) + shape
-        width = game_area_section[2]
-        height = game_area_section[3]
-
-        game_area = np.ndarray(shape=(height, width), dtype=np.uint32)
-        _collision = self._get_screen_walkable_matrix()
-        for i in range(height // 2):
-            for j in range(width // 2):
-                game_area[i * 2][j * 2:j*2 + 2] = _collision[i][j]
-                game_area[i*2 + 1][j * 2:j*2 + 2] = _collision[i][j]
-        return game_area
 
     def _get_screen_background_tilemap(self):
         ### SIMILAR TO CURRENT pyboy.game_wrapper()._game_area_np(), BUT ONLY FOR BACKGROUND TILEMAP, SO NPC ARE SKIPPED

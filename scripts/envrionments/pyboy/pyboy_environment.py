@@ -96,7 +96,7 @@ class PyboyEnvironment(GymEnvironment):
         
         self.prior_game_stats = current_game_stats
 
-        truncated = self.step_count % 1000 == 0
+        truncated = self.step_count % 10000 == 0
 
         return state, reward, done, truncated
     

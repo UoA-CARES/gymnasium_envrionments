@@ -89,20 +89,27 @@ class MarioEnvironment(PyboyEnvironment):
                 if i == 8: # ticks required to carry a "step" in the world
                     self.pyboy.send_input(self.release_button[action])
             
+    # Simplified state vector
+    # def _stats_to_state(self, game_stats: Dict[str, int]) -> List:
+    #     # TODO figure out exactly what our observation space is - note we will have an image based version of this class
+    #     state: List = np.array([
+    #         game_stats["lives"], 
+    #         game_stats["score"], 
+    #         game_stats["powerup"], 
+    #         game_stats["stuck"], 
+    #         game_stats["land"][0], 
+    #         game_stats["land"][1], 
+    #         game_stats["projectiles"],
+    #         game_stats["nearby_enemies"], 
+    #         game_stats["midrange_enemies"], 
+    #         game_stats["far_enemies"],
+    #         ])
+    #     return state
+    
+    # Reduced game area
     def _stats_to_state(self, game_stats: Dict[str, int]) -> List:
         # TODO figure out exactly what our observation space is - note we will have an image based version of this class
-        state: List = np.array([
-            game_stats["lives"], 
-            game_stats["score"], 
-            game_stats["powerup"], 
-            game_stats["stuck"], 
-            game_stats["land"][0], 
-            game_stats["land"][1], 
-            game_stats["projectiles"],
-            game_stats["nearby_enemies"], 
-            game_stats["midrange_enemies"], 
-            game_stats["far_enemies"],
-            ])
+        state: List = np.array([self.game_area_red()]).flatten()
         return state
     
     def _generate_game_stats(self) -> Dict[str, int]:
@@ -472,7 +479,6 @@ class MarioEnvironment(PyboyEnvironment):
         mario_added = False
 
         for i in range(0, rows - 1 , 2):
-            searching_below_mario = False
             for j in range(0, cols - 1, 2):
                 search_area = [
                     game_area_array[i][j],
@@ -480,8 +486,10 @@ class MarioEnvironment(PyboyEnvironment):
                     game_area_array[i+1][j],
                     game_area_array[i+1][j+1]
                     ]
+                
+                searching_below_mario = False
 
-                if j >= self.mario_y_position + 1:
+                if i >= self.mario_y_position + 1:
                     searching_below_mario = True
 
                 new_tile = self._search_array(search_area, search_size, mario_added, searching_below_mario)
