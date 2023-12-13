@@ -54,8 +54,11 @@ if __name__ == "__main__":
         stats = env._generate_game_stats()
 
         game_area = env.game_area()
+        # red_area = env.game_area_red()
 
         area = pd.DataFrame(game_area)
+        # red = pd.DataFrame(red_area)
 
         print(area)
-        logging.info(game_area.shape)
+        # print(red)
+        # logging.info(game_area.shape)

@@ -1,15 +1,23 @@
 from typing import Dict, List
+from enum import Enum
 
 from envrionments.pyboy.pyboy_environment import PyboyEnvironment
 from pyboy import WindowEvent
 from util.configurations import GymEnvironmentConfig
 import numpy as np
 
+class Moves(Enum):
+    DOWN = 0
+    LEFT = 1
+    RIGHT = 2
+    A = 3
+    B = 4
+    LEAP = 5
 
 class MarioEnvironment(PyboyEnvironment):
     def __init__(self, config: GymEnvironmentConfig) -> None:
         self.stuck_count = 0
-
+        
         self.mario_x_position = 0
         self.mario_y_position = 0
 
@@ -25,17 +33,17 @@ class MarioEnvironment(PyboyEnvironment):
         # pushable_blocks = [128, 130, 354] (added to neutral blocks)
 
         self.neutral_blocks = {129, 142, 143, 231, 232, 233, 234, 235, 236, 301, 302, 303, 304, 319, 340, 352, 353, 355, 356, 357, 358, 359,
-        360, 361, 362, 381, 382, 383, 230, 238, 239, 128, 130, 354}
+        360, 361, 362, 381, 382, 383, 230, 238, 239, 128, 130, 354, 369, 370, 371}
 
         # explosion = [157, 158] (added to projectiles)
 
         self.projectiles = {172, 188, 196, 197, 212, 213, 226, 227, 221, 222, 157, 158}
 
-        self.air = {300, 305, 306, 320, 321, 322, 324, 325, 326, 339, 350, 369, 370, 371}
+        self.air = {300, 305, 306, 320, 321, 322, 324, 325, 326, 339, 350}
 
         self.combo_actions = 1
 
-        super().__init__(config, rom_name="SuperMarioLand.gb", init_name="init.state")        
+        super().__init__(config, rom_name="SuperMarioLand.gb", init_name="init.state")    
         
         self.valid_actions: List[WindowEvent] = [
             WindowEvent.PRESS_ARROW_DOWN,
@@ -58,7 +66,7 @@ class MarioEnvironment(PyboyEnvironment):
     # @override
     def _run_action_on_emulator(self, action):
          # extra action for long jumping to the right
-        if action == 5:
+        if action == Moves.LEAP.value:
             self.pyboy.send_input(WindowEvent.PRESS_BUTTON_A)
             self.pyboy.send_input(WindowEvent.PRESS_ARROW_RIGHT)
             for i in range(self.act_freq):  
@@ -67,7 +75,7 @@ class MarioEnvironment(PyboyEnvironment):
                     self.pyboy.send_input(WindowEvent.RELEASE_ARROW_RIGHT)
                 if i == 11:
                     self.pyboy.send_input(WindowEvent.RELEASE_BUTTON_A)
-        elif action == 3:
+        elif action == Moves.A.value:
             self.pyboy.send_input(WindowEvent.PRESS_BUTTON_A)
             for i in range(self.act_freq):  
                 self.pyboy.tick()
@@ -225,7 +233,7 @@ class MarioEnvironment(PyboyEnvironment):
         return 0
     
     def _get_screen(self):
-        return self._read_m(0xC0AB)
+        return self._read_m(0xC0AB) - 12
 
     def _get_x_position(self):
         return self._read_m(0xC202)
@@ -370,12 +378,23 @@ class MarioEnvironment(PyboyEnvironment):
         
         return -1
 
+    def _get_x_scroll(self):
+        return np.ceil(self._read_m(0xFF43)/8)
+        
     # @override
     def game_area(self) -> np.ndarray:
         # shape = (20, 18)
         shape = (20, 16)
         game_area_section = (0, 2) + shape
 
+        horizontal_edge = 32
+        # print(f'screen: {self._get_screen()}')
+        left_screen = int(self._get_x_scroll())
+        right_screen = left_screen + 20
+
+        if right_screen > horizontal_edge:
+            right_screen = right_screen % 32
+        
         mario_seen = False
 
         xx = game_area_section[0]
@@ -384,9 +403,19 @@ class MarioEnvironment(PyboyEnvironment):
         height = game_area_section[3]
 
         tilemap_background = self.pyboy.botsupport_manager().tilemap_background()
-        game_area = np.asarray(
-            tilemap_background[xx : xx + width, yy : yy + height], dtype=np.uint32
-        )
+
+        if right_screen < left_screen:
+            first_half = tilemap_background[left_screen : horizontal_edge, yy : yy + height]
+            second_half = tilemap_background[xx : xx + right_screen, yy : yy + height]
+
+            for i in range(len(first_half)):
+                first_half[i].extend(second_half[i])
+
+            game_area = np.asarray(first_half, dtype=np.uint32)
+        else:
+            game_area = np.asarray(
+                tilemap_background[left_screen : right_screen, yy : yy + height], dtype=np.uint32
+            )
 
         ss = self._get_sprites()
         for s in ss:
@@ -404,7 +433,6 @@ class MarioEnvironment(PyboyEnvironment):
     def _search_array(self, search_area, search_size, mario_added, searching_below_mario):
         new_tile_selection = []
         for i in range(search_size):
-            print(f'tile: {search_area[i]}')
             # Adds mario only if not added yet
             if search_area[i] in self.mario_tiles and not mario_added:
                 new_tile_selection.append(0)
@@ -420,7 +448,6 @@ class MarioEnvironment(PyboyEnvironment):
                 # Ideally find all the air tiles but works for now
                 new_tile_selection.append(4)
 
-        print(f'new tile: {min(new_tile_selection)}')
         # Returns lowest value because 0 = highest priority
         new_tile = min(new_tile_selection)
 
@@ -432,7 +459,7 @@ class MarioEnvironment(PyboyEnvironment):
 
 
     def game_area_red(self):
-        # TODO doesn't work completely yet because game area itself is not working
+        # TODO function is a work in progress
         # Reduces game area to 1/4 of original size
         # 0 = Mario, 1 = projectile, 2 = unstompable enemy, 3 = stompable enemy, 4 = air, 5 = block
         game_area_array = self.game_area()
@@ -456,7 +483,7 @@ class MarioEnvironment(PyboyEnvironment):
                     game_area_array[i+1][j+1]
                     ]
 
-                if j >= self.mario_y_position:
+                if j >= self.mario_y_position + 1:
                     searching_below_mario = True
 
                 new_tile = self._search_array(search_area, search_size, mario_added, searching_below_mario)
