@@ -96,9 +96,9 @@ class PyboyEnvironment(GymEnvironment):
         
         self.prior_game_stats = current_game_stats
 
-        truncated = self.step_count % 10000 == 0
+        # truncated = self.step_count % 10000 == 0
 
-        return state, reward, done, truncated
+        return state, reward, done, False
     
     def _run_action_on_emulator(self, action: int) -> None:
         # press button then release after some steps - enough to move 

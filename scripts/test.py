@@ -12,8 +12,8 @@ def key_to_action(button: int):
         97: 1,  # a - left
         100: 2,  # d - right
         119: 3,  # w - up
-        122: 4,  # z - A
-        120: 5,  # x - B
+        122: 5,  # z - A
+        120: 4,  # x - B
         # 32: 6,  #space - start
     }
     logging.info(f"Key: {button}")
@@ -39,6 +39,8 @@ if __name__ == "__main__":
 
     state = env.reset()
     image = env.grab_frame()
+
+    # env.pyboy.set_memory_value(0xDA15, 99)
 
     while True:
         cv2.imshow("State", image)
