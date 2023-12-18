@@ -39,36 +39,35 @@ class MarioEnvironment(PyboyEnvironment):
         self.mario_x_position = 0
         self.mario_y_position = 0
 
-        self.stompable_enemies = {50, 144, 151, 152, 153, 160, 161, 162, 163, 164, 165, 166, 167, 176, 177,
-                                  178, 179, 180, 181, 182, 183, 192, 193, 194, 195, 198, 199, 208, 209, 210, 211, 214, 215}
-        # Underwater enemies, everything unstompable: 184, 185, 168, 169 (fish), 192 (jumping fish), 164, 165, 180, 181 (seahorse), 160, 161, 176, 177 (octopus)
-        self.unstompable_enemies = {146, 147, 148, 149}
-
         self.mario_tiles = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22,
                             23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43,
                             44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63,
                             64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80}
-
         self.plane = {99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109}
         self.submarine = {112, 113, 114, 115, 116, 117, 118, 119, 120, 121}
-
         self.mario_projectiles = {96, 110, 122}
+        self.powerups = {131, 132, 134, 224, 229}
+
+        self.stompable_enemies = {50, 144, 151, 152, 153, 160, 161, 162, 163, 164, 165, 166, 167, 176, 177,
+                                  178, 179, 180, 181, 182, 183, 192, 193, 194, 195, 198, 199, 208, 209, 210, 211, 214, 215}
+        # Underwater enemies, everything unstompable: 184, 185, 168, 169 (fish), 192 (jumping fish), 164, 165, 180, 181 (seahorse), 
+        # 160, 161, 176, 177 (octopus)
+        self.unstompable_enemies = {146, 147, 148, 149}
+
+        # self.first_boss = {170, 171, 186, 187, 198, 199, 202, 203, 204, 205, 206, 214, 215, 218, 219, 220}
+
 
         # moving_blocks = [230, 238, 239] (added to neutral blocks)
         # pushable_blocks = [128, 130, 354] (added to neutral blocks)
-
         self.neutral_blocks = {129, 142, 143, 231, 232, 233, 234, 235, 236, 301, 302, 303, 304, 319, 340, 352,
                                353, 355, 356, 357, 358, 359, 360, 361, 362, 381, 382, 383, 230, 238, 239, 128,
                                130, 354, 369, 370, 371}
 
         # explosion = [157, 158] (added to projectiles)
         # bill = [249] (added to projectiles)
-
         self.projectiles = {157, 158, 172, 188, 196, 197, 212, 213, 226, 227, 221, 222, 249}
 
         self.air = {300, 305, 306, 320, 321, 322, 324, 325, 326, 339, 350}
-
-        self.powerups = {131, 132, 134, 224, 229}
 
         self.combo_actions = 1
         
@@ -106,7 +105,7 @@ class MarioEnvironment(PyboyEnvironment):
         self.step_count += 1
         
         # For test.py: Comment out bins & discrete_action and uncomment following line
-        # discrete_action = action
+        discrete_action = action
 
         if action == 1:
             action -= 0.01
@@ -122,14 +121,15 @@ class MarioEnvironment(PyboyEnvironment):
 
         reward_stats = self._calculate_reward_stats(current_game_stats)
         reward = self._reward_stats_to_reward(reward_stats)
+        print(f'reward: {reward}')
         
         done = self._check_if_done(current_game_stats)
         
         self.prior_game_stats = current_game_stats
 
-        # truncated = self.step_count % 10000 == 0
+        truncated = self.step_count % 10000 == 0
 
-        return state, reward, done, False
+        return state, reward, done, truncated
 
     # @override
     def _run_action_on_emulator(self, action):
@@ -185,11 +185,20 @@ class MarioEnvironment(PyboyEnvironment):
         #     game_stats["midrange_enemies"], 
         #     game_stats["far_enemies"],
         #     ])
+
         # # Reduced game area
         # state: List = np.array([self.game_area_red()]).flatten()
-        # Full game area
 
-        state: List = np.array([self.game_area()]).flatten()
+        # # Full game area
+        # state: List = np.array([self.game_area()]).flatten()
+        
+        # # Simplified game area + stats
+        # state: List = np.append(np.array([self.simplify_game_area()]).flatten(), 
+        #                         np.array([game_stats["died"], game_stats["powerup"], game_stats["stuck"]]))
+
+        # Reduced game area + stats
+        state: List = np.append(np.array([self.game_area_red()]).flatten(),
+                                np.array([game_stats["died"], game_stats["powerup"], game_stats["stuck"]]))
         return state
     
     def _generate_game_stats(self) -> Dict[str, int]:
@@ -202,7 +211,6 @@ class MarioEnvironment(PyboyEnvironment):
             "world": self._get_world(),
             "game_over": self._get_game_over(),
             "screen" : self._get_screen(),
-            # "direction" : self._get_direction(),
             "x_pos" :self._get_x_position(),
             "stuck": self._get_stuck(),
             "time": self._get_time(),
@@ -212,6 +220,7 @@ class MarioEnvironment(PyboyEnvironment):
             "nearby_enemies": self._get_nearby_enemies(),
             "midrange_enemies": self._get_midrange_enemies(),
             "far_enemies": self._get_far_enemies(),
+            "died": self._get_died(),
         }
     
     def _reward_stats_to_reward(self, reward_stats: Dict[str, int]) -> int:
@@ -234,10 +243,12 @@ class MarioEnvironment(PyboyEnvironment):
         }
     
     def _lives_reward(self, new_state: Dict[str, int]) -> int:
-        if new_state["lives"] - self.prior_game_stats["lives"] < 0:
-            self.reset()
+        # Uses get_died instead of get lives because get lives memory address updates
+        # ~8 steps after death whereas this is instant if fell off and ~3 steps if enemy collide
+        if new_state["died"] == 1 and self.prior_game_stats["died"] == 0:
+            return - 20
         
-        return (new_state["lives"] - self.prior_game_stats["lives"]) * 20
+        return 0
     
     def _score_reward(self, new_state: Dict[str, int]) -> int:
         if new_state["score"] - self.prior_game_stats["score"] > 0:
@@ -324,11 +335,14 @@ class MarioEnvironment(PyboyEnvironment):
         return self._read_m(0xC202)
 
     def _get_powerup(self):
-        # 0x00 = small, 0x01 = growing, 0x02 = big with or without superball, 
-        # 0x03 = shrinking, 0x04 = invincibility blinking
         # FFB5 (Does Mario have the Superball (0x00 = no, 0x02 = yes)
-        # 3 = invincible (starman?), 2 = superball, 1 = big, 0 = small
-        if self._read_m(0xFF99) != 0x04:
+        # FF99 0x00 = small, 0x01 = growing, 0x02 = big with or without superball, 
+        # 0x03 = shrinking, 0x04 = invincibility blinking (when your big but 
+        # get hit you are invincible while shrinking)
+        # Ignoring invincibility blinking for now
+
+        # 3 = starman, 2 = superball, 1 = big, 0 = small
+        if self._read_m(0xC0D3) == 0x00:
             if self._read_m(0xFFB5) != 0x02:
                 if self._read_m(0xFF99) != 0x02:
                     if self._read_m(0xFF99) != 0x01:
@@ -339,8 +353,7 @@ class MarioEnvironment(PyboyEnvironment):
         return 3
 
     def _get_time(self):
-        # DA00       3    Timer (frames, seconds (Binary-coded decimal), 
-        # hundreds of seconds (Binary-coded decimal)) (frames count down from 0x28 to 0x01 in a loop)
+        # DA00 Timer (frames count down from 0x28 to 0x01 in a loop)
         return self._read_m(0xDA00)
 
     def _get_stuck(self):
@@ -371,12 +384,13 @@ class MarioEnvironment(PyboyEnvironment):
         return (top_boundary, bot_boundary, left_boundary, right_boundary)    
 
     def _get_enemies(self, top_boundary, bot_boundary, left_boundary, right_boundary):
+        game_area_array = self.game_area()
         for i in range (top_boundary, bot_boundary):
             for j in range(left_boundary, right_boundary):
                 # game area variable not added yet so add it in
-                if self.game_area()[i][j] in self.stompable_enemies:
+                if game_area_array[i][j] in self.stompable_enemies:
                     return 1
-                elif self.game_area()[i][j] in self.unstompable_enemies:
+                elif game_area_array[i][j] in self.unstompable_enemies:
                     return 2
                 # add projectiles later
         return 0    
@@ -458,6 +472,12 @@ class MarioEnvironment(PyboyEnvironment):
 
     def _get_x_scroll(self):
         return np.ceil(self._read_m(0xFF43)/8)
+    
+    def _get_died(self):
+        # C0AC dead jump timer FFA6 = Time till respawn
+        if self._read_m(0xFFA6) == 144:
+            return 1
+        return 0
         
     # @override
     def game_area(self) -> np.ndarray:
@@ -562,8 +582,8 @@ class MarioEnvironment(PyboyEnvironment):
 
         mario_added = False
 
-        for i in range(0, rows - 1 , 2):
-            for j in range(0, cols - 1, 2):
+        for i in range(0, rows, 2):
+            for j in range(0, cols, 2):
                 search_area = [
                     game_area_array[i][j],
                     game_area_array[i][j+1],
@@ -584,4 +604,37 @@ class MarioEnvironment(PyboyEnvironment):
                 new_area[int(i/2)][int(j/2)] = new_tile
 
         return new_area
+    
+    def simplify_game_area(self):
+        game_area_array = self.game_area()
 
+        rows = game_area_array.shape[0]
+        cols = game_area_array.shape[1]
+
+        new_area = np.zeros((rows, cols), dtype=np.int32)
+
+        for i in range(rows):
+            for j in range(cols):
+                if game_area_array[i][j] in self.mario_tiles:
+                # get powerup returns 0 = Mario, 1 = big, 2 = flower, 3 = star
+                    new_area[i][j] = self._get_powerup()
+                elif game_area_array[i][j] in self.projectiles:
+                    new_area[i][j] = Tiles.PROJECTILE.value
+                elif game_area_array[i][j] in self.unstompable_enemies:
+                    new_area[i][j] = Tiles.UNSTOMPABLE.value 
+                elif game_area_array[i][j] in self.stompable_enemies:
+                    new_area[i][j] = Tiles.STOMPABLE.value
+                elif game_area_array[i][j] in self.powerups:
+                    new_area[i][j] = Tiles.POWERUP.value
+                elif game_area_array[i][j] in self.mario_projectiles:
+                    new_area[i][j] = Tiles.MARIO_PROJECTILE.value
+                elif game_area_array[i][j] == 255:
+                    new_area[i][j] = Tiles.LEVER.value
+                elif game_area_array[i][j] in self.neutral_blocks:
+                    new_area[i][j] = Tiles.BLOCK.value
+                else:
+                    # Ideally find all the air tiles but works for now
+                    new_area[i][j] = Tiles.AIR.value
+        
+        return new_area
+    

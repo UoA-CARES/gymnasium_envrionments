@@ -8,12 +8,12 @@ from util.configurations import GymEnvironmentConfig
 
 def key_to_action(button: int):
     key_map = {
-        115: 0,  # s - down
-        97: 1,  # a - left
-        100: 2,  # d - right
-        119: 3,  # w - up
-        122: 5,  # z - A
-        120: 4,  # x - B
+        115: -0.9,  # s - down
+        97: -0.6,  # a - left
+        100: -0.3,  # d - right
+        119: 0.1,  # w - up
+        122: 0.4,  # z - A
+        120: 0.7,  # x - B
         # 32: 6,  #space - start
     }
     logging.info(f"Key: {button}")
@@ -39,8 +39,6 @@ if __name__ == "__main__":
 
     state = env.reset()
     image = env.grab_frame()
-
-    # env.pyboy.set_memory_value(0xDA15, 99)
 
     while True:
         cv2.imshow("State", image)
