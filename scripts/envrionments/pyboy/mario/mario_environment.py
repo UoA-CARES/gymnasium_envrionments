@@ -121,7 +121,6 @@ class MarioEnvironment(PyboyEnvironment):
 
         reward_stats = self._calculate_reward_stats(current_game_stats)
         reward = self._reward_stats_to_reward(reward_stats)
-        print(f'reward: {reward}')
         
         done = self._check_if_done(current_game_stats)
         
@@ -232,22 +231,23 @@ class MarioEnvironment(PyboyEnvironment):
     def _calculate_reward_stats(self, new_state: Dict[str, int]) -> Dict[str, int]:
         return {
             "lives_reward": self._lives_reward(new_state),
-            "score_reward": self._score_reward(new_state),
+            # "score_reward": self._score_reward(new_state),
             "screen_reward": self._screen_reward(new_state),
             "powerup_reward": self._powerup_reward(new_state),
             # "coins_reward": self._coins_reward(new_state),
             "stage_reward": self._stage_reward(new_state),
             "world_reward": self._world_reward(new_state),
-            "game_over_reward": self._game_over_reward(new_state),
+            # Game over is delayed and lives reward is basically the same
+            # "game_over_reward": self._game_over_reward(new_state),
             "stuck_reward": self._stuck_reward(new_state),
         }
     
     def _lives_reward(self, new_state: Dict[str, int]) -> int:
         # Uses get_died instead of get lives because get lives memory address updates
         # ~8 steps after death whereas this is instant if fell off and ~3 steps if enemy collide
-        if new_state["died"] == 1 and self.prior_game_stats["died"] == 0:
-            return - 20
-        
+        if (new_state["died"] == 1 and 
+            self.prior_game_stats["died"] == 0):
+            return -20
         return 0
     
     def _score_reward(self, new_state: Dict[str, int]) -> int:
@@ -279,12 +279,14 @@ class MarioEnvironment(PyboyEnvironment):
         return 1 if(new_state["screen"] - self.prior_game_stats["screen"] > 0) else 0
     
     def _stage_reward(self, new_state):
-        if new_state["stage"] - self.prior_game_stats["stage"] == -2:
-            return 0
-        return (new_state["stage"] - self.prior_game_stats["stage"]) * 5
+        if new_state["stage"] >= 2:
+            return (new_state["stage"] - self.prior_game_stats["stage"]) * 5
+        return 0
 
     def _world_reward(self, new_state):
-        return (new_state["world"] - self.prior_game_stats["world"]) * 5
+        if new_state["world"] >= 2:
+            return (new_state["world"] - self.prior_game_stats["world"]) * 5
+        return 0
 
     def _game_over_reward(self, new_state):
         return -5 if new_state["game_over"] == 1 else 0
@@ -323,6 +325,7 @@ class MarioEnvironment(PyboyEnvironment):
     
     def _get_game_over(self):
         # Resetting game so that the agent doesn't need to use start button to start game
+        # print(f'game over: {self._read_m(0xFFB3)}')
         if self._read_m(0xFFB3) == 0x3A:
             self.reset()
             return 1
@@ -475,7 +478,7 @@ class MarioEnvironment(PyboyEnvironment):
     
     def _get_died(self):
         # C0AC dead jump timer FFA6 = Time till respawn
-        if self._read_m(0xFFA6) == 144:
+        if self._read_m(0xDFE9) == 0x02:
             return 1
         return 0
         
