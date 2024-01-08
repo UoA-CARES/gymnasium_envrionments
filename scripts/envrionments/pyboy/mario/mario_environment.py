@@ -171,7 +171,7 @@ class MarioEnvironment(PyboyEnvironment):
                         self.pyboy.send_input(self.release_button[action])
             
     def _stats_to_state(self, game_stats: Dict[str, int]) -> List:
-        # # Simplified state vector
+        # # # Simplified state vector
         # state: List = np.array([
         #     game_stats["lives"], 
         #     game_stats["score"], 
@@ -196,8 +196,9 @@ class MarioEnvironment(PyboyEnvironment):
         #                         np.array([game_stats["died"], game_stats["powerup"], game_stats["stuck"]]))
 
         # Reduced game area + stats
-        state: List = np.append(np.array([self.game_area_red()]).flatten(),
+        state: List = np.append(np.array([self.game_area()]).flatten(),
                                 np.array([game_stats["died"], game_stats["powerup"], game_stats["stuck"]]))
+        
         return state
     
     def _generate_game_stats(self) -> Dict[str, int]:
@@ -247,7 +248,7 @@ class MarioEnvironment(PyboyEnvironment):
         # ~8 steps after death whereas this is instant if fell off and ~3 steps if enemy collide
         if (new_state["died"] == 1 and 
             self.prior_game_stats["died"] == 0):
-            return -20
+            return -30
         return 0
     
     def _score_reward(self, new_state: Dict[str, int]) -> int:
@@ -264,7 +265,7 @@ class MarioEnvironment(PyboyEnvironment):
             if self.prior_game_stats["powerup"] == 3:
                 return 0
             else:
-                return -1
+                return -10
         elif new_state["powerup"] - self.prior_game_stats["powerup"] > 0:
             return 1
         return 0
@@ -276,7 +277,7 @@ class MarioEnvironment(PyboyEnvironment):
             return 0
 
     def _screen_reward(self, new_state):
-        return 1 if(new_state["screen"] - self.prior_game_stats["screen"] > 0) else 0
+        return 0.5 if(new_state["screen"] - self.prior_game_stats["screen"] > 0) else 0
     
     def _stage_reward(self, new_state):
         if new_state["stage"] >= 2:
@@ -300,7 +301,7 @@ class MarioEnvironment(PyboyEnvironment):
             self.stuck_count = 0
         
         if self.stuck_count >= 10:
-            return -2
+            return -10
         else:
             return 0    
     
