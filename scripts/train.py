@@ -10,6 +10,7 @@ from pathlib import Path
 import train_loops.policy_loop as pbe
 import train_loops.ppo_loop as ppe
 import train_loops.value_loop as vbe
+import train_loops.mbrl_loop as mbrlpbe
 from envrionments.environment_factory import EnvironmentFactory
 from util.configurations import GymEnvironmentConfig
 
@@ -92,6 +93,9 @@ def main():
             vbe.value_based_train(
                 env, agent, memory, record, training_config, alg_config
             )
+        elif agent.type == "mbrl":
+            mbrlpbe.policy_based_train(env, agent, memory, record,
+                                       training_config, alg_config)
         else:
             raise ValueError(f"Agent type is unkown: {agent.type}")
 
