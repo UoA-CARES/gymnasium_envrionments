@@ -26,7 +26,7 @@ def key_to_action(button: int):
 if __name__ == "__main__":
     args = {
         "gym": "pyboy",
-        # 'task' : 'pokemon',
+        # "task" : "pokemon",
         "task": "mario",
     }
     env_config = GymEnvironmentConfig(**args)

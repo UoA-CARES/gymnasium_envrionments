@@ -8,7 +8,9 @@ import numpy as np
 
 class PokemonEnvironment(PyboyEnvironment):
     def __init__(self, config: GymEnvironmentConfig) -> None:
+        self.seen_locations = set()
         super().__init__(config, "PokemonRed.gb", "has_pokedex.state")
+        self.stuck_count = 0
 
         self.valid_actions: List[WindowEvent] = [
             WindowEvent.PRESS_ARROW_DOWN,
@@ -16,7 +18,7 @@ class PokemonEnvironment(PyboyEnvironment):
             WindowEvent.PRESS_ARROW_RIGHT,
             WindowEvent.PRESS_ARROW_UP,
             WindowEvent.PRESS_BUTTON_A,
-            WindowEvent.PRESS_BUTTON_B,
+            # WindowEvent.PRESS_BUTTON_B,
         ]
 
         self.release_button: List[WindowEvent] = [
@@ -25,7 +27,7 @@ class PokemonEnvironment(PyboyEnvironment):
             WindowEvent.RELEASE_ARROW_RIGHT,
             WindowEvent.RELEASE_ARROW_UP,
             WindowEvent.RELEASE_BUTTON_A,
-            WindowEvent.RELEASE_BUTTON_B,
+            # WindowEvent.RELEASE_BUTTON_B,
         ]
 
     def _stats_to_state(self, game_stats: Dict[str, any]) -> List[any]:
@@ -67,6 +69,9 @@ class PokemonEnvironment(PyboyEnvironment):
             "badges_reward": self._badges_reward(new_state),
             "money_reward": self._money_reward(new_state),
             "event_reward": self._event_reward(new_state),
+            "stuck_reward": self._stuck_reward(new_state),
+            "location_reward": self._location_reward(new_state),
+            "distance_reward": self._distance_travelled_reward(new_state),
         }
 
     def _caught_reward(self, new_state: Dict[str, any]) -> int:
@@ -94,11 +99,35 @@ class PokemonEnvironment(PyboyEnvironment):
 
     def _event_reward(self, new_state: Dict[str, any]) -> int:
         return sum(new_state["events"]) - sum(self.prior_game_stats["events"])
+    
+    def _stuck_reward(self, new_state: Dict[str, any]) -> int:
+        if (new_state["location"] == self.prior_game_stats["location"]):
+            self.stuck_count += 1
+        else:
+            self.stuck_count = 0
+
+        if self.stuck_count >= 5: # lower threshold
+            return -20 #changed to larger penalty
+        else:
+            return 0
+        
+    def _location_reward(self, new_state: Dict[str, any]) -> int:
+        if new_state["location"]["map_id"] not in self.seen_locations:
+            self.seen_locations.add(new_state["location"]["map_id"])
+            return 10  # Increased reward for new locations
+        return 0
+    
+    # new reward function
+    def _distance_travelled_reward(self, new_state: Dict[str, any]) -> int:
+        old_x, old_y = self.prior_game_stats["location"]["x"], self.prior_game_stats["location"]["y"]
+        new_x, new_y = new_state["location"]["x"], new_state["location"]["y"]
+        distance = abs(new_x - old_x) + abs(new_y - old_y)
+        return distance  # Reward based on the distance traveled
 
     def _check_if_done(self, game_stats: Dict[str, any]) -> bool:
         # Setting done to true if agent beats first gym (temporary)
         return self.prior_game_stats["badges"] > 0
-
+    
     def _get_location(self) -> Dict[str, any]:
         x_pos = self._read_m(0xD362)
         y_pos = self._read_m(0xD361)
