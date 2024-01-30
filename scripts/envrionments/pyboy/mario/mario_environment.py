@@ -41,6 +41,7 @@ class MarioEnvironment(PyboyEnvironment):
         self.mario_x_position = 0
         self.mario_y_position = 0
 
+        # All tiles & sprites on the screen
         self.mario_tiles = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22,
                             23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43,
                             44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63,
@@ -49,26 +50,21 @@ class MarioEnvironment(PyboyEnvironment):
         self.submarine = {112, 113, 114, 115, 116, 117, 118, 119, 120, 121}
         self.mario_projectiles = {96, 110, 122}
         self.powerups = {131, 132, 134, 224, 229}
-
         self.stompable_enemies = {50, 144, 151, 152, 153, 160, 161, 162, 163, 164, 165, 166, 167, 176, 177,
                                   178, 179, 180, 181, 182, 183, 192, 193, 194, 195, 198, 199, 208, 209, 210, 211, 214, 215}
         # Underwater enemies, everything unstompable: 184, 185, 168, 169 (fish), 192 (jumping fish), 164, 165, 180, 181 (seahorse), 
         # 160, 161, 176, 177 (octopus)
         self.unstompable_enemies = {146, 147, 148, 149}
-
+        # Not all enemies are added
         # self.first_boss = {170, 171, 186, 187, 198, 199, 202, 203, 204, 205, 206, 214, 215, 218, 219, 220}
-
-
         # moving_blocks = [230, 238, 239] (added to neutral blocks)
         # pushable_blocks = [128, 130, 354] (added to neutral blocks)
         self.neutral_blocks = {129, 142, 143, 231, 232, 233, 234, 235, 236, 301, 302, 303, 304, 319, 340, 352,
                                353, 355, 356, 357, 358, 359, 360, 361, 362, 381, 382, 383, 230, 238, 239, 128,
                                130, 354, 369, 370, 371}
-
         # explosion = [157, 158] (added to projectiles)
         # bill = [249] (added to projectiles)
         self.projectiles = {157, 158, 172, 188, 196, 197, 212, 213, 226, 227, 221, 222, 249}
-
         self.air = {300, 305, 306, 320, 321, 322, 324, 325, 326, 339, 350}
 
         self.combo_actions = 1
@@ -98,6 +94,7 @@ class MarioEnvironment(PyboyEnvironment):
     
     # @override
     def step(self, action: int) -> tuple:
+        # Confirms mario's height every step for game_area calculations
         if self._get_powerup() == 1 or self._get_powerup() == 2:
             self.mario_height = 3
         else:
@@ -105,9 +102,6 @@ class MarioEnvironment(PyboyEnvironment):
 
         # Actions excluding start
         self.step_count += 1
-        
-        # For test.py: Comment out bins & discrete_action and uncomment following line
-        discrete_action = action
 
         if action == 1:
             action -= 0.01
@@ -134,8 +128,7 @@ class MarioEnvironment(PyboyEnvironment):
 
     # @override
     def _run_action_on_emulator(self, action):
-        # extra action for long jumping to the right
-
+        # extra actions for long jumping to the right and left
         if action == Moves.UP.value:
             if self._get_world() == 1:
                 action = Moves.A.value
@@ -182,17 +175,20 @@ class MarioEnvironment(PyboyEnvironment):
                         self.pyboy.send_input(self.release_button[action])
             
     def _stats_to_state(self, game_stats: Dict[str, int]) -> List:
+        # Agent struggles to learn using any variant of the game area state.
+        # Even when reduced, it seems to be too big for training.
+
         # # Simplified state vector
         state: List = np.array([
             game_stats["lives"], 
-            game_stats["score"], 
+            # game_stats["score"], 
             game_stats["powerup"], 
             game_stats["stuck"], 
             game_stats["land"][0], 
             game_stats["land"][1], 
             game_stats["far_land"][0],
             game_stats["far_land"][1],
-            game_stats["projectiles"],
+            # game_stats["projectiles"],
             game_stats["nearby_enemies"], 
             game_stats["midrange_enemies"], 
             game_stats["far_enemies"],
@@ -259,7 +255,8 @@ class MarioEnvironment(PyboyEnvironment):
     
     def _lives_reward(self, new_state: Dict[str, int]) -> int:
         # Uses get_died instead of get lives because get lives memory address updates
-        # ~8 steps after death whereas this is instant if fell off and ~3 steps if enemy collide
+        # ~8 steps after death whereas this is instant if fell off and ~3 steps if through
+        # enemy collision
         if (new_state["died"] == 1 and 
             self.prior_game_stats["died"] == 0):
             return -25
@@ -291,6 +288,7 @@ class MarioEnvironment(PyboyEnvironment):
             return 0
 
     def _screen_reward(self, new_state):
+        # Reward for moving to the right and thus updating the screen
         return 4 if(new_state["screen"] - self.prior_game_stats["screen"] > 0) else 0
     
     def _stage_reward(self, new_state):
@@ -307,6 +305,8 @@ class MarioEnvironment(PyboyEnvironment):
         return -5 if new_state["game_over"] == 1 else 0
         
     def _stuck_reward(self, new_state):
+        # Negative reward if mario stays still or does not move to the right 
+        # for a certain amount of time
         if (new_state["screen"] == self.prior_game_stats["screen"] and
             new_state["time"] != self.prior_game_stats["time"]):
             self.screen_stuck += 1
@@ -345,7 +345,6 @@ class MarioEnvironment(PyboyEnvironment):
     
     def _get_game_over(self):
         # Resetting game so that the agent doesn't need to use start button to start game
-        # print(f'game over: {self._read_m(0xFFB3)}')
         if self._read_m(0xFFB3) == 0x3A:
             self.reset()
             return 1
@@ -355,7 +354,6 @@ class MarioEnvironment(PyboyEnvironment):
         return self._read_m(0xC0AB) - 12
 
     def _get_x_position(self):
-        # print(self._read_m(0xC202))
         return self._read_m(0xC202)
 
     def _get_powerup(self):
@@ -376,6 +374,7 @@ class MarioEnvironment(PyboyEnvironment):
 
     def _get_time(self):
         # DA00 Timer (frames count down from 0x28 to 0x01 in a loop)
+        # Used for stuck reward
         return self._read_m(0xDA00)
 
     def _get_stuck(self):
@@ -387,6 +386,8 @@ class MarioEnvironment(PyboyEnvironment):
         return self._read_m(0xC20A)
 
     def _get_boundaries(self, x_distance, y_distance):
+        # Grabs an area from the screen that is a certain distance beyond mario
+        # Is postprocessed to ensure the boundaries are within the screen area.
         top_boundary = self.mario_y_position - y_distance
         bot_boundary = self.mario_y_position + y_distance + self.mario_height
         left_boundary = self.mario_x_position - x_distance
@@ -429,6 +430,9 @@ class MarioEnvironment(PyboyEnvironment):
         return self._get_enemies(top_boundary, bot_boundary, left_boundary, right_boundary)
     
     def _get_land(self, x_distance):
+        # This function checks the land x distance in front and behind mario to discern if 
+        # there are blocks there or not.
+        
         if self._get_airbourne() == 0:
             return (0,0)
 
@@ -468,10 +472,12 @@ class MarioEnvironment(PyboyEnvironment):
         return self._get_land(4)
 
     def _get_front_projectiles(self):
+        # This function checks a 4x4 box that is 1 tile above mario for projectiles.
+        # Binary yes/no of whether there are projectiles.
+
         if self.mario_y_position == 0 or self.mario_x_position == 0:
             return 0
 
-        # 4x4 box that is 1 above mario
         y_distance = 5
         x_distance = 4
 
@@ -500,7 +506,6 @@ class MarioEnvironment(PyboyEnvironment):
         return np.ceil(self._read_m(0xFF43)/8)
     
     def _get_died(self):
-        # C0AC dead jump timer FFA6 = Time till respawn
         if self._read_m(0xDFE9) == 0x02:
             return 1
         return 0

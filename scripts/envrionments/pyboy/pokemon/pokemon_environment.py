@@ -26,7 +26,7 @@ class PokemonEnvironment(PyboyEnvironment):
             WindowEvent.RELEASE_ARROW_LEFT,
             WindowEvent.RELEASE_ARROW_RIGHT,
             WindowEvent.RELEASE_ARROW_UP,
-            WindowEvent.RELEASE_BUTTON_A,
+            # WindowEvent.RELEASE_BUTTON_A,
             # WindowEvent.RELEASE_BUTTON_B,
         ]
 

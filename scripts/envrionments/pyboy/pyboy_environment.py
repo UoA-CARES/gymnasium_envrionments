@@ -77,10 +77,13 @@ class PyboyEnvironment(GymEnvironment):
         # Actions excluding start
         self.step_count += 1
         
-        # For test.py: Comment out bins & discrete_action and uncomment following line
-        # discrete_action = action
+        # Discretises continuous action in one of the valid actions
+        # preprocessing action and using len(actions) + 1 because final action is only 
+        # accessed when action equals exactly 1.
+        if action == 1:
+            action -= 0.01
         bins = np.linspace(
-            self.min_action_value, self.max_action_value, num=len(self.valid_actions)
+            self.min_action_value, self.max_action_value, num=len(self.valid_actions) + 1
         )
         discrete_action = int(np.digitize(action, bins)) - 1
 
