@@ -122,7 +122,7 @@ class MarioEnvironment(PyboyEnvironment):
         
         self.prior_game_stats = current_game_stats
 
-        truncated = self.step_count % 10000 == 0
+        truncated = self.step_count % 5000 == 0
 
         return state, reward, done, truncated
 
@@ -143,7 +143,7 @@ class MarioEnvironment(PyboyEnvironment):
                     self.pyboy.tick()
                     if i == 10:
                         self.pyboy.send_input(WindowEvent.RELEASE_ARROW_RIGHT)
-                    if i == 11:
+                    if i == 12:
                         self.pyboy.send_input(WindowEvent.RELEASE_BUTTON_A)
             case Moves.B_LEAP.value:
                 self.pyboy.send_input(WindowEvent.PRESS_BUTTON_A)
@@ -259,7 +259,7 @@ class MarioEnvironment(PyboyEnvironment):
         # enemy collision
         if (new_state["died"] == 1 and 
             self.prior_game_stats["died"] == 0):
-            return -25
+            return -30
         return 0
     
     def _score_reward(self, new_state: Dict[str, int]) -> int:

@@ -26,8 +26,8 @@ def key_to_action(button: int):
 if __name__ == "__main__":
     args = {
         "gym": "pyboy",
-        # "task" : "pokemon",
-        "task": "mario",
+        "task" : "pokemon",
+        # "task": "mario",
     }
     env_config = GymEnvironmentConfig(**args)
 
@@ -59,6 +59,6 @@ if __name__ == "__main__":
         area = pd.DataFrame(game_area)
         # red = pd.DataFrame(red_area)
 
-        print(area)
+        # print(area)
         # print(red)
         # logging.info(game_area.shape)
