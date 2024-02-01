@@ -259,15 +259,15 @@ class MarioEnvironment(PyboyEnvironment):
         # enemy collision
         if (new_state["died"] == 1 and 
             self.prior_game_stats["died"] == 0):
-            return -30
+            return -3
         return 0
     
     def _score_reward(self, new_state: Dict[str, int]) -> int:
         if new_state["score"] - self.prior_game_stats["score"] > 0:
-            return 0.5
+            return 0.05
         if new_state["score"] - self.prior_game_stats["score"] == 0:
             return 0
-        return -0.5
+        return -0.05
 
     def _powerup_reward(self, new_state: Dict[str, int]) -> int:
         # Return positive reward for gaining powerup. Negative reward for 
@@ -276,33 +276,33 @@ class MarioEnvironment(PyboyEnvironment):
             if self.prior_game_stats["powerup"] == 3:
                 return 0
             else:
-                return -5
+                return -0.5
         elif new_state["powerup"] - self.prior_game_stats["powerup"] > 0:
-            return 1
+            return 0.1
         return 0
 
     def _coins_reward(self, new_state: Dict[str, int]) -> int:
         if new_state["coins"] - self.prior_game_stats["coins"] > 0:
-            return 0.2
+            return 0.02
         else:
             return 0
 
     def _screen_reward(self, new_state):
         # Reward for moving to the right and thus updating the screen
-        return 4 if(new_state["screen"] - self.prior_game_stats["screen"] > 0) else 0
+        return 0.3 if(new_state["screen"] - self.prior_game_stats["screen"] > 0) else 0
     
     def _stage_reward(self, new_state):
         if new_state["stage"] >= 2:
-            return (new_state["stage"] - self.prior_game_stats["stage"]) * 5
+            return (new_state["stage"] - self.prior_game_stats["stage"]) * 0.5
         return 0
 
     def _world_reward(self, new_state):
         if new_state["world"] >= 2:
-            return (new_state["world"] - self.prior_game_stats["world"]) * 5
+            return (new_state["world"] - self.prior_game_stats["world"]) * 0.5
         return 0
 
     def _game_over_reward(self, new_state):
-        return -5 if new_state["game_over"] == 1 else 0
+        return -0.5 if new_state["game_over"] == 1 else 0
         
     def _stuck_reward(self, new_state):
         # Negative reward if mario stays still or does not move to the right 
@@ -318,9 +318,9 @@ class MarioEnvironment(PyboyEnvironment):
             self.screen_stuck = 0
 
         if self.screen_stuck >= 20:
-            return -20
+            return -2
         elif self.stuck_count >= 10:
-            return -10
+            return -1
         else:
             return 0
     
