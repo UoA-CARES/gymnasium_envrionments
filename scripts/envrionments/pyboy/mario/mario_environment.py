@@ -188,10 +188,11 @@ class MarioEnvironment(PyboyEnvironment):
             game_stats["land"][1], 
             game_stats["far_land"][0],
             game_stats["far_land"][1],
-            # game_stats["projectiles"],
+            game_stats["projectiles"],
             game_stats["nearby_enemies"], 
             game_stats["midrange_enemies"], 
             game_stats["far_enemies"],
+            game_stats["time"]
             ])
 
         # # Reduced game area
@@ -222,6 +223,7 @@ class MarioEnvironment(PyboyEnvironment):
             "screen" : self._get_screen(),
             "x_pos" :self._get_x_position(),
             "stuck": self._get_stuck(),
+            "time_frames": self._get_time_frames(),
             "time": self._get_time(),
             "airbourne": self._get_airbourne(),
             "land": self._get_close_land(),
@@ -259,6 +261,7 @@ class MarioEnvironment(PyboyEnvironment):
         # enemy collision
         if (new_state["died"] == 1 and 
             self.prior_game_stats["died"] == 0):
+            print('died')
             return -3
         return 0
     
@@ -308,7 +311,7 @@ class MarioEnvironment(PyboyEnvironment):
         # Negative reward if mario stays still or does not move to the right 
         # for a certain amount of time
         if (new_state["screen"] == self.prior_game_stats["screen"] and
-            new_state["time"] != self.prior_game_stats["time"]):
+            new_state["time_frames"] != self.prior_game_stats["time_frames"]):
             self.screen_stuck += 1
             if(new_state["x_pos"] == self.prior_game_stats["x_pos"]):
                 self.stuck_count += 1
@@ -372,10 +375,20 @@ class MarioEnvironment(PyboyEnvironment):
             return 2
         return 3
 
-    def _get_time(self):
+    def _get_time_frames(self):
         # DA00 Timer (frames count down from 0x28 to 0x01 in a loop)
-        # Used for stuck reward
+        # updates every step
         return self._read_m(0xDA00)
+
+    def _get_time(self):
+        # updates every four steps
+        # 9831 Timer - Hundreds
+        # 9832 Timer - Tens
+        # 9833 Timer - Ones
+        # Used for stuck reward
+        time = f'{self._read_m(0x9831)}{self._read_m(0x9832)}{self._read_m(0x9833)}'
+        print(int(time))
+        return int(time)
 
     def _get_stuck(self):
         if self.stuck_count >= 10:
