@@ -261,7 +261,6 @@ class MarioEnvironment(PyboyEnvironment):
         # enemy collision
         if (new_state["died"] == 1 and 
             self.prior_game_stats["died"] == 0):
-            print('died')
             return -3
         return 0
     
@@ -387,7 +386,6 @@ class MarioEnvironment(PyboyEnvironment):
         # 9833 Timer - Ones
         # Used for stuck reward
         time = f'{self._read_m(0x9831)}{self._read_m(0x9832)}{self._read_m(0x9833)}'
-        print(int(time))
         return int(time)
 
     def _get_stuck(self):
