@@ -122,7 +122,7 @@ class MarioEnvironment(PyboyEnvironment):
         
         self.prior_game_stats = current_game_stats
 
-        truncated = self.step_count % 5000 == 0
+        truncated = self.step_count % 10000 == 0
 
         return state, reward, done, truncated
 
@@ -251,7 +251,7 @@ class MarioEnvironment(PyboyEnvironment):
             "stage_reward": self._stage_reward(new_state),
             "world_reward": self._world_reward(new_state),
             # Game over is delayed and lives reward is basically the same
-            # "game_over_reward": self._game_over_reward(new_state),
+            "game_over_reward": self._game_over_reward(new_state),
             "stuck_reward": self._stuck_reward(new_state),
         }
     
@@ -304,7 +304,13 @@ class MarioEnvironment(PyboyEnvironment):
         return 0
 
     def _game_over_reward(self, new_state):
-        return -0.5 if new_state["game_over"] == 1 else 0
+        # Uses get_died and checks if current life == 0 because game_over and lives 
+        # memory addresses don't update fast enough
+        if (new_state["died"] == 1 and 
+            self.prior_game_stats["died"] == 0 and 
+            new_state["lives"] == 0):
+            return -5
+        return 0
         
     def _stuck_reward(self, new_state):
         # Negative reward if mario stays still or does not move to the right 
@@ -385,8 +391,8 @@ class MarioEnvironment(PyboyEnvironment):
         # 9832 Timer - Tens
         # 9833 Timer - Ones
         # Used for stuck reward
-        time = f'{self._read_m(0x9831)}{self._read_m(0x9832)}{self._read_m(0x9833)}'
-        return int(time)
+        time = int(f'{self._read_m(0x9831)}{self._read_m(0x9832)}{self._read_m(0x9833)}')
+        return 1 if time > 0 else 0
 
     def _get_stuck(self):
         if self.stuck_count >= 10:
