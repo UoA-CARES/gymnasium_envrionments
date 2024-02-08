@@ -76,6 +76,7 @@ class PyboyEnvironment(GymEnvironment):
     def step(self, action: int) -> tuple:
         # Actions excluding start
         self.step_count += 1
+        # print(f"Action: {action}")
         
         # Discretises continuous action in one of the valid actions
         # preprocessing action and using len(actions) + 1 because final action is only 
@@ -86,6 +87,7 @@ class PyboyEnvironment(GymEnvironment):
             self.min_action_value, self.max_action_value, num=len(self.valid_actions) + 1
         )
         discrete_action = int(np.digitize(action, bins)) - 1
+        # print(f"Resulting Action: {discrete_action}")
 
         self._run_action_on_emulator(discrete_action)
         
@@ -94,12 +96,14 @@ class PyboyEnvironment(GymEnvironment):
 
         reward_stats = self._calculate_reward_stats(current_game_stats)
         reward = self._reward_stats_to_reward(reward_stats)
+        # print reward
+        print(f"Reward {reward}")
         
         done = self._check_if_done(current_game_stats)
         
         self.prior_game_stats = current_game_stats
 
-        truncated = self.step_count % 10000 == 0
+        truncated = self.step_count % 5000 == 0
 
         return state, reward, done, truncated
     
