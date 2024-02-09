@@ -27,6 +27,16 @@ logging.basicConfig(level=logging.INFO)
 def main():
     """
     The main function that orchestrates the training process.
+
+    This function is responsible for parsing the command line arguments,
+    creating the necessary environment, network, and memory instances,
+    and training the policy or value-based approach based on the specified algorithm.
+
+    Args:
+        None
+
+    Returns:
+        None
     """
     parser = RLParser(GymEnvironmentConfig)
 
@@ -39,7 +49,8 @@ def main():
     network_factory = NetworkFactory()
     memory_factory = MemoryFactory()
 
-    iterations_folder = f"{alg_config.algorithm}-{env_config.task}-{datetime.now().strftime('%y_%m_%d_%H:%M:%S')}"
+    # changed to use "-" between datetime for folder name to avoid issues with windows
+    iterations_folder = f"{alg_config.algorithm}-{env_config.task}-{datetime.now().strftime('%y_%m_%d_%H-%M-%S')}"
     glob_log_dir = f"{Path.home()}/cares_rl_logs/{iterations_folder}"
 
     for training_iteration, seed in enumerate(training_config.seeds):

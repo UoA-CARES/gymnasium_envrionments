@@ -36,6 +36,10 @@ def evaluate_policy_network(
             )
 
             state, reward, done, truncated = env.step(action_env)
+            # print reward
+            logging.info(f"Reward {reward}")
+            
+            
             episode_reward += reward
 
             if eval_episode_counter == 0 and record is not None:
@@ -114,6 +118,11 @@ def policy_based_train(
             action = hlp.normalize(
                 action_env, env.max_action_value, env.min_action_value
             )
+            
+            # state, reward, done, truncated = env.step(action_env)
+            # # print reward
+            # logging.info(f"Reward {reward}")
+            
         else:
             noise_scale *= noise_decay
             noise_scale = max(min_noise, noise_scale)
