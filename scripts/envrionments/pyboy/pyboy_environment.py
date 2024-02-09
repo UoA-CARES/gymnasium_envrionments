@@ -89,6 +89,8 @@ class PyboyEnvironment(GymEnvironment):
         discrete_action = int(np.digitize(action, bins)) - 1
         # print(f"Resulting Action: {discrete_action}")
 
+        print(f'action:{action}\ndiscrete:{discrete_action}\n')
+
         self._run_action_on_emulator(discrete_action)
         
         current_game_stats = self._generate_game_stats()

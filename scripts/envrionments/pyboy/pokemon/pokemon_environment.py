@@ -28,6 +28,7 @@ class PokemonEnvironment(PyboyEnvironment):
             WindowEvent.RELEASE_ARROW_UP,
             WindowEvent.RELEASE_BUTTON_A,
             WindowEvent.RELEASE_BUTTON_B,
+
         ]
 
     def _stats_to_state(self, game_stats: Dict[str, any]) -> List[any]:
