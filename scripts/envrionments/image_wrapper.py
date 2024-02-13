@@ -7,6 +7,7 @@ import numpy as np
 from envrionments.gym_environment import GymEnvironment
 
 from util.tests.draw import abstract_frame_with_templates
+from util.tests.detect import draw_contour
 
 
 class ImageWrapper:
@@ -45,9 +46,9 @@ class ImageWrapper:
         b, g, r = cv2.split(frame)
         
         # Apply edge detection to each channel
-        edges_b = cv2.Canny(b, 100, 200)
-        edges_g = cv2.Canny(g, 100, 200)
-        edges_r = cv2.Canny(r, 100, 200)
+        edges_b = cv2.Canny(b, 200, 600)
+        edges_g = cv2.Canny(g, 200, 600)
+        edges_r = cv2.Canny(r, 200, 600)
         
         # Stack the channels back together
         edges_rgb = cv2.merge([edges_b, edges_g, edges_r])
@@ -59,10 +60,11 @@ class ImageWrapper:
         frame = self.gym.grab_frame(height=height, width=width)
        
         # frame = self.apply_edge_detection(frame)
-        frame = abstract_frame_with_templates(frame)
+        # frame = abstract_frame_with_templates(frame)
+        frame = draw_contour(frame)
         
         # actual frame size is 84, 84
-        frame = cv2.resize(frame, (84, 84))
+        # frame = cv2.resize(frame, (84, 84))
         # cv2.imshow("Current Frame", frame)
         # cv2.waitKey(1)
         return frame
@@ -85,7 +87,7 @@ class ImageWrapper:
         self.frames_stacked.append(frame)
         stacked_frames = np.concatenate(list(self.frames_stacked), axis=0)
         # uncomment to visualize the current frame
-        # self.display_current_frame()
+        self.display_current_frame()
         return stacked_frames, reward, done, truncated
     
     def display_current_frame(self):

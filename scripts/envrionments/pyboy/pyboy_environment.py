@@ -99,7 +99,7 @@ class PyboyEnvironment(GymEnvironment):
         reward_stats = self._calculate_reward_stats(current_game_stats)
         reward = self._reward_stats_to_reward(reward_stats)
         # print reward
-        print(f"Reward {reward}")
+        # print(f"Reward {reward}")
         
         done = self._check_if_done(current_game_stats)
         

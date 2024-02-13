@@ -3,6 +3,7 @@ from typing import Dict, List
 from envrionments.pyboy.pokemon import pokemon_constants as pkc
 from envrionments.pyboy.pyboy_environment import PyboyEnvironment
 from pyboy import WindowEvent
+from util.tests.extract import get_outside_id, parse_constants_to_set
 from util.configurations import GymEnvironmentConfig
 import numpy as np
 
@@ -11,6 +12,10 @@ class PokemonEnvironment(PyboyEnvironment):
         self.seen_locations = set()
         super().__init__(config, "PokemonRed.gb", "has_pokedex.state")
         self.stuck_count = 0
+        self.outside_count = 0
+        self.inside_count = 0
+        self.inside_map_constants = parse_constants_to_set()
+        self.outside_map_constants = get_outside_id()
 
         self.valid_actions: List[WindowEvent] = [
             WindowEvent.PRESS_ARROW_DOWN,
@@ -126,13 +131,16 @@ class PokemonEnvironment(PyboyEnvironment):
     
     def _stuck_reward(self, new_state: Dict[str, any]) -> int:
         if new_state["location"] == self.prior_game_stats["location"]:
-            return -5
-        return 0
-        #     self.stuck_count += 1
-        #     return -min(5, self.stuck_count)  # Gradually increasing penalty
-        # else:
-        #     self.stuck_count = 0
-        #     return 0
+            self.stuck_count += 1
+        else:
+            self.stuck_count = 0
+        
+        # if self.stuck_count is bigge than 20, penalty
+        if self.stuck_count >= 10:
+            return -1
+        
+        else:
+            return 0
         
     def _inside_building(self, state: Dict[str, any]) -> bool:
         tileset_type = self._read_m(0xFFD7)  # Read the tileset type from memory
@@ -145,9 +153,10 @@ class PokemonEnvironment(PyboyEnvironment):
 
         
     def _location_reward(self, new_state: Dict[str, any]) -> int:
+        # print(new_state["location"]["map_id"])
         if new_state["location"]["map_id"] not in self.seen_locations:
             self.seen_locations.add(new_state["location"]["map_id"])
-            return 10  # Increased reward for new locations
+            return 50  # Increased reward for new locations
         return 0
     
     # new reward function
@@ -158,13 +167,27 @@ class PokemonEnvironment(PyboyEnvironment):
         return distance * 3 # Reward based on the distance traveled
     
     def _outside_reward(self, game_stats: Dict[str, any]) -> int:
-        tileset_type = self._read_m(0xFFD7)  # Read the tileset type
-        if tileset_type == 2:  # Value 2 indicates outside with flower animation
-            return 2  # Provide a positive reward for being outside
-        elif tileset_type == 0:  # Indoors
-            return -1  # Penalize slightly for being indoors to encourage going outside
+        tileset_type = game_stats["location"]["map_id"]  # Read the tileset type
+        if tileset_type in self.outside_map_constants:  # Value 2 indicates outside with flower animation
+            self.outside_count += 1
         else:
-            return 0  # No reward or penalty for other cases (e.g., caves)
+            self.outside_count = 0
+            
+        if tileset_type in self.inside_map_constants:  # Indoors
+            self.inside_count += 1
+        else:
+            self.inside_count = 0
+        
+        if self.outside_count >= 10:
+            self.outside_count = 0
+            # print("outside")
+            return 2
+        elif self.inside_count >= 10:
+            self.inside_count = 0
+            # print("inside")
+            return -2
+        
+        return 0  # No reward or penalty for other cases (e.g., caves)
 
 
     def _check_if_done(self, game_stats: Dict[str, any]) -> bool:
