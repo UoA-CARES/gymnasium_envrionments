@@ -16,6 +16,8 @@ class PokemonEnvironment(PyboyEnvironment):
         self.inside_count = 0
         self.inside_map_constants = parse_constants_to_set()
         self.outside_map_constants = get_outside_id()
+        self.initial_positions = {}
+        self.last_distance_travelled = 0
 
         self.valid_actions: List[WindowEvent] = [
             WindowEvent.PRESS_ARROW_DOWN,
@@ -37,28 +39,28 @@ class PokemonEnvironment(PyboyEnvironment):
         ]
 
     def _stats_to_state(self, game_stats: Dict[str, any]) -> List[any]:
-            state: List[any] = []
-            return state
+            # state: List[any] = []
+            # return state
 
-        # state = [
-        #     game_stats["location"]["x"],
-        #     game_stats["location"]["y"],
-        #     game_stats["location"]["map_id"],
-        #     game_stats["party_size"],
-        #     *game_stats["ids"],
-        #     *game_stats["levels"],
-        #     *game_stats["type_id"],
-        #     *game_stats["xp"],
-        #     *game_stats["status"],
-        #     game_stats["badges"],
-        #     game_stats["caught_pokemon"],
-        #     game_stats["seen_pokemon"],
-        #     game_stats["money"],
-        #     *game_stats["hp"]["current"],
-        #     *game_stats["hp"]["max"],
-        #     *game_stats["events"],
-        # ]
-        # return np.array(state, dtype=np.float32)
+        state = [
+            game_stats["location"]["x"],
+            game_stats["location"]["y"],
+            game_stats["location"]["map_id"],
+            game_stats["party_size"],
+            *game_stats["ids"],
+            *game_stats["levels"],
+            *game_stats["type_id"],
+            *game_stats["xp"],
+            *game_stats["status"],
+            game_stats["badges"],
+            game_stats["caught_pokemon"],
+            game_stats["seen_pokemon"],
+            game_stats["money"],
+            *game_stats["hp"]["current"],
+            *game_stats["hp"]["max"],
+            *game_stats["events"],
+        ]
+        return np.array(state, dtype=np.float32)
 
 
     def _generate_game_stats(self) -> Dict[str, int]:
@@ -98,7 +100,7 @@ class PokemonEnvironment(PyboyEnvironment):
             "event_reward": self._event_reward(new_state),
             "stuck_reward": self._stuck_reward(new_state),
             "location_reward": self._location_reward(new_state),
-            # "distance_reward": self._distance_travelled_reward(new_state),
+            "distance_reward": self._distance_travelled_reward(new_state),
             "grass_reward": self._grass_reward(new_state),
             "outside_reward": self._outside_reward(new_state),
         }
@@ -159,12 +161,36 @@ class PokemonEnvironment(PyboyEnvironment):
             return 50  # Increased reward for new locations
         return 0
     
+    @staticmethod
+    def euclidean_distance(pos1, pos2):
+        return ((pos1[0] - pos2[0]) ** 2 + (pos1[1] - pos2[1]) ** 2) ** 0.5
+    
     # new reward function
     def _distance_travelled_reward(self, new_state: Dict[str, any]) -> int:
-        old_x, old_y = self.prior_game_stats["location"]["x"], self.prior_game_stats["location"]["y"]
-        new_x, new_y = new_state["location"]["x"], new_state["location"]["y"]
-        distance = abs(new_x - old_x) + abs(new_y - old_y)
-        return distance * 3 # Reward based on the distance traveled
+        map_id = new_state["location"]['map_id']
+        current_position = (new_state["location"]['x'], new_state["location"]['y'])
+
+        # Check if it's a new map or if we haven't recorded the initial position for this map yet
+        if map_id not in self.initial_positions:
+            self.initial_positions[map_id] = current_position
+            return 0  # No reward for the first step in a new map
+
+        # Calculate Euclidean distance from the initial position
+        initial_position = self.initial_positions[map_id]
+        distance = self.euclidean_distance(initial_position, current_position)
+        
+        if distance < self.last_distance_travelled:
+            return 0
+        # Optionally, reset the initial position to encourage exploration from the new point
+        # self.initial_positions[map_id] = current_position  # Uncomment to reset on each reward calculation
+
+        # Define the reward; for simplicity, the reward is just the distance moved
+        reward = distance
+        self.last_distance_travelled = distance
+
+        return reward
+
+    
     
     def _outside_reward(self, game_stats: Dict[str, any]) -> int:
         tileset_type = game_stats["location"]["map_id"]  # Read the tileset type
@@ -198,7 +224,7 @@ class PokemonEnvironment(PyboyEnvironment):
         x_pos = self._read_m(0xD362)
         y_pos = self._read_m(0xD361)
         map_n = self._read_m(0xD35E)
-
+        # print(f"x: {x_pos}, y: {y_pos}, map: {map_n}")
         return {
             "x": x_pos,
             "y": y_pos,

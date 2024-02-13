@@ -52,6 +52,9 @@ if __name__ == "__main__":
         image = env.grab_frame()
 
         stats = env._generate_game_stats()
+        print(stats["location"])
+        
+        print(env._distance_travelled_reward(stats))
 
         game_area = env.game_area()
         # red_area = env.game_area_red()
