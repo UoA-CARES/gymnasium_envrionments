@@ -37,7 +37,7 @@ def evaluate_policy_network(
 
             state, reward, done, truncated = env.step(action_env)
             # print reward
-            logging.info(f"Reward {reward}")
+            # logging.info(f"Reward {reward}")
             
             
             episode_reward += reward
