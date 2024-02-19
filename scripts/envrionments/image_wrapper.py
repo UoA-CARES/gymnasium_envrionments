@@ -17,8 +17,8 @@ class ImageWrapper:
         self.k = k  # number of frames to be stacked
         self.frames_stacked = deque([], maxlen=k)
 
-        self.frame_width = 224
-        self.frame_height = 224
+        self.frame_width = 84
+        self.frame_height = 84
         logging.info("Image Observation is on")
 
     @cached_property
@@ -61,10 +61,10 @@ class ImageWrapper:
        
         # frame = self.apply_edge_detection(frame)
         # frame = abstract_frame_with_templates(frame)
-        frame = draw_contour(frame)
+        # frame = draw_contour(frame)
         
         # actual frame size is 84, 84
-        # frame = cv2.resize(frame, (84, 84))
+        frame = cv2.resize(frame, (84, 84))
         # cv2.imshow("Current Frame", frame)
         # cv2.waitKey(1)
         return frame

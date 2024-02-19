@@ -8,6 +8,45 @@ from util.configurations import GymEnvironmentConfig
 import numpy as np
 
 class PokemonEnvironment(PyboyEnvironment):
+    """
+    PokemonEnvironment is a custom environment for training an agent to play Pokemon Red using the Pyboy emulator.
+
+    Args:
+        config (GymEnvironmentConfig): Configuration object for the environment.
+
+    Attributes:
+        seen_locations (set): Set of seen map locations.
+        stuck_count (int): Counter for the number of consecutive steps the agent has been stuck.
+        outside_count (int): Counter for the number of consecutive steps the agent has been outside.
+        inside_count (int): Counter for the number of consecutive steps the agent has been inside.
+        inside_map_constants (set): Set of map constants indicating indoor locations.
+        outside_map_constants (set): Set of map constants indicating outdoor locations.
+        initial_positions (dict): Dictionary to store the initial positions of each map.
+        last_distance_travelled (float): The distance travelled in the previous step.
+        valid_actions (List[WindowEvent]): List of valid actions that the agent can take.
+        release_button (List[WindowEvent]): List of actions to release buttons.
+
+    Methods:
+        _stats_to_state(game_stats: Dict[str, any]) -> List[any]: Converts game statistics to the state representation.
+        _generate_game_stats() -> Dict[str, int]: Generates the game statistics.
+        _reward_stats_to_reward(reward_stats: Dict[str, any]) -> int: Converts reward statistics to the reward value.
+        _calculate_reward_stats(new_state: Dict[str, any]) -> Dict[str, int]: Calculates the reward statistics.
+        _caught_reward(new_state: Dict[str, any]) -> int: Calculates the reward for catching a new Pokemon.
+        _seen_reward(new_state: Dict[str, any]) -> int: Calculates the reward for seeing a new Pokemon.
+        _health_reward(new_state: Dict[str, any]) -> int: Calculates the reward for changes in the Pokemon's health.
+        _xp_reward(new_state: Dict[str, any]) -> int: Calculates the reward for changes in the Pokemon's experience points.
+        _levels_reward(new_state: Dict[str, any]) -> int: Calculates the reward for changes in the Pokemon's levels.
+        _badges_reward(new_state: Dict[str, any]) -> int: Calculates the reward for obtaining new badges.
+        _money_reward(new_state: Dict[str, any]) -> int: Calculates the reward for changes in the player's money.
+        _event_reward(new_state: Dict[str, any]) -> int: Calculates the reward for triggering new events.
+        _stuck_reward(new_state: Dict[str, any]) -> int: Calculates the reward for being stuck in the same location.
+        _location_reward(new_state: Dict[str, any]) -> int: Calculates the reward for visiting a new location.
+        _distance_travelled_reward(new_state: Dict[str, any]) -> int: Calculates the reward for distance travelled.
+        _outside_reward(game_stats: Dict[str, any]) -> int: Calculates the reward for being outside or inside.
+        get_outside_inside(game_stats: Dict[str, any]) -> int: Determines if the agent is outside or inside.
+        get_if_stucked(game_stats: Dict[str, any]) -> int: Determines if the agent is stuck in the same location.
+        _check_if_done(game_stats: Dict[str, any]) -> bool: Checks if the game is done.
+    """
     def __init__(self, config: GymEnvironmentConfig) -> None:
         self.seen_locations = set()
         super().__init__(config, "PokemonRed.gb", "has_pokedex.state")
@@ -18,14 +57,15 @@ class PokemonEnvironment(PyboyEnvironment):
         self.outside_map_constants = get_outside_id()
         self.initial_positions = {}
         self.last_distance_travelled = 0
+        self.buffer_frame = 0
 
         self.valid_actions: List[WindowEvent] = [
             WindowEvent.PRESS_ARROW_DOWN,
             WindowEvent.PRESS_ARROW_LEFT,
             WindowEvent.PRESS_ARROW_RIGHT,
             WindowEvent.PRESS_ARROW_UP,
-            WindowEvent.PRESS_BUTTON_A,
-            WindowEvent.PRESS_BUTTON_B,
+            # WindowEvent.PRESS_BUTTON_A,
+            # WindowEvent.PRESS_BUTTON_B,
         ]
 
         self.release_button: List[WindowEvent] = [
@@ -33,8 +73,8 @@ class PokemonEnvironment(PyboyEnvironment):
             WindowEvent.RELEASE_ARROW_LEFT,
             WindowEvent.RELEASE_ARROW_RIGHT,
             WindowEvent.RELEASE_ARROW_UP,
-            WindowEvent.RELEASE_BUTTON_A,
-            WindowEvent.RELEASE_BUTTON_B,
+            # WindowEvent.RELEASE_BUTTON_A,
+            # WindowEvent.RELEASE_BUTTON_B,
 
         ]
 
@@ -46,21 +86,33 @@ class PokemonEnvironment(PyboyEnvironment):
             game_stats["location"]["x"],
             game_stats["location"]["y"],
             game_stats["location"]["map_id"],
-            game_stats["party_size"],
-            *game_stats["ids"],
-            *game_stats["levels"],
-            *game_stats["type_id"],
-            *game_stats["xp"],
-            *game_stats["status"],
-            game_stats["badges"],
-            game_stats["caught_pokemon"],
-            game_stats["seen_pokemon"],
-            game_stats["money"],
-            *game_stats["hp"]["current"],
-            *game_stats["hp"]["max"],
-            *game_stats["events"],
+            # game_stats["party_size"],
+            # game_stats["ids"],
+            # game_stats["levels"],
+            # game_stats["type_id"],
+            # game_stats["xp"],
+            # game_stats["status"],
+            # game_stats["badges"],
+            # game_stats["caught_pokemon"],
+            # game_stats["seen_pokemon"],
+            # game_stats["money"],
+            # game_stats["hp"]["current"],
+            # game_stats["hp"]["max"],
+            # game_stats["events"],
+            game_stats["stucked"],
+            game_stats["outin"][0],
+            game_stats["outin"][1],
         ]
+        
+        # Generate the non-walkable matrix for the current location
+        obstacle_matrix = self._get_screen_walkable_matrix()
+        
+        # Flatten the obstacle matrix and add it to the state
+        flattened_obstacle_matrix = obstacle_matrix.flatten().tolist()
+        state.extend(flattened_obstacle_matrix)
+        
         return np.array(state, dtype=np.float32)
+   
 
 
     def _generate_game_stats(self) -> Dict[str, int]:
@@ -80,6 +132,9 @@ class PokemonEnvironment(PyboyEnvironment):
             "seen_pokemon": self._read_seen_pokemon_count(),
             "money": self._read_money(),
             "events": self._read_events(),
+            "outin": self.get_outside_inside(self._get_location()),
+            "stucked": self.get_if_stucked(self._get_location()),
+            
         }
 
     def _reward_stats_to_reward(self, reward_stats: Dict[str, any]) -> int:
@@ -132,34 +187,42 @@ class PokemonEnvironment(PyboyEnvironment):
         return sum(new_state["events"]) - sum(self.prior_game_stats["events"])
     
     def _stuck_reward(self, new_state: Dict[str, any]) -> int:
+        """
+        Calculates the reward for being stuck in the game environment.
+
+        Args:
+            new_state (Dict[str, any]): The new state of the game environment.
+
+        Returns:
+            int: The reward value for being stuck. Returns -5 if the agent has been stuck for more than 10 steps, otherwise returns 0.
+        """
         if new_state["location"] == self.prior_game_stats["location"]:
             self.stuck_count += 1
         else:
             self.stuck_count = 0
         
-        # if self.stuck_count is bigge than 20, penalty
         if self.stuck_count >= 10:
-            return -1
-        
+            self.stuck_count = 0
+            return -5
         else:
             return 0
-        
-    def _inside_building(self, state: Dict[str, any]) -> bool:
-        tileset_type = self._read_m(0xFFD7)  # Read the tileset type from memory
-        return tileset_type == 0  # 0 indicates indoors
-
-    def _building_exit_reward(self, new_state: Dict[str, any]) -> int:
-        if self._inside_building(self.prior_game_stats) and not self._inside_building(new_state):
-            return 50  # Provide a large reward for exiting a building
-        return 0
 
         
     def _location_reward(self, new_state: Dict[str, any]) -> int:
-        # print(new_state["location"]["map_id"])
-        if new_state["location"]["map_id"] not in self.seen_locations:
-            self.seen_locations.add(new_state["location"]["map_id"])
-            return 50  # Increased reward for new locations
-        return 0
+            """
+            Calculates the reward based on the location of the agent in the game.
+
+            Args:
+                new_state (Dict[str, any]): The new state of the game.
+
+            Returns:
+                int: The reward based on the location.
+            """
+            # print(new_state["location"]["map_id"])
+            if new_state["location"]["map_id"] not in self.seen_locations:
+                self.seen_locations.add(new_state["location"]["map_id"])
+                return 50  # Increased reward for new locations
+            return 0
     
     @staticmethod
     def euclidean_distance(pos1, pos2):
@@ -167,8 +230,33 @@ class PokemonEnvironment(PyboyEnvironment):
     
     # new reward function
     def _distance_travelled_reward(self, new_state: Dict[str, any]) -> int:
+        """
+        Calculates the reward based on the distance travelled in the game environment.
+
+        Args:
+            new_state (Dict[str, any]): The new state of the game environment.
+
+        Returns:
+            int: The reward based on the distance travelled.
+        """
         map_id = new_state["location"]['map_id']
         current_position = (new_state["location"]['x'], new_state["location"]['y'])
+    
+        
+        while self.buffer_frame > 0:
+            self.buffer_frame -= 1
+            return 0
+        
+        # if map id is different from previous map id
+        if self.prior_game_stats["location"]['map_id'] !=  map_id:
+            self.last_distance_travelled = 0
+            # delete the initial position of the previous map
+            try:
+                del self.initial_positions[self.prior_game_stats["location"]['map_id']]
+            except:
+                pass
+            self.buffer_frame = 3
+            return 0
 
         # Check if it's a new map or if we haven't recorded the initial position for this map yet
         if map_id not in self.initial_positions:
@@ -178,21 +266,36 @@ class PokemonEnvironment(PyboyEnvironment):
         # Calculate Euclidean distance from the initial position
         initial_position = self.initial_positions[map_id]
         distance = self.euclidean_distance(initial_position, current_position)
-        
-        if distance < self.last_distance_travelled:
+
+        if distance <= self.last_distance_travelled and self.prior_game_stats["location"]['map_id'] ==  map_id:
             return 0
+
+        # if self.stuck_count >= 1:
+        #     return 0
+        # if self.get_if_stucked(self._get_location()) == 1:
+        #     return 0
+
         # Optionally, reset the initial position to encourage exploration from the new point
         # self.initial_positions[map_id] = current_position  # Uncomment to reset on each reward calculation
 
         # Define the reward; for simplicity, the reward is just the distance moved
         reward = distance
         self.last_distance_travelled = distance
-
+        
         return reward
 
     
     
     def _outside_reward(self, game_stats: Dict[str, any]) -> int:
+        """
+        Calculates the reward for being outside based on the tileset type.
+
+        Args:
+            game_stats (Dict[str, any]): The game statistics.
+
+        Returns:
+            int: The reward value. 2 for being outside, -2 for being indoors, 0 for other cases.
+        """
         tileset_type = game_stats["location"]["map_id"]  # Read the tileset type
         if tileset_type in self.outside_map_constants:  # Value 2 indicates outside with flower animation
             self.outside_count += 1
@@ -214,6 +317,44 @@ class PokemonEnvironment(PyboyEnvironment):
             return -2
         
         return 0  # No reward or penalty for other cases (e.g., caves)
+    
+    def get_outside_inside(self, game_stats: Dict[str, any]) -> int:
+            """
+            Determines whether the player is currently outside or inside based on the map id.
+
+            Args:
+                game_stats (Dict[str, any]): The game statistics containing the map ID.
+
+            Returns:
+                int: A list representing whether the player is outside or inside. [1, 0] indicates outside, [0, 1] indicates inside.
+            """
+            tileset_type = game_stats["map_id"]  # Read the tileset type
+            try:
+                if tileset_type in self.outside_map_constants:  # Value 2 indicates outside with flower animation
+                    return [1,0]
+                    
+                if tileset_type in self.inside_map_constants:  # Indoors
+                    return [0, 1]
+            except:
+                return [0, 1]
+            return [0, 1]
+    
+    def get_if_stucked(self, game_stats: Dict[str, any]) -> int:
+        """
+        Checks if the game is stucked based on the current game stats.
+
+        Args:
+            game_stats (Dict[str, any]): The current game stats.
+
+        Returns:
+            int: Returns 1 if the game is stucked, otherwise returns 0.
+        """
+        try:
+            if game_stats == self.prior_game_stats["location"]:
+                return 1
+            return 0
+        except:
+            return 0
 
 
     def _check_if_done(self, game_stats: Dict[str, any]) -> bool:

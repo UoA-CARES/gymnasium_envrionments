@@ -52,16 +52,21 @@ if __name__ == "__main__":
         image = env.grab_frame()
 
         stats = env._generate_game_stats()
-        print(stats["location"])
+        # print(stats["location"])
         
-        print(env._distance_travelled_reward(stats))
+        # print(env._distance_travelled_reward(stats))
+        
+        # print reward
+        # print("reward: " + str(reward))
+        
+        # print(env._calculate_reward_stats(stats))
 
         game_area = env.game_area()
-        # red_area = env.game_area_red()
+        red_area = env._get_screen_walkable_matrix()
 
         area = pd.DataFrame(game_area)
-        # red = pd.DataFrame(red_area)
+        red = pd.DataFrame(red_area)
 
-        # print(area)
-        # print(red)
+        print(area)
+        print(red)
         # logging.info(game_area.shape)
