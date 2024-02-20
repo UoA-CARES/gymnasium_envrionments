@@ -3,6 +3,7 @@ This script is used to train reinforcement learning agents in DMCS/OpenAI/pyboy.
 The main function parses command-line arguments, creates the environment, network, 
 and memory instances, and then trains the agent using the specified algorithm.
 """
+
 import logging
 from datetime import datetime
 from pathlib import Path
@@ -62,7 +63,9 @@ def main():
             )
 
         # TODO manage arguements for future memory types
-        memory = memory_factory.create_memory(alg_config.memory, training_config.buffer_size, args=[])
+        memory = memory_factory.create_memory(
+            alg_config.memory, training_config.buffer_size, args=[]
+        )
         logging.info(f"Memory: {alg_config.memory}")
 
         # create the record class - standardised results tracking
