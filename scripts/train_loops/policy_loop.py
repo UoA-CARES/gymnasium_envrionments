@@ -13,6 +13,8 @@ from cares_reinforcement_learning.util.configurations import (
 def evaluate_policy_network(
     env, agent, config: TrainingConfig, record=None, total_steps=0
 ):
+    """
+    """
     if record is not None:
         frame = env.grab_frame()
         record.start_video(total_steps + 1, frame)
@@ -147,16 +149,8 @@ def policy_based_train(
         if total_step_counter >= max_steps_exploration:
             for _ in range(G):
                 experience = memory.sample(batch_size)
-                info = agent.train_policy(
-                    (
-                        experience["state"],
-                        experience["action"],
-                        experience["reward"],
-                        experience["next_state"],
-                        experience["done"],
-                    )
-                )
-                memory.update_priorities(experience["indices"], info)
+                info = agent.train_policy(experience)
+                # memory.update_priorities(experience["indices"], info)
                 # record.log_info(info, display=False)
 
         if (total_step_counter + 1) % number_steps_per_evaluation == 0:

@@ -173,13 +173,7 @@ def policy_based_train(
         total_reward = reward_extrinsic + intrinsic_reward
 
         # Add the transition to the memory.
-        memory.add(
-            state=state,
-            action=action,
-            reward=total_reward,
-            next_state=next_state,
-            done=done,
-        )
+        memory.add(state, action, total_reward, next_state, done)
 
         state = next_state
         # Note we only track the extrinsic reward for the episode for proper
@@ -193,15 +187,7 @@ def policy_based_train(
                 statistics = memory.get_statistics()
                 agent.world_model.set_statistics(statistics)
                 info = agent.train_policy(
-                    (
-                        experience["state"],
-                        experience["action"],
-                        experience["reward"],
-                        experience["next_state"],
-                        experience["done"],
-                        experience["next_action"],
-                        experience["next_reward"],
-                    )
+                   experience
                 )
                 # memory.update_priorities(experience["indices"], info)
                 # record.log_info(info, display=False)
