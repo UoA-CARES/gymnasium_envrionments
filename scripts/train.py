@@ -3,6 +3,8 @@ This script is used to train reinforcement learning agents in DMCS/OpenAI/pyboy.
 The main function parses command-line arguments, creates the environment, network, 
 and memory instances, and then trains the agent using the specified algorithm.
 """
+# import os
+# os.environ["MUJOCO_GL"] = 'egl'
 
 import logging
 from datetime import datetime
