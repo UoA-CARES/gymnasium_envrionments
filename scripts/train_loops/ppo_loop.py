@@ -82,12 +82,12 @@ def ppo_train(env, agent, record, train_config: TrainingConfig, alg_config: PPOC
 
         next_state, reward, done, truncated = env.step(action_env)
         memory.add(
-            state=state,
-            action=action,
-            reward=reward,
-            next_state=next_state,
-            done=done,
-            log_prob=log_prob,
+            state,
+            action,
+            reward,
+            next_state,
+            done,
+            log_prob,
         )
 
         state = next_state
@@ -95,16 +95,7 @@ def ppo_train(env, agent, record, train_config: TrainingConfig, alg_config: PPOC
 
         if (total_step_counter + 1) % max_steps_per_batch == 0:
             experience = memory.flush()
-            agent.train_policy(
-                (
-                    experience["state"],
-                    experience["action"],
-                    experience["reward"],
-                    experience["next_state"],
-                    experience["done"],
-                    experience["log_prob"],
-                )
-            )
+            info = agent.train_policy(experience)
             # record.log_info(info, display=False)
 
         if (total_step_counter + 1) % number_steps_per_evaluation == 0:
