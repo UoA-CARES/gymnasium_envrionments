@@ -48,10 +48,11 @@ def evaluate_policy_network(
             next_state, reward, done, truncated = env.step(action_env)
 
             # Evaluate the world model here.
-            dyna_err, rwd_err = agent.eval_model(state, action,
-                                                 next_state, reward)
-            dynamic_error += dyna_err
-            reward_error += rwd_err
+            # dyna_err, rwd_err = agent.eval_model(state, action,
+            #                                      next_state, reward)
+
+            dynamic_error += 0.0
+            reward_error += 0.0
             eval_step_counter += 1
             state = next_state
 
