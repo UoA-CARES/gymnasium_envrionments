@@ -46,11 +46,6 @@ def evaluate_policy_network(
             )
 
             next_state, reward, done, truncated = env.step(action_env)
-
-            # Evaluate the world model here.
-            # dyna_err, rwd_err = agent.eval_model(state, action,
-            #                                      next_state, reward)
-
             dynamic_error += 0.0
             reward_error += 0.0
             eval_step_counter += 1
@@ -114,19 +109,6 @@ def policy_based_train(
     number_steps_per_evaluation = train_config.number_steps_per_evaluation
 
     # Algorithm config
-    # Algorthm specific attributes - e.g. NaSA-TD3 dd
-    intrinsic_on = (
-        bool(alg_config.intrinsic_on) if hasattr(alg_config, "intrinsic_on")
-        else False
-    )
-    # Noise for exploration for some algorithms.
-    # min_noise = alg_config.min_noise
-    # if hasattr(alg_config, "min_noise") else 0
-    # noise_decay = alg_config.noise_decay
-    # if hasattr(alg_config, "noise_decay") else 1.0
-    # noise_scale = alg_config.noise_scale
-    # if hasattr(alg_config, "noise_scale") else 0.1
-
     logging.info(
         f"Training {max_steps_training} Exploration {max_steps_exploration} "
         f"Evaluation {number_steps_per_evaluation}"
@@ -166,16 +148,8 @@ def policy_based_train(
             )
         # Actual executing of the action.
         next_state, reward_extrinsic, done, truncated = env.step(action_env)
-        # Get a intrinsic reward.
-        intrinsic_reward = 0
-        if intrinsic_on and total_step_counter > max_steps_exploration:
-            intrinsic_reward = agent.get_intrinsic_reward(state, action,
-                                                          next_state)
-        total_reward = reward_extrinsic + intrinsic_reward
-
         # Add the transition to the memory.
-        memory.add(state, action, total_reward, next_state, done)
-
+        memory.add(state, action, reward_extrinsic, next_state, done)
         state = next_state
         # Note we only track the extrinsic reward for the episode for proper
         # comparison
@@ -183,16 +157,12 @@ def policy_based_train(
 
         if total_step_counter >= max_steps_exploration:
             # For each training step, train it G times.
-            for _ in range(G):
-                experience = memory.sample_next(batch_size)
+            if total_step_counter == max_steps_exploration:
                 statistics = memory.get_statistics()
                 agent.world_model.set_statistics(statistics)
-                info = agent.train_policy(
-                   experience
-                )
-                # memory.update_priorities(experience["indices"], info)
-                # record.log_info(info, display=False)
-
+            for _ in range(G):
+                experience = memory.sample_next(batch_size)
+                agent.train_policy(experience)
         # Decide whether to do the evaluation at this time step.
         if (total_step_counter + 1) % number_steps_per_evaluation == 0:
             evaluate = True
@@ -224,6 +194,10 @@ def policy_based_train(
 
             # Reset environment
             state = env.reset()
+            if len(memory) > 0:
+                statistics = memory.get_statistics()
+                agent.world_model.set_statistics(statistics)
+            statistics = memory.get_statistics()
             episode_timesteps = 0
             episode_reward = 0
             episode_num += 1
