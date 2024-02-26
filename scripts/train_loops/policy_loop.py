@@ -106,7 +106,7 @@ def policy_based_train(
             logging.info(
                 f"Running Exploration Steps {total_step_counter+1}/{max_steps_exploration}"
             )
-            
+
             action_env = env.sample_action()
 
             # algorithm range [-1, 1] - note for DMCS this is redudenant but required for openai

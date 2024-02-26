@@ -5,6 +5,7 @@ from pyboy import WindowEvent
 from util.configurations import GymEnvironmentConfig
 import numpy as np
 
+
 class MarioEnvironment(PyboyEnvironment):
     def __init__(self, config: GymEnvironmentConfig) -> None:
         super().__init__(config, rom_name="SuperMarioLand.gb", init_name="init.state")

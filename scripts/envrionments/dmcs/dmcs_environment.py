@@ -37,8 +37,8 @@ class DMCSEnvironment(GymEnvironment):
 
     def sample_action(self) -> int:
         return np.random.uniform(
-                self.min_action_value, self.max_action_value, size=self.action_num
-            )
+            self.min_action_value, self.max_action_value, size=self.action_num
+        )
 
     def set_seed(self, seed: int) -> None:
         self.env = suite.load(self.domain, self.task, task_kwargs={"random": seed})
