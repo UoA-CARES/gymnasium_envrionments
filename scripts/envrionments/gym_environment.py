@@ -31,6 +31,10 @@ class GymEnvironment(metaclass=abc.ABCMeta):
         raise NotImplementedError("Override this method")
 
     @abc.abstractmethod
+    def sample_action(self):
+        raise NotImplementedError("Override this method")
+
+    @abc.abstractmethod
     def set_seed(self, seed):
         raise NotImplementedError("Override this method")
 

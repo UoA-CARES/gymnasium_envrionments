@@ -4,7 +4,7 @@ from envrionments.pyboy.pokemon import pokemon_constants as pkc
 from envrionments.pyboy.pyboy_environment import PyboyEnvironment
 from pyboy import WindowEvent
 from util.configurations import GymEnvironmentConfig
-
+import numpy as np
 
 class PokemonEnvironment(PyboyEnvironment):
     def __init__(self, config: GymEnvironmentConfig) -> None:
@@ -28,6 +28,9 @@ class PokemonEnvironment(PyboyEnvironment):
             WindowEvent.RELEASE_BUTTON_B,
         ]
 
+    def sample_action(self) -> int:
+        return np.random.randint(0, len(self.valid_actions))
+    
     def _stats_to_state(self, game_stats: Dict[str, any]) -> List[any]:
         state: List[any] = []
         return state
