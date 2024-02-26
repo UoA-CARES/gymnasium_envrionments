@@ -8,12 +8,12 @@ from util.configurations import GymEnvironmentConfig
 
 def key_to_action(button: int):
     key_map = {
-        115: 0,  # s - down
-        97: 1,  # a - left
-        100: 2,  # d - right
-        119: 3,  # w - up
-        122: 4,  # z - A
-        120: 5,  # x - B
+        115: -0.9,  # s - down
+        97: -0.6,  # a - left
+        100: -0.3,  # d - right
+        119: 0.1,  # w - up
+        122: 0.4,  # z - A
+        120: 0.7,  # x - B
         # 32: 6,  #space - start
     }
     logging.info(f"Key: {button}")
@@ -26,7 +26,7 @@ def key_to_action(button: int):
 if __name__ == "__main__":
     args = {
         "gym": "pyboy",
-        # 'task' : 'pokemon',
+        # "task" : "pokemon",
         "task": "mario",
     }
     env_config = GymEnvironmentConfig(**args)
@@ -54,8 +54,11 @@ if __name__ == "__main__":
         stats = env._generate_game_stats()
 
         game_area = env.game_area()
+        # red_area = env.game_area_red()
 
         area = pd.DataFrame(game_area)
+        # red = pd.DataFrame(red_area)
 
-        print(area)
-        logging.info(game_area.shape)
+        # print(area)
+        # print(red)
+        # logging.info(game_area.shape)
