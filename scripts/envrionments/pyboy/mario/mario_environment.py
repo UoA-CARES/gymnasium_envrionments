@@ -3,6 +3,7 @@ from typing import Dict, List
 from envrionments.pyboy.pyboy_environment import PyboyEnvironment
 from pyboy import WindowEvent
 from util.configurations import GymEnvironmentConfig
+import numpy as np
 
 
 class MarioEnvironment(PyboyEnvironment):
@@ -26,6 +27,11 @@ class MarioEnvironment(PyboyEnvironment):
             WindowEvent.RELEASE_BUTTON_A,
             WindowEvent.RELEASE_BUTTON_B,
         ]
+
+    def sample_action(self) -> int:
+        return np.random.uniform(
+            self.min_action_value, self.max_action_value, size=self.action_num
+        )
 
     def _stats_to_state(self, game_stats: Dict[str, int]) -> List:
         state: List = []
