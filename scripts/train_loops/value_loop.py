@@ -109,25 +109,14 @@ def value_based_train(
             action = agent.select_action_from_policy(state)
 
         next_state, reward, done, truncated = env.step(action)
-        memory.add(
-            state=state, action=action, reward=reward, next_state=next_state, done=done
-        )
+        memory.add(state, action, reward, next_state, done)
         state = next_state
         episode_reward += reward
 
         if len(memory) > batch_size:
             for _ in range(G):
                 experience = memory.sample(batch_size)
-                info = agent.train_policy(
-                    (
-                        experience["state"],
-                        experience["action"],
-                        experience["reward"],
-                        experience["next_state"],
-                        experience["done"],
-                    )
-                )
-                memory.update_priorities(experience["indices"], info)
+                info = agent.train_policy(experience)
                 # record.log_info(info, display=False)
 
         if (total_step_counter + 1) % number_steps_per_evaluation == 0:

@@ -104,12 +104,11 @@ def policy_based_train(
 
         if total_step_counter < max_steps_exploration:
             logging.info(
-                f"Running Exploration Steps {total_step_counter+1}/{max_steps_exploration}"
+                f"Running Exploration Steps {total_step_counter + 1}/{max_steps_exploration}"
             )
-            # action range the env uses [e.g. -2 , 2 for pendulum]
-            action_env = np.random.uniform(
-                env.min_action_value, env.max_action_value, size=env.action_num
-            )
+
+            action_env = env.sample_action()
+
             # algorithm range [-1, 1] - note for DMCS this is redudenant but required for openai
             action = hlp.normalize(
                 action_env, env.max_action_value, env.min_action_value
@@ -134,11 +133,11 @@ def policy_based_train(
         total_reward = reward_extrinsic + intrinsic_reward
 
         memory.add(
-            state=state,
-            action=action,
-            reward=total_reward,
-            next_state=next_state,
-            done=done,
+            state,
+            action,
+            total_reward,
+            next_state,
+            done,
         )
 
         state = next_state
@@ -147,16 +146,7 @@ def policy_based_train(
         if total_step_counter >= max_steps_exploration:
             for _ in range(G):
                 experience = memory.sample(batch_size)
-                info = agent.train_policy(
-                    (
-                        experience["state"],
-                        experience["action"],
-                        experience["reward"],
-                        experience["next_state"],
-                        experience["done"],
-                    )
-                )
-                memory.update_priorities(experience["indices"], info)
+                info = agent.train_policy(experience)
                 # record.log_info(info, display=False)
 
         if (total_step_counter + 1) % number_steps_per_evaluation == 0:
