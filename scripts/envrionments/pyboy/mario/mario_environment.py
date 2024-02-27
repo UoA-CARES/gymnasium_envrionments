@@ -29,7 +29,9 @@ class MarioEnvironment(PyboyEnvironment):
         ]
 
     def sample_action(self) -> int:
-        return np.random.randint(0, len(self.valid_actions))
+        return np.random.uniform(
+                self.min_action_value, self.max_action_value, size=self.action_num
+            )
 
     def _stats_to_state(self, game_stats: Dict[str, int]) -> List:
         state: List = []
