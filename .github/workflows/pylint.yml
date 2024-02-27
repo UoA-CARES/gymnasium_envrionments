@@ -41,6 +41,19 @@ jobs:
         pip install --editable .
         cd -
 
+    - name: Clone pyboy_environment repository
+      uses: GuillaumeFalourd/clone-github-repo-action@main
+      with:
+        owner: 'UoA-CARES'
+        repository: 'pyboy_environment'
+    
+    - name: Install pyboy_environment repository content
+      run: |
+        cd pyboy_environment
+        pip install -r requirements.txt
+        pip install --editable .
+        cd -
+
     - name: Install deps
       run: |
         pip install -r requirements.txt

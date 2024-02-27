@@ -35,7 +35,7 @@ class PyboyEnvironment(GymEnvironment):
         return np.random.uniform(
             self.min_action_value, self.max_action_value, size=self.action_num
         )
-    
+
     def set_seed(self, seed: int) -> None:
         self.env.set_seed(seed)
 
