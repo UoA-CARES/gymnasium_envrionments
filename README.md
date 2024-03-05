@@ -15,6 +15,8 @@ Follow the instructions at https://github.com/UoA-CARES/cares_reinforcement_lear
 
 Run `pip3 install -r requirements.txt` in the **root directory** of the package
 
+Install the environments dependent on pyboy here https://github.com/UoA-CARES/pyboy_environment
+
 ## Usage
 This package is a basic example of running the CARES RL algorithms on OpenAI/DMCS. 
 
