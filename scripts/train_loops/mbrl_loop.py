@@ -167,7 +167,6 @@ def policy_based_train(
         if (total_step_counter + 1) % number_steps_per_evaluation == 0:
             evaluate = True
 
-        #
         if done or truncated:
             episode_time = time.time() - episode_start
             record.log_train(
@@ -197,7 +196,6 @@ def policy_based_train(
             if len(memory) > 0:
                 statistics = memory.get_statistics()
                 agent.world_model.set_statistics(statistics)
-            statistics = memory.get_statistics()
             episode_timesteps = 0
             episode_reward = 0
             episode_num += 1
