@@ -67,7 +67,7 @@ def main():
 
         # TODO manage arguements for future memory types
         memory = memory_factory.create_memory(
-            alg_config.memory, training_config.buffer_size, args=[]
+            alg_config.memory, training_config.buffer_size
         )
         logging.info(f"Memory: {alg_config.memory}")
 
