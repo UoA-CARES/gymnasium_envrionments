@@ -37,6 +37,9 @@ class OpenAIEnvrionment(GymEnvironment):
             )
         return action_num
 
+    def sample_action(self) -> int:
+        return self.env.action_space.sample()
+
     def set_seed(self, seed: int) -> None:
         self.env.action_space.seed(seed)
         _, _ = self.env.reset(seed=seed)

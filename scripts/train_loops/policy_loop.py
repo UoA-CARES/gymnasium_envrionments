@@ -106,10 +106,9 @@ def policy_based_train(
             logging.info(
                 f"Running Exploration Steps {total_step_counter + 1}/{max_steps_exploration}"
             )
-            # action range the env uses [e.g. -2 , 2 for pendulum]
-            action_env = np.random.uniform(
-                env.min_action_value, env.max_action_value, size=env.action_num
-            )
+
+            action_env = env.sample_action()
+
             # algorithm range [-1, 1] - note for DMCS this is redudenant but required for openai
             action = hlp.normalize(
                 action_env, env.max_action_value, env.min_action_value
