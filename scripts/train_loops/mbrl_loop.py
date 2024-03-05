@@ -1,8 +1,6 @@
 import logging
 import time
-import torch
 import numpy as np
-
 from cares_reinforcement_learning.util import helpers as hlp
 from cares_reinforcement_learning.util.configurations import (
     AlgorithmConfig,
@@ -21,42 +19,29 @@ def evaluate_policy_network(
     Mean Square Error for world model is used to evaluate a world model.
 
     """
-    reward_error = 0
-    dynamic_error = 0
     if record is not None:
         frame = env.grab_frame()
         record.start_video(total_steps + 1, frame)
-
     number_eval_episodes = int(config.number_eval_episodes)
-
     state = env.reset()
-    eval_step_counter = 0
     for eval_episode_counter in range(number_eval_episodes):
         episode_timesteps = 0
         episode_reward = 0
         episode_num = 0
         done = False
         truncated = False
-
         while not done and not truncated:
             episode_timesteps += 1
             action = agent.select_action_from_policy(state, evaluation=True)
             action_env = hlp.denormalize(
                 action, env.max_action_value, env.min_action_value
             )
-
             next_state, reward, done, truncated = env.step(action_env)
-            dynamic_error += 0.0
-            reward_error += 0.0
-            eval_step_counter += 1
             state = next_state
-
             episode_reward += reward
-
             if eval_episode_counter == 0 and record is not None:
                 frame = env.grab_frame()
                 record.log_video(frame)
-
             if done or truncated:
                 if record is not None:
                     record.log_eval(
@@ -65,16 +50,11 @@ def evaluate_policy_network(
                         episode_reward=episode_reward,
                         display=True,
                     )
-
                 # Reset environment
                 state = env.reset()
                 episode_reward = 0
                 episode_timesteps = 0
                 episode_num += 1
-
-    info = {"avg_reward_error": reward_error / eval_step_counter,
-            "avg_dynamic_error": dynamic_error / eval_step_counter}
-    record.log_info(info)
     record.stop_video()
 
 
@@ -100,20 +80,17 @@ def policy_based_train(
 
     """
     start_time = time.time()
-
     # Train config
     batch_size = train_config.batch_size
     G = train_config.G
     max_steps_training = train_config.max_steps_training
     max_steps_exploration = train_config.max_steps_exploration
     number_steps_per_evaluation = train_config.number_steps_per_evaluation
-
     # Algorithm config
     logging.info(
         f"Training {max_steps_training} Exploration {max_steps_exploration} "
         f"Evaluation {number_steps_per_evaluation}"
     )
-
     # Variables for the training loop.
     episode_timesteps = 0
     episode_reward = 0
@@ -121,7 +98,6 @@ def policy_based_train(
     evaluate = False
     state = env.reset()
     episode_start = time.time()
-
     # Using the maximum training steps as the looper.
     # In some work, number of episodes was used.
     for total_step_counter in range(int(max_steps_training)):
@@ -129,30 +105,21 @@ def policy_based_train(
         # Explore for a certain of period at the begining
         if total_step_counter < max_steps_exploration:
             logging.info(
-                f"Running Exploration Steps "
-                f"{total_step_counter + 1}/{max_steps_exploration}"
+                f"Running Exploration Steps {total_step_counter + 1}/{max_steps_exploration}"
             )
             # action range the env uses [e.g. -2 , 2 for pendulum]
-            action_env = np.random.uniform(
-                env.min_action_value, env.max_action_value, size=env.action_num
-            )
-            # algorithm range [-1, 1] - note for DMCS this is redudenant
-            # but required for openai
-            action = hlp.normalize(
-                action_env, env.max_action_value, env.min_action_value
-            )
+            action_env = env.sample_action()
+            # algorithm range [-1, 1] - note for DMCS this is redudenant but required for openai
+            action = hlp.normalize(action_env, env.max_action_value, env.min_action_value)
         else:
             action = agent.select_action_from_policy(state, noise_scale=0.0)
-            action_env = hlp.denormalize(
-                action, env.max_action_value, env.min_action_value
-            )
+            action_env = hlp.denormalize(action, env.max_action_value, env.min_action_value)
         # Actual executing of the action.
         next_state, reward_extrinsic, done, truncated = env.step(action_env)
         # Add the transition to the memory.
         memory.add(state, action, reward_extrinsic, next_state, done)
         state = next_state
-        # Note we only track the extrinsic reward for the episode for proper
-        # comparison
+        # Note we only track the extrinsic reward for the episode for proper comparison
         episode_reward += reward_extrinsic
 
         if total_step_counter >= max_steps_exploration:
@@ -161,7 +128,11 @@ def policy_based_train(
                 statistics = memory.get_statistics()
                 agent.world_model.set_statistics(statistics)
             for _ in range(G):
+                # Only Train once the world model for now.
                 experience = memory.sample_next(batch_size)
+                agent.train_world_model(experience)
+
+                experience = memory.sample(batch_size)
                 agent.train_policy(experience)
         # Decide whether to do the evaluation at this time step.
         if (total_step_counter + 1) % number_steps_per_evaluation == 0:
