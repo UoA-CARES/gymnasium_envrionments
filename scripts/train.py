@@ -61,11 +61,20 @@ def main():
             raise ValueError(
                 f"Unkown agent for default algorithms {alg_config.algorithm}"
             )
+        
+        memory_kwargs = {}
 
-        # TODO manage arguements for future memory types
+        match alg_config.memory:
+            case 'PER':
+                memory_kwargs['observation_size'] = env.observation_space
+                memory_kwargs['action_num'] = env.action_num
+            case _:
+                pass
+
         memory = memory_factory.create_memory(
-            alg_config.memory, training_config.buffer_size, args=[]
+            alg_config.memory, training_config.buffer_size, **memory_kwargs
         )
+
         logging.info(f"Memory: {alg_config.memory}")
 
         # create the record class - standardised results tracking
