@@ -71,13 +71,20 @@ def main():
     logging.info(
         f"Device: {torch.device('cuda' if torch.cuda.is_available() else 'cpu')}"
     )
-
+    
     answer = input("Enter y if you're happy with the experiement configurations: ")
     answer = answer.strip()
 
     if answer not in ["y", "Y"]:
         logging.info("Terminating Experiement :)")
         exit()
+
+    if not torch.cuda.is_available():
+        no_gpu_answer = input('No cuda detected. Do you still want to continue? ')
+
+        if no_gpu_answer not in ["y", "Y"]:
+            logging.info("Terminating Experiement :)")
+            exit()
 
     for training_iteration, seed in enumerate(training_config.seeds):
         logging.info(
