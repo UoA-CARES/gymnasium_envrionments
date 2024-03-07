@@ -5,14 +5,15 @@ and memory instances, and then trains the agent using the specified algorithm.
 """
 
 import logging
+import sys
 from datetime import datetime
 from pathlib import Path
-import yaml
-import torch
 
+import torch
 import train_loops.policy_loop as pbe
 import train_loops.ppo_loop as ppe
 import train_loops.value_loop as vbe
+import yaml
 from envrionments.environment_factory import EnvironmentFactory
 from util.configurations import GymEnvironmentConfig
 
@@ -71,20 +72,15 @@ def main():
     logging.info(
         f"Device: {torch.device('cuda' if torch.cuda.is_available() else 'cpu')}"
     )
-    
-    answer = input("Enter y if you're happy with the experiement configurations: ")
-    answer = answer.strip()
-
-    if answer not in ["y", "Y"]:
-        logging.info("Terminating Experiement :)")
-        exit()
 
     if not torch.cuda.is_available():
-        no_gpu_answer = input('No cuda detected. Do you still want to continue? ')
+        no_gpu_answer = input(
+            "No cuda detected. Do you still want to continue? Note: Training will be slow. [y/n]"
+        )
 
         if no_gpu_answer not in ["y", "Y"]:
-            logging.info("Terminating Experiement :)")
-            exit()
+            logging.info("Terminating Experiement - check CUDA is installed.")
+            sys.exit()
 
     for training_iteration, seed in enumerate(training_config.seeds):
         logging.info(
