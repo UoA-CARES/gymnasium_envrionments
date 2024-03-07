@@ -43,38 +43,38 @@ def main():
 
     iterations_folder = f"{alg_config.algorithm}-{env_config.task}-{datetime.now().strftime('%y_%m_%d_%H:%M:%S')}"
     glob_log_dir = f"{Path.home()}/cares_rl_logs/{iterations_folder}"
-    
-    logging.info(
-        '\n---------------------------------------------------\n'
-        'ENVIRONMENT CONFIG\n'
-        '---------------------------------------------------'
-    )
-    
-    logging.info(f'\n{yaml.dump(dict(env_config), default_flow_style=False)}')
 
     logging.info(
-        '\n---------------------------------------------------\n'
-        'ALGORITHM CONFIG\n'
-        '---------------------------------------------------'
+        "\n---------------------------------------------------\n"
+        "ENVIRONMENT CONFIG\n"
+        "---------------------------------------------------"
     )
-    
-    logging.info(f'\n{yaml.dump(dict(alg_config), default_flow_style=False)}')
+
+    logging.info(f"\n{yaml.dump(dict(env_config), default_flow_style=False)}")
 
     logging.info(
-        '\n---------------------------------------------------\n'
-        'TRAINING CONFIG\n'
-        '---------------------------------------------------'
+        "\n---------------------------------------------------\n"
+        "ALGORITHM CONFIG\n"
+        "---------------------------------------------------"
     )
-    
-    logging.info(f'\n{yaml.dump(dict(training_config), default_flow_style=False)}')
 
-    answer = input('Enter y if you\'re happy with the experiement configurations: ')
+    logging.info(f"\n{yaml.dump(dict(alg_config), default_flow_style=False)}")
+
+    logging.info(
+        "\n---------------------------------------------------\n"
+        "TRAINING CONFIG\n"
+        "---------------------------------------------------"
+    )
+
+    logging.info(f"\n{yaml.dump(dict(training_config), default_flow_style=False)}")
+
+    answer = input("Enter y if you're happy with the experiement configurations: ")
     answer = answer.strip()
 
-    if answer not in ['y', 'Y']:
-        logging.info('Terminating Experiement :)')
+    if answer not in ["y", "Y"]:
+        logging.info("Terminating Experiement :)")
         exit()
-    
+
     for training_iteration, seed in enumerate(training_config.seeds):
         logging.info(
             f"Training iteration {training_iteration+1}/{len(training_config.seeds)} with Seed: {seed}"
@@ -115,8 +115,6 @@ def main():
         record.save_config(env_config, "env_config")
         record.save_config(training_config, "train_config")
         record.save_config(alg_config, "alg_config")
-
-
 
         # Train the policy or value based approach
         if alg_config.algorithm == "PPO":
