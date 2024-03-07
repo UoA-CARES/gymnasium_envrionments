@@ -5,12 +5,15 @@ and memory instances, and then trains the agent using the specified algorithm.
 """
 
 import logging
+import sys
 from datetime import datetime
 from pathlib import Path
 
+import torch
 import train_loops.policy_loop as pbe
 import train_loops.ppo_loop as ppe
 import train_loops.value_loop as vbe
+import yaml
 from envrionments.environment_factory import EnvironmentFactory
 from util.configurations import GymEnvironmentConfig
 
@@ -42,6 +45,42 @@ def main():
 
     iterations_folder = f"{alg_config.algorithm}-{env_config.task}-{datetime.now().strftime('%y_%m_%d_%H:%M:%S')}"
     glob_log_dir = f"{Path.home()}/cares_rl_logs/{iterations_folder}"
+
+    logging.info(
+        "\n---------------------------------------------------\n"
+        "ENVIRONMENT CONFIG\n"
+        "---------------------------------------------------"
+    )
+
+    logging.info(f"\n{yaml.dump(dict(env_config), default_flow_style=False)}")
+
+    logging.info(
+        "\n---------------------------------------------------\n"
+        "ALGORITHM CONFIG\n"
+        "---------------------------------------------------"
+    )
+
+    logging.info(f"\n{yaml.dump(dict(alg_config), default_flow_style=False)}")
+
+    logging.info(
+        "\n---------------------------------------------------\n"
+        "TRAINING CONFIG\n"
+        "---------------------------------------------------"
+    )
+
+    logging.info(f"\n{yaml.dump(dict(training_config), default_flow_style=False)}")
+    logging.info(
+        f"Device: {torch.device('cuda' if torch.cuda.is_available() else 'cpu')}"
+    )
+
+    if not torch.cuda.is_available():
+        no_gpu_answer = input(
+            "No cuda detected. Do you still want to continue? Note: Training will be slow. [y/n]"
+        )
+
+        if no_gpu_answer not in ["y", "Y"]:
+            logging.info("Terminating Experiement - check CUDA is installed.")
+            sys.exit()
 
     for training_iteration, seed in enumerate(training_config.seeds):
         logging.info(
