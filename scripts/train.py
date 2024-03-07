@@ -8,6 +8,7 @@ import logging
 from datetime import datetime
 from pathlib import Path
 import yaml
+import torch
 
 import train_loops.policy_loop as pbe
 import train_loops.ppo_loop as ppe
@@ -65,9 +66,10 @@ def main():
         "TRAINING CONFIG\n"
         "---------------------------------------------------"
     )
-
+    
     logging.info(f"\n{yaml.dump(dict(training_config), default_flow_style=False)}")
-
+    logging.info(f"Device: {torch.device('cuda' if torch.cuda.is_available() else 'cpu')}")
+    
     answer = input("Enter y if you're happy with the experiement configurations: ")
     answer = answer.strip()
 
