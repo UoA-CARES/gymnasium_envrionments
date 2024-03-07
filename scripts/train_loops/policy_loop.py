@@ -144,11 +144,13 @@ def policy_based_train(
         state = next_state
         episode_reward += reward_extrinsic  # Note we only track the extrinsic reward for the episode for proper comparison
 
-        if total_step_counter >= max_steps_exploration and total_step_counter % number_steps_per_train_policy == 0:
+        if (
+            total_step_counter >= max_steps_exploration
+            and total_step_counter % number_steps_per_train_policy == 0
+        ):
             for _ in range(G):
                 experience = memory.sample(batch_size)
                 info = agent.train_policy(experience)
-
 
         if (total_step_counter + 1) % number_steps_per_evaluation == 0:
             evaluate = True
