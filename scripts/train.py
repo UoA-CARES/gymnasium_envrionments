@@ -66,10 +66,12 @@ def main():
         "TRAINING CONFIG\n"
         "---------------------------------------------------"
     )
-    
+
     logging.info(f"\n{yaml.dump(dict(training_config), default_flow_style=False)}")
-    logging.info(f"Device: {torch.device('cuda' if torch.cuda.is_available() else 'cpu')}")
-    
+    logging.info(
+        f"Device: {torch.device('cuda' if torch.cuda.is_available() else 'cpu')}"
+    )
+
     answer = input("Enter y if you're happy with the experiement configurations: ")
     answer = answer.strip()
 
