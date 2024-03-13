@@ -1,6 +1,5 @@
 import logging
 import time
-import numpy as np
 from cares_reinforcement_learning.util import helpers as hlp
 from cares_reinforcement_learning.util.configurations import (
     AlgorithmConfig,
@@ -83,19 +82,33 @@ def policy_based_train(
     # Train config
     batch_size = train_config.batch_size
     G = train_config.G
+    G_model = train_config.G_model
     max_steps_training = train_config.max_steps_training
     max_steps_exploration = train_config.max_steps_exploration
     number_steps_per_evaluation = train_config.number_steps_per_evaluation
+
+    number_steps_per_train_policy = train_config.number_steps_per_train_policy
+    # Algorthm specific attributes - e.g. NaSA-TD3 dd
+    intrinsic_on = (
+        bool(alg_config.intrinsic_on) if hasattr(alg_config, "intrinsic_on") else False
+    )
+
+    min_noise = alg_config.min_noise if hasattr(alg_config, "min_noise") else 0
+    noise_decay = alg_config.noise_decay if hasattr(alg_config, "noise_decay") else 1.0
+    noise_scale = alg_config.noise_scale if hasattr(alg_config, "noise_scale") else 0.1
+
     # Algorithm config
     logging.info(
         f"Training {max_steps_training} Exploration {max_steps_exploration} "
         f"Evaluation {number_steps_per_evaluation}"
     )
+
     # Variables for the training loop.
     episode_timesteps = 0
     episode_reward = 0
     episode_num = 0
     evaluate = False
+
     state = env.reset()
     episode_start = time.time()
     # Using the maximum training steps as the looper.
@@ -112,28 +125,41 @@ def policy_based_train(
             # algorithm range [-1, 1] - note for DMCS this is redudenant but required for openai
             action = hlp.normalize(action_env, env.max_action_value, env.min_action_value)
         else:
-            action = agent.select_action_from_policy(state, noise_scale=0.0)
+            # noise_scale *= noise_decay
+            # noise_scale = max(min_noise, noise_scale)
+            noise_scale = 0.0
+            # algorithm range [-1, 1]
+            action = agent.select_action_from_policy(state)
+            # mapping to env range [e.g. -2 , 2 for pendulum] - note for DMCS this is redudenant but required for openai
             action_env = hlp.denormalize(action, env.max_action_value, env.min_action_value)
         # Actual executing of the action.
         next_state, reward_extrinsic, done, truncated = env.step(action_env)
+
+        intrinsic_reward = 0
+        if intrinsic_on and total_step_counter > max_steps_exploration:
+            intrinsic_reward = agent.get_intrinsic_reward(state, action, next_state)
+        total_reward = reward_extrinsic + intrinsic_reward
+
         # Add the transition to the memory.
-        memory.add(state, action, reward_extrinsic, next_state, done)
+        memory.add(state, action, total_reward, next_state, done)
         state = next_state
         # Note we only track the extrinsic reward for the episode for proper comparison
         episode_reward += reward_extrinsic
 
-        if total_step_counter >= max_steps_exploration:
+        if total_step_counter >= max_steps_exploration and total_step_counter % number_steps_per_train_policy == 0:
             # For each training step, train it G times.
             if total_step_counter == max_steps_exploration:
                 statistics = memory.get_statistics()
                 agent.world_model.set_statistics(statistics)
-            for _ in range(G):
-                # Only Train once the world model for now.
+
+            for _ in range(G_model):
                 experience = memory.sample_next(batch_size)
                 agent.train_world_model(experience)
 
+            for _ in range(G):
                 experience = memory.sample(batch_size)
                 agent.train_policy(experience)
+
         # Decide whether to do the evaluation at this time step.
         if (total_step_counter + 1) % number_steps_per_evaluation == 0:
             evaluate = True
