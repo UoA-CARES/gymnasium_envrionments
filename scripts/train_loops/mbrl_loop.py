@@ -147,15 +147,16 @@ def policy_based_train(
         episode_reward += reward_extrinsic
 
         if total_step_counter >= max_steps_exploration and total_step_counter % number_steps_per_train_policy == 0:
-            # For each training step, train it G times.
+            # MBRL: First time to compute the statisics.
             if total_step_counter == max_steps_exploration:
                 statistics = memory.get_statistics()
                 agent.world_model.set_statistics(statistics)
-
+            # MBRL: Sample and train with different functions.
             for _ in range(G_model):
                 experience = memory.sample_next(batch_size)
                 agent.train_world_model(experience)
 
+            # General training
             for _ in range(G):
                 experience = memory.sample(batch_size)
                 agent.train_policy(experience)
@@ -190,6 +191,7 @@ def policy_based_train(
 
             # Reset environment
             state = env.reset()
+            # MBRL: Update the statistics.
             if len(memory) > 0:
                 statistics = memory.get_statistics()
                 agent.world_model.set_statistics(statistics)
