@@ -8,7 +8,7 @@ from cares_reinforcement_learning.util.configurations import (
 
 
 def evaluate_policy_network(
-        env, agent, config: TrainingConfig, record=None, total_steps=0
+    env, agent, config: TrainingConfig, record=None, total_steps=0
 ):
     """
     This function evaluate the agent and world model at a fixed interval
@@ -58,12 +58,12 @@ def evaluate_policy_network(
 
 
 def policy_based_train(
-        env,
-        agent,
-        memory,
-        record,
-        train_config: TrainingConfig,
-        alg_config: AlgorithmConfig,
+    env,
+    agent,
+    memory,
+    record,
+    train_config: TrainingConfig,
+    alg_config: AlgorithmConfig,
 ):
     """
     This function train the agent and world model. It is the major training
@@ -123,14 +123,18 @@ def policy_based_train(
             # action range the env uses [e.g. -2 , 2 for pendulum]
             action_env = env.sample_action()
             # algorithm range [-1, 1] - note for DMCS this is redudenant but required for openai
-            action = hlp.normalize(action_env, env.max_action_value, env.min_action_value)
+            action = hlp.normalize(
+                action_env, env.max_action_value, env.min_action_value
+            )
         else:
             noise_scale *= noise_decay
             noise_scale = max(min_noise, noise_scale)
             # algorithm range [-1, 1]
             action = agent.select_action_from_policy(state)
             # mapping to env range [e.g. -2 , 2 for pendulum] - note for DMCS this is redudenant but required for openai
-            action_env = hlp.denormalize(action, env.max_action_value, env.min_action_value)
+            action_env = hlp.denormalize(
+                action, env.max_action_value, env.min_action_value
+            )
         # Actual executing of the action.
         next_state, reward_extrinsic, done, truncated = env.step(action_env)
 
@@ -145,7 +149,10 @@ def policy_based_train(
         # Note we only track the extrinsic reward for the episode for proper comparison
         episode_reward += reward_extrinsic
 
-        if total_step_counter >= max_steps_exploration and total_step_counter % number_steps_per_train_policy == 0:
+        if (
+            total_step_counter >= max_steps_exploration
+            and total_step_counter % number_steps_per_train_policy == 0
+        ):
             # MBRL: First time to compute the statisics.
             if total_step_counter == max_steps_exploration:
                 statistics = memory.get_statistics()
@@ -201,5 +208,4 @@ def policy_based_train(
 
     end_time = time.time()
     elapsed_time = end_time - start_time
-    print("Training time:",
-          time.strftime("%H:%M:%S", time.gmtime(elapsed_time)))
+    print("Training time:", time.strftime("%H:%M:%S", time.gmtime(elapsed_time)))
