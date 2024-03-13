@@ -125,9 +125,8 @@ def policy_based_train(
             # algorithm range [-1, 1] - note for DMCS this is redudenant but required for openai
             action = hlp.normalize(action_env, env.max_action_value, env.min_action_value)
         else:
-            # noise_scale *= noise_decay
-            # noise_scale = max(min_noise, noise_scale)
-            noise_scale = 0.0
+            noise_scale *= noise_decay
+            noise_scale = max(min_noise, noise_scale)
             # algorithm range [-1, 1]
             action = agent.select_action_from_policy(state)
             # mapping to env range [e.g. -2 , 2 for pendulum] - note for DMCS this is redudenant but required for openai
