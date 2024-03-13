@@ -136,8 +136,9 @@ def main():
                 env, agent, memory, record, training_config, alg_config
             )
         elif agent.type == "mbrl":
-            mbrlpbe.policy_based_train(env, agent, memory, record,
-                                       training_config, alg_config)
+            mbrlpbe.policy_based_train(
+                env, agent, memory, record, training_config, alg_config
+            )
         else:
             raise ValueError(f"Agent type is unkown: {agent.type}")
 
