@@ -57,7 +57,7 @@ def evaluate_policy_network(
     record.stop_video()
 
 
-def policy_based_train(
+def policy_based_mbrl_train(
     env,
     agent,
     memory,
@@ -156,7 +156,7 @@ def policy_based_train(
             # MBRL: First time to compute the statisics.
             if total_step_counter == max_steps_exploration:
                 statistics = memory.get_statistics()
-                agent.world_model.set_statistics(statistics)
+                agent.set_statistics(statistics)
             # MBRL: Sample and train with different functions.
             for _ in range(G_model):
                 experience = memory.sample_next(batch_size)
@@ -200,7 +200,7 @@ def policy_based_train(
             # MBRL: Update the statistics.
             if len(memory) > 0:
                 statistics = memory.get_statistics()
-                agent.world_model.set_statistics(statistics)
+                agent.set_statistics(statistics)
             episode_timesteps = 0
             episode_reward = 0
             episode_num += 1
