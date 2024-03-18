@@ -73,6 +73,8 @@ def main():
         f"Device: {torch.device('cuda' if torch.cuda.is_available() else 'cpu')}"
     )
 
+    input('Double check your experiement configurations :) Press ENTER to continue.')
+
     if not torch.cuda.is_available():
         no_gpu_answer = input(
             "No cuda detected. Do you still want to continue? Note: Training will be slow. [y/n]"
