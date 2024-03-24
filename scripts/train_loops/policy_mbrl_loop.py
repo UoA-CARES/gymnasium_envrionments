@@ -7,15 +7,16 @@ from cares_reinforcement_learning.util.configurations import (
 )
 
 
-def evaluate_policy_network(
+def evaluate_mbrl_policy_network(
     env, agent, config: TrainingConfig, record=None, total_steps=0
 ):
     """
     This function evaluate the agent and world model at a fixed interval
     (10000 for now).
+
     Cumulative rewards are averaged across 10 episodes.
 
-    Mean Square Error for world model is used to evaluate a world model.
+    Mean Square Error for world model is used to evaluate a world model (Future).
 
     """
     if record is not None:
@@ -158,9 +159,16 @@ def policy_based_mbrl_train(
                 statistics = memory.get_statistics()
                 agent.set_statistics(statistics)
             # MBRL: Sample and train with different functions.
-            for _ in range(G_model):
-                experience = memory.sample_next(batch_size)
-                agent.train_world_model(experience)
+            # If G_model < 1, means it will skip a few training of world model.
+            if G_model < 1.0:
+                interval = int(1 / G_model)
+                if total_step_counter % interval == 0:
+                    experience = memory.sample_consecutive(batch_size)
+                    agent.train_world_model(experience)
+            else:
+                for _ in range(G_model):
+                    experience = memory.sample_consecutive(batch_size)
+                    agent.train_world_model(experience)
 
             # General training
             for _ in range(G):
@@ -185,7 +193,7 @@ def policy_based_mbrl_train(
             # Do evaluation only when a episode is finished.
             if evaluate:
                 logging.info("*************--Evaluation Loop--*************")
-                evaluate_policy_network(
+                evaluate_mbrl_policy_network(
                     env,
                     agent,
                     train_config,
