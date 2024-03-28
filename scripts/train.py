@@ -74,6 +74,8 @@ def main():
         f"Device: {torch.device('cuda' if torch.cuda.is_available() else 'cpu')}"
     )
 
+    input("Double check your experiement configurations :) Press ENTER to continue.")
+
     if not torch.cuda.is_available():
         no_gpu_answer = input(
             "No cuda detected. Do you still want to continue? Note: Training will be slow. [y/n]"
@@ -102,10 +104,14 @@ def main():
                 f"Unkown agent for default algorithms {alg_config.algorithm}"
             )
 
-        # TODO manage arguements for future memory types
+        memory_kwargs = {}
+        memory_kwargs["observation_size"] = env.observation_space
+        memory_kwargs["action_num"] = env.action_num
+
         memory = memory_factory.create_memory(
-            alg_config.memory, training_config.buffer_size, args=[]
+            alg_config.memory, training_config.buffer_size, **memory_kwargs
         )
+
         logging.info(f"Memory: {alg_config.memory}")
 
         # create the record class - standardised results tracking
