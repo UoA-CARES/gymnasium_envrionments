@@ -13,6 +13,7 @@ import torch
 import train_loops.policy_loop as pbe
 import train_loops.ppo_loop as ppe
 import train_loops.value_loop as vbe
+import train_loops.policy_mbrl_loop as mbrlpbe
 import yaml
 from envrionments.environment_factory import EnvironmentFactory
 from util.configurations import GymEnvironmentConfig
@@ -138,6 +139,10 @@ def main():
             )
         elif agent.type == "value":
             vbe.value_based_train(
+                env, agent, memory, record, training_config, alg_config
+            )
+        elif agent.type == "mbrl":
+            mbrlpbe.policy_based_mbrl_train(
                 env, agent, memory, record, training_config, alg_config
             )
         else:
