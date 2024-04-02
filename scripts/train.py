@@ -104,12 +104,12 @@ def main():
                 f"Unkown agent for default algorithms {alg_config.algorithm}"
             )
 
-        memory_kwargs = {}
-        memory_kwargs["observation_size"] = env.observation_space
-        memory_kwargs["action_num"] = env.action_num
+        # memory_kwargs = {}
+        # memory_kwargs["observation_size"] = env.observation_space
+        # memory_kwargs["action_num"] = env.action_num
 
         memory = memory_factory.create_memory(
-            alg_config.memory, training_config.buffer_size, **memory_kwargs
+            alg_config.memory, training_config.buffer_size, None,
         )
 
         logging.info(f"Memory: {alg_config.memory}")
