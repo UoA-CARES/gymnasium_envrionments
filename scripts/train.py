@@ -109,7 +109,9 @@ def main():
         # memory_kwargs["action_num"] = env.action_num
 
         memory = memory_factory.create_memory(
-            alg_config.memory, training_config.buffer_size, None,
+            alg_config.memory,
+            training_config.buffer_size,
+            None,
         )
 
         logging.info(f"Memory: {alg_config.memory}")
