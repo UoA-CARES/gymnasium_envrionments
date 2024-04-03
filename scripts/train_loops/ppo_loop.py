@@ -1,7 +1,8 @@
 import logging
 import time
 
-from cares_reinforcement_learning.memory import MemoryBuffer
+import cares_reinforcement_learning.memory.priority_functions as pf
+from cares_reinforcement_learning.memory import PrioritizedReplayBuffer
 from cares_reinforcement_learning.util import helpers as hlp
 from cares_reinforcement_learning.util.configurations import PPOConfig, TrainingConfig
 
@@ -67,7 +68,7 @@ def ppo_train(env, agent, record, train_config: TrainingConfig, alg_config: PPOC
     episode_num = 0
     episode_reward = 0
 
-    memory = MemoryBuffer()
+    memory = PrioritizedReplayBuffer(priority_function=pf.standard)
 
     evaluate = False
 
@@ -96,7 +97,6 @@ def ppo_train(env, agent, record, train_config: TrainingConfig, alg_config: PPOC
         if (total_step_counter + 1) % max_steps_per_batch == 0:
             experience = memory.flush()
             info = agent.train_policy(experience)
-            # record.log_info(info, display=False)
 
         if (total_step_counter + 1) % number_steps_per_evaluation == 0:
             evaluate = True
