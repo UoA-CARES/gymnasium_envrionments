@@ -106,10 +106,8 @@ def main():
         # TODO need to make a memory configuration for prioritised methods
         memory_kwargs = {}
         memory = memory_factory.create_memory(
-            alg_config.memory, training_config.buffer_size, **memory_kwargs
+            training_config.buffer_size, **memory_kwargs
         )
-
-        logging.info(f"Memory: {alg_config.memory}")
 
         # create the record class - standardised results tracking
         log_dir = f"{seed}"
