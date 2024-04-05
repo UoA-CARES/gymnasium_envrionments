@@ -42,7 +42,8 @@ class OpenAIEnvrionment(GymEnvironment):
 
     def set_seed(self, seed: int) -> None:
         _, _ = self.env.reset(seed=seed)
-        self.env.action_space.seed(0)
+        # Note issues: https://github.com/rail-berkeley/softlearning/issues/75
+        self.env.action_space.seed(seed)
 
     def reset(self) -> np.ndarray:
         state, _ = self.env.reset()
