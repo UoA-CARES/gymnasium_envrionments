@@ -33,6 +33,9 @@ class ImageWrapper:
     def max_action_value(self):
         return self.gym.max_action_value
 
+    def sample_action(self):
+        return self.gym.sample_action()
+
     def set_seed(self, seed):
         self.gym.set_seed(seed)
 

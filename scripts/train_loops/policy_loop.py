@@ -151,9 +151,7 @@ def policy_based_train(
             for _ in range(G):
                 experience = memory.sample(batch_size)
                 info = agent.train_policy(experience)
-
-                if alg_config.memory == "PER":
-                    memory.update_priority(info["indices"], info["priorities"])
+                memory.update_priority(info)
 
         if (total_step_counter + 1) % number_steps_per_evaluation == 0:
             evaluate = True
