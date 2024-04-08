@@ -94,8 +94,7 @@ def ppo_train(env, agent, record, train_config: TrainingConfig, alg_config: PPOC
         episode_reward += reward
 
         if (total_step_counter + 1) % max_steps_per_batch == 0:
-            experience = memory.flush()
-            info = agent.train_policy(experience)
+            agent.train_policy(memory)
 
         if (total_step_counter + 1) % number_steps_per_evaluation == 0:
             evaluate = True

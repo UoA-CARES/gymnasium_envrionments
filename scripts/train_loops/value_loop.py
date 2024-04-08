@@ -115,9 +115,7 @@ def value_based_train(
 
         if len(memory) > batch_size:
             for _ in range(G):
-                experience = memory.sample(batch_size)
-                info = agent.train_policy(experience)
-                memory.update_priority(info)
+                agent.train_policy(memory, batch_size)
 
         if (total_step_counter + 1) % number_steps_per_evaluation == 0:
             evaluate = True
