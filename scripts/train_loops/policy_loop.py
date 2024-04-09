@@ -149,9 +149,7 @@ def policy_based_train(
             and total_step_counter % number_steps_per_train_policy == 0
         ):
             for _ in range(G):
-                experience = memory.sample(batch_size)
-                info = agent.train_policy(experience)
-                memory.update_priority(info)
+                agent.train_policy(memory, batch_size)
 
         if (total_step_counter + 1) % number_steps_per_evaluation == 0:
             evaluate = True
