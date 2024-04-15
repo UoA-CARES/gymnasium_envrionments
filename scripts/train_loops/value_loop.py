@@ -83,8 +83,8 @@ def value_based_train(
     max_steps_training = train_config.max_steps_training
     number_steps_per_evaluation = train_config.number_steps_per_evaluation
 
-    batch_size = train_config.batch_size
-    G = train_config.G
+    batch_size = alg_config.batch_size
+    G = alg_config.G
 
     episode_timesteps = 0
     episode_reward = 0
