@@ -80,7 +80,7 @@ def value_based_train(
     exploration_min = alg_config.exploration_min
     exploration_decay = alg_config.exploration_decay
 
-    max_steps_training = train_config.max_steps_training
+    max_steps_training = alg_config.max_steps_training
     number_steps_per_evaluation = train_config.number_steps_per_evaluation
 
     batch_size = alg_config.batch_size
