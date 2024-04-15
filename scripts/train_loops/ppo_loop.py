@@ -59,7 +59,7 @@ def evaluate_ppo_network(
 def ppo_train(env, agent, record, train_config: TrainingConfig, alg_config: PPOConfig):
     start_time = time.time()
 
-    max_steps_training = train_config.max_steps_training
+    max_steps_training = alg_config.max_steps_training
     max_steps_per_batch = alg_config.max_steps_per_batch
     number_steps_per_evaluation = train_config.number_steps_per_evaluation
 
