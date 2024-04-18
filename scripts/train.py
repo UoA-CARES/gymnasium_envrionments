@@ -17,12 +17,8 @@ import yaml
 from envrionments.environment_factory import EnvironmentFactory
 from util.configurations import GymEnvironmentConfig
 
-from cares_reinforcement_learning.util import (
-    MemoryFactory,
-    NetworkFactory,
-    Record,
-    RLParser,
-)
+from cares_reinforcement_learning.memory.memory_factory import MemoryFactory
+from cares_reinforcement_learning.util import NetworkFactory, Record, RLParser
 from cares_reinforcement_learning.util import helpers as hlp
 
 logging.basicConfig(level=logging.INFO)
