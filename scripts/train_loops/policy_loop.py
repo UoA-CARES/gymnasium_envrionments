@@ -70,10 +70,10 @@ def policy_based_train(
 ):
     start_time = time.time()
 
-    max_steps_training = train_config.max_steps_training
-    max_steps_exploration = train_config.max_steps_exploration
+    max_steps_training = alg_config.max_steps_training
+    max_steps_exploration = alg_config.max_steps_exploration
     number_steps_per_evaluation = train_config.number_steps_per_evaluation
-    number_steps_per_train_policy = train_config.number_steps_per_train_policy
+    number_steps_per_train_policy = alg_config.number_steps_per_train_policy
 
     # Algorthm specific attributes - e.g. NaSA-TD3 dd
     intrinsic_on = (
@@ -88,8 +88,8 @@ def policy_based_train(
         f"Training {max_steps_training} Exploration {max_steps_exploration} Evaluation {number_steps_per_evaluation}"
     )
 
-    batch_size = train_config.batch_size
-    G = train_config.G
+    batch_size = alg_config.batch_size
+    G = alg_config.G
 
     episode_timesteps = 0
     episode_reward = 0
@@ -149,11 +149,7 @@ def policy_based_train(
             and total_step_counter % number_steps_per_train_policy == 0
         ):
             for _ in range(G):
-                experience = memory.sample(batch_size)
-                info = agent.train_policy(experience)
-
-                if alg_config.memory == "PER":
-                    memory.update_priority(info["indices"], info["priorities"])
+                agent.train_policy(memory, batch_size)
 
         if (total_step_counter + 1) % number_steps_per_evaluation == 0:
             evaluate = True
