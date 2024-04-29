@@ -99,9 +99,7 @@ def main():
                 f"Unkown agent for default algorithms {alg_config.algorithm}"
             )
 
-        # TODO need to make a memory configuration for prioritised methods
-        memory_kwargs = {}
-        memory = memory_factory.create_memory(alg_config.buffer_size, **memory_kwargs)
+        memory = memory_factory.create_memory(alg_config)
 
         # create the record class - standardised results tracking
         log_dir = f"{seed}"
