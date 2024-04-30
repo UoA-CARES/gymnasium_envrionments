@@ -31,7 +31,7 @@ RUN pip3 install --editable .
 WORKDIR /workspace
 
 RUN git clone https://github.com/UoA-CARES/gymnasium_envrionments.git
-WORKDIR /workspace/gymnasium_envrionments
+WORKDIR /workspace/gymnasium_environments
 RUN pip3 install -r requirements.txt
 
 # We don't have GUI capabilities
