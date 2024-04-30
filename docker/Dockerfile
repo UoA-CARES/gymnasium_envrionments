@@ -31,7 +31,7 @@ RUN pip3 install --editable .
 WORKDIR /workspace
 
 RUN git clone https://github.com/UoA-CARES/gymnasium_envrionments.git
-WORKDIR /workspace/gymnasium_environments
+WORKDIR /workspace/gymnasium_envrionments
 RUN pip3 install -r requirements.txt
 
 # We don't have GUI capabilities
@@ -41,4 +41,4 @@ RUN pip3 install opencv-python-headless
 # Incase someone doesn't mount volume at runtime
 VOLUME /root/cares_rl_logs
 
-WORKDIR /workspace/gymnasium_environments/scripts
+WORKDIR /workspace/gymnasium_envrionments/scripts
