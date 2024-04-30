@@ -2,12 +2,20 @@
 
 Build the docker image locally
 ```bash
+# Linux
 docker build -t caresrl/gymnasium_environments .
+
+# Mac
+docker build --platform linux/amd64 -t caresrl/gymnasium_environments .
 ```
 
 # Run the docker image
 ```bash
+# Linux
 docker run -it --gpus all -v ./logs:/root/cares_rl_logs caresrl/gymnasium_environments bash 
+
+# Mac
+docker run -it --platform linux/amd64 -v ./logs:/root/cares_rl_logs caresrl/gymnasium_environments bash 
 ```
 
 # Development
