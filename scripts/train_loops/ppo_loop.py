@@ -1,7 +1,7 @@
 import logging
 import time
 
-from cares_reinforcement_learning.memory import MemoryBuffer
+from cares_reinforcement_learning.memory import PrioritizedReplayBuffer
 from cares_reinforcement_learning.util import helpers as hlp
 from cares_reinforcement_learning.util.configurations import PPOConfig, TrainingConfig
 
@@ -59,7 +59,7 @@ def evaluate_ppo_network(
 def ppo_train(env, agent, record, train_config: TrainingConfig, alg_config: PPOConfig):
     start_time = time.time()
 
-    max_steps_training = train_config.max_steps_training
+    max_steps_training = alg_config.max_steps_training
     max_steps_per_batch = alg_config.max_steps_per_batch
     number_steps_per_evaluation = train_config.number_steps_per_evaluation
 
@@ -67,7 +67,7 @@ def ppo_train(env, agent, record, train_config: TrainingConfig, alg_config: PPOC
     episode_num = 0
     episode_reward = 0
 
-    memory = MemoryBuffer()
+    memory = PrioritizedReplayBuffer()
 
     evaluate = False
 
@@ -94,9 +94,7 @@ def ppo_train(env, agent, record, train_config: TrainingConfig, alg_config: PPOC
         episode_reward += reward
 
         if (total_step_counter + 1) % max_steps_per_batch == 0:
-            experience = memory.flush()
-            info = agent.train_policy(experience)
-            # record.log_info(info, display=False)
+            agent.train_policy(memory)
 
         if (total_step_counter + 1) % number_steps_per_evaluation == 0:
             evaluate = True
