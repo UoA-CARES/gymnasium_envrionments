@@ -19,6 +19,8 @@ class ImageWrapper:
 
     @cached_property
     def observation_space(self):
+        # Why is 9 here? Currently --image_observation=1 breaks because this thruple is 
+        # being passed into nn.Linear() in Actor.py (TD3) which expects an int
         return (9, self.frame_width, self.frame_height)
 
     @cached_property
