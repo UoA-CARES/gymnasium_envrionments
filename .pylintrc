@@ -14,6 +14,7 @@ max-line-length=130
 
 [MASTER]
 extension-pkg-whitelist=cv2, pydantic
+init-hook='import sys; sys.path.append("../cares_reinforcement_learning/"); sys.path.append("../pyboy_environment/")'
 
 [TYPECHECK]
 generated-members=cv2.*, numpy.*, torch.*
