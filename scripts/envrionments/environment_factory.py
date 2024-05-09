@@ -12,7 +12,9 @@ class EnvironmentFactory:
     def __init__(self) -> None:
         pass
 
-    def create_environment(self, config: GymEnvironmentConfig) -> GymEnvironment:
+    def create_environment(
+        self, config: GymEnvironmentConfig, image_observation
+    ) -> GymEnvironment:
         logging.info(f"Training Environment: {config.gym}")
         if config.gym == "dmcs":
             env = DMCSEnvironment(config)
@@ -22,4 +24,4 @@ class EnvironmentFactory:
             env = PyboyEnvironment(config)
         else:
             raise ValueError(f"Unkown environment: {config.gym}")
-        return ImageWrapper(env) if bool(config.image_observation) else env
+        return ImageWrapper(env) if bool(image_observation) else env

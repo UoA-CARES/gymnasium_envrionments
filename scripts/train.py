@@ -85,7 +85,7 @@ def main():
             f"Training iteration {training_iteration+1}/{len(training_config.seeds)} with Seed: {seed}"
         )
         # This line should be here for seed consistency issues
-        env = env_factory.create_environment(env_config)
+        env = env_factory.create_environment(env_config, alg_config.image_observation)
         hlp.set_seed(seed)
         env.set_seed(seed)
 
