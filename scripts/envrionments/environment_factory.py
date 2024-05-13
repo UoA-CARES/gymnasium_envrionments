@@ -24,4 +24,4 @@ class EnvironmentFactory:
             env = PyboyEnvironment(config)
         else:
             raise ValueError(f"Unkown environment: {config.gym}")
-        return ImageWrapper(env) if bool(image_observation) else env
+        return ImageWrapper(config, env) if bool(image_observation) else env
