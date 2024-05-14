@@ -18,13 +18,8 @@ import yaml
 from envrionments.environment_factory import EnvironmentFactory
 from util.configurations import GymEnvironmentConfig
 
-from cares_reinforcement_learning.memory import MemoryFactory
-
-from cares_reinforcement_learning.util import (
-    NetworkFactory,
-    Record,
-    RLParser,
-)
+from cares_reinforcement_learning.memory.memory_factory import MemoryFactory
+from cares_reinforcement_learning.util import NetworkFactory, Record, RLParser
 from cares_reinforcement_learning.util import helpers as hlp
 
 logging.basicConfig(level=logging.INFO)
@@ -105,9 +100,7 @@ def main():
                 f"Unkown agent for default algorithms {alg_config.algorithm}"
             )
 
-        # TODO need to make a memory configuration for prioritised methods
-        memory_kwargs = {}
-        memory = memory_factory.create_memory(alg_config.buffer_size, **memory_kwargs)
+        memory = memory_factory.create_memory(alg_config)
 
         # create the record class - standardised results tracking
         log_dir = f"{seed}"
