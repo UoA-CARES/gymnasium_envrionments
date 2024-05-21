@@ -67,6 +67,7 @@ def policy_based_train(
     record,
     train_config: TrainingConfig,
     alg_config: AlgorithmConfig,
+    display=False,
 ):
     start_time = time.time()
 
@@ -126,6 +127,8 @@ def policy_based_train(
             )
 
         next_state, reward_extrinsic, done, truncated = env.step(action_env)
+        if display:
+            env.render()
 
         intrinsic_reward = 0
         if intrinsic_on and total_step_counter > max_steps_exploration:

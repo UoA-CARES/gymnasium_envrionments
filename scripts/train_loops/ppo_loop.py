@@ -56,7 +56,14 @@ def evaluate_ppo_network(
     record.stop_video()
 
 
-def ppo_train(env, agent, record, train_config: TrainingConfig, alg_config: PPOConfig):
+def ppo_train(
+    env,
+    agent,
+    record,
+    train_config: TrainingConfig,
+    alg_config: PPOConfig,
+    display=False,
+):
     start_time = time.time()
 
     max_steps_training = alg_config.max_steps_training
@@ -81,6 +88,9 @@ def ppo_train(env, agent, record, train_config: TrainingConfig, alg_config: PPOC
         action_env = hlp.denormalize(action, env.max_action_value, env.min_action_value)
 
         next_state, reward, done, truncated = env.step(action_env)
+        if display:
+            env.render()
+
         memory.add(
             state,
             action,
