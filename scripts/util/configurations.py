@@ -30,6 +30,7 @@ class GymEnvironmentConfig(EnvironmentConfig):
     gym: str = Field(description="Gym Environment <openai, dmcs, pyboy>")
     task: str
     domain: Optional[str] = ""
+    display: Optional[int] = 0
 
     # image observation configurations
     frames_to_stack: Optional[int] = 3
