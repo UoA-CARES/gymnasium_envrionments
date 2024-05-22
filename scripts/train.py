@@ -119,14 +119,33 @@ def main():
 
         # Train the policy or value based approach
         if alg_config.algorithm == "PPO":
-            ppe.ppo_train(env, agent, record, training_config, alg_config)
+            ppe.ppo_train(
+                env,
+                agent,
+                record,
+                training_config,
+                alg_config,
+                display=env_config.display,
+            )
         elif agent.type == "policy":
             pbe.policy_based_train(
-                env, agent, memory, record, training_config, alg_config
+                env,
+                agent,
+                memory,
+                record,
+                training_config,
+                alg_config,
+                display=env_config.display,
             )
         elif agent.type == "value":
             vbe.value_based_train(
-                env, agent, memory, record, training_config, alg_config
+                env,
+                agent,
+                memory,
+                record,
+                training_config,
+                alg_config,
+                display=env_config.display,
             )
         else:
             raise ValueError(f"Agent type is unkown: {agent.type}")
