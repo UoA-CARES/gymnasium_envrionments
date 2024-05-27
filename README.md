@@ -59,10 +59,10 @@ python3 train.py run --gym pyboy --task mario NaSATD3
 </p>
 
 # Data Outputs
-All data from a training run is saved into '~/cares_rl_logs'. A folder will be created for each training run named as 'ALGORITHM-TASK-YY_MM_DD:HH:MM:SS', e.g. 'TD3-HalfCheetah-v4-23_10_11_08:47:22'. This folder will contain the following directories and information saved during the training session:
+All data from a training run is saved into '~/cares_rl_logs'. A folder will be created for each training run named as 'ALGORITHM/ALGORITHM-TASK-YY_MM_DD:HH:MM:SS', e.g. 'TD3-HalfCheetah-v4-23_10_11_08:47:22'. This folder will contain the following directories and information saved during the training session:
 
 ```
-ALGORITHM-TASK-YY_MM_DD:HH:MM:SS/
+├─ALGORITHM/ALGORITHM-TASK-YY_MM_DD:HH:MM:SS/
 ├─ SEED
 |  ├─ env_config.py
 |  ├─ alg_config.py
