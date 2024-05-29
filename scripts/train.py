@@ -10,8 +10,8 @@ from datetime import datetime
 from pathlib import Path
 
 import torch
-import train_loops.policy_loop as pbe
-import train_loops.ppo_loop as ppe
+import train_loops.episodic_policy_loop as epbe
+#import train_loops.ppo_loop as ppe
 import train_loops.value_loop as vbe
 import yaml
 from envrionments.environment_factory import EnvironmentFactory
@@ -118,10 +118,10 @@ def main():
         record.save_config(alg_config, "alg_config")
 
         # Train the policy or value based approach
-        if alg_config.algorithm == "PPO":
-            ppe.ppo_train(env, agent, record, training_config, alg_config)
-        elif agent.type == "policy":
-            pbe.policy_based_train(
+       # if alg_config.algorithm == "PPO":
+       #     ppe.ppo_train(env, agent, record, training_config, alg_config)
+        if agent.type == "policy":
+            epbe.policy_based_train(
                 env, agent, memory, record, training_config, alg_config
             )
         elif agent.type == "value":
