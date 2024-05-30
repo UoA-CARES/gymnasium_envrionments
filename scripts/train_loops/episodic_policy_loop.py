@@ -149,42 +149,15 @@ def policy_based_train(
         
         if total_step_counter > batch_size:
             
-            #crucial_episode_reward = 0
-            # # Check if the episodic memory is not full
-            if not memory.long_term_memory.is_full():
-                if(episode_timesteps > batch_size ):
+            if (not memory.long_term_memory.is_full() and episode_timesteps > batch_size) or \
+            (memory.long_term_memory.is_full() and episode_reward > memory.long_term_memory.get_min_reward() and episode_timesteps > 2):
+
                  
                     states, actions,rewards, next_states, dones, episode_nums, episode_steps =memory.short_term_memory.sample_episode(episode_num,episode_timesteps, batch_size)
-                    # for i in range(len(rewards)):
-                    #     crucial_episode_reward += rewards[i]
+
                    
-                    memory.long_term_memory.add([episode_num,total_reward, states[-1]])
-
-                    memory.episodic_memory.add([episode_num,total_reward, states, actions,rewards, next_states, dones, episode_nums, episode_steps])
+                    memory.long_term_memory.add([episode_num,total_reward, states, actions,rewards, next_states, dones, episode_nums, episode_steps])
                     
-            else:
-                # If the long term memory is full, check if the current reward is greater than the minimum reward in the long-term memory
-                if episode_reward > memory.long_term_memory.get_min_reward(): # *** need to check based on current reward and total_reward
-                     
-                     #print(f"episode_num:{episode_num}, episode_timesteps:{episode_timesteps}")
-                     states, actions, rewards, next_states, dones, episode_nums, episode_steps = memory.short_term_memory.sample_episode(
-                        target_episode_num=episode_num,
-                        target_episode_step=episode_timesteps,
-                        batch_size=batch_size  # int(learning_config.batch_size * 0.5)  # Convert to integer
-                        )
-                   #  print(f"states:{type(states)}")
-                    # print(f"episode_nums:{episode_nums}")
-                     
-                     #selected_ep_id = episode_nums[0]
-                    #  for i in range(len(rewards)):
-                    #     crucial_episode_reward += rewards[i]
-                     #print(f"selected_ep_id:{selected_ep_id}")
-                     #input()
-                     memory.long_term_memory.add([episode_num,total_reward, state, action, reward_extrinsic, episode_nums, episode_timesteps])
-                     delete_episode_id, delete_episode_reward = memory.long_term_memory.get_replaced_episode_id_reward()
-                     new_episodic_batch = [episode_num, total_reward, states, actions,rewards, next_states, dones, episode_nums, episode_steps]
-                     memory.episodic_memory.replace_episode(delete_episode_id, delete_episode_reward, new_episodic_batch)
-
          
         if (
             total_step_counter >= max_steps_exploration
