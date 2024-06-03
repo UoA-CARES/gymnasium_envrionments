@@ -1,7 +1,7 @@
 import logging
 import time
 
-from cares_reinforcement_learning.memory import PrioritizedReplayBuffer
+from cares_reinforcement_learning.memory import MemoryBuffer
 from cares_reinforcement_learning.util import helpers as hlp
 from cares_reinforcement_learning.util.configurations import PPOConfig, TrainingConfig
 
@@ -74,7 +74,7 @@ def ppo_train(
     episode_num = 0
     episode_reward = 0
 
-    memory = PrioritizedReplayBuffer()
+    memory = MemoryBuffer()
 
     evaluate = False
 
