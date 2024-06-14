@@ -1,4 +1,4 @@
 {
     "gym": "openai",
-    "task": "HalfCheetah-v4"
+    "task": "Ant-v4"
 }

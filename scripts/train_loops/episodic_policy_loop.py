@@ -13,7 +13,6 @@ from cares_reinforcement_learning.util.configurations import (
 def evaluate_policy_network(
     env, agent, config: TrainingConfig, record=None, total_steps=0
 ):
- 
     # if record is not None:
     #     frame = env.grab_frame()
     #     record.start_video(total_steps + 1, frame)
@@ -44,7 +43,6 @@ def evaluate_policy_network(
             #     record.log_video(frame)
 
             if done or truncated:
-
                 if record is not None:
                     record.log_eval(
                         total_steps=total_steps + 1,
@@ -59,7 +57,7 @@ def evaluate_policy_network(
                 episode_timesteps = 0
                 episode_num += 1
 
-    # record.stop_video()
+    #record.stop_video()
 
 
 def policy_based_train(
@@ -134,18 +132,36 @@ def policy_based_train(
             intrinsic_reward = agent.get_intrinsic_reward(state, action, next_state)
 
         total_reward = reward_extrinsic + intrinsic_reward
+        
+       
 
-        memory .add(
+        memory.short_term_memory.add(
             state,
             action,
             total_reward,
             next_state,
             done,
+            episode_num,
+            episode_timesteps
         )
-
+        
+            
         state = next_state
-        episode_reward += reward_extrinsic  # Note we only track the extrinsic reward for the episode for proper comparison
+        episode_reward += reward_extrinsic    
+        
+        if total_step_counter > batch_size:
+            
+            if (not memory.long_term_memory.is_full() and episode_timesteps > batch_size) or \
+            (memory.long_term_memory.is_full() and episode_reward > memory.long_term_memory.get_min_reward() and episode_timesteps > 2):
 
+                 
+                    states, actions,rewards, next_states, dones, episode_nums, episode_steps =memory.short_term_memory.sample_episode(episode_num,episode_timesteps, batch_size)
+
+                   
+                    memory.long_term_memory.add([episode_num,total_reward, states, actions,rewards, next_states, dones, episode_nums, episode_steps])
+                    
+                    
+         
         if (
             total_step_counter >= max_steps_exploration
             and total_step_counter % number_steps_per_train_policy == 0
@@ -157,7 +173,8 @@ def policy_based_train(
             evaluate = True
 
         if done or truncated:
-            #print(f"done {done}, truncated {truncated}")
+            #print(f"dones:{done}, truncated:{truncated}")
+            #last_episode_experience = [episode_num, total_reward, state, action, reward_extrinsic, episode_num, episode_timesteps]
             episode_time = time.time() - episode_start
             record.log_train(
                 total_steps=total_step_counter + 1,
@@ -185,7 +202,7 @@ def policy_based_train(
             episode_timesteps = 0
             episode_reward = 0
             episode_num += 1
-            episode_start = time.time()
+            episode_start = time.time() 
 
     end_time = time.time()
     elapsed_time = end_time - start_time
