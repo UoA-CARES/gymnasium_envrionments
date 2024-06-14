@@ -127,7 +127,7 @@ def main():
                 epbe.policy_based_train(
                     env, agent, memory, record, training_config, alg_config
                 )
-            elif alg_config.algorithm == "TD3":
+            elif alg_config.algorithm == "ReTD3":
                 cpbe.policy_based_train(
                     env, agent, memory, record, training_config, alg_config
                 )
