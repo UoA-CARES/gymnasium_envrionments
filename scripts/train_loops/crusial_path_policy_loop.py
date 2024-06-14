@@ -93,7 +93,7 @@ def policy_based_train(
 
     batch_size = alg_config.batch_size
     G = alg_config.G
-    explore_time = 1000
+    explore_time = 10000
     episode_timesteps = 0
     episode_reward = 0
     episode_num = 0
@@ -110,8 +110,10 @@ def policy_based_train(
             logging.info(
                 f"Running Exploration Steps {total_step_counter + 1}/{max_steps_exploration}"
             )
-
+            
             action_env = env.sample_action()
+            # print(f"action_env:{action_env}")
+            # input()
 
             # algorithm range [-1, 1] - note for DMCS this is redudenant but required for openai
             action = hlp.normalize(
@@ -120,18 +122,21 @@ def policy_based_train(
         elif crucial_steps and number_of_crusial_episodes > 0:
             
             if episode_timesteps == 1:
-                actions,episode_n, episode_s= memory.long_term_memory.get_crucial_path(1)
-                print(f"actions:{actions},episode_numbers:{episode_n}, episode_steps:{episode_s}")
-                input()
-            #print(f"episode_timesteps:{episode_timesteps}")
-            #input()
-            action = actions[episode_timesteps-1]
-            action_env = hlp.denormalize(
-                action, env.max_action_value, env.min_action_value
-            )
-            if episode_timesteps == len(actions):
+                crucial_actions,episode_n, episode_s= memory.long_term_memory.get_crucial_path(1)
+                #print(f"actions:{len(crucial_actions)},episode_numbers:{len(episode_n)}, episode_steps:{episode_s}")
+                # print(actions[0])
+                # input()
+            # print(f"episode_timesteps:{episode_timesteps}")
+            # input()
+             # Check that the index is within bounds
+            if episode_timesteps  >= len(crucial_actions):
+              
                 crucial_steps = False
                 explore = True
+            else:
+                action_env = crucial_actions[episode_timesteps - 1]
+                # action_env = hlp.denormalize(action, env.max_action_value, env.min_action_value)
+
            
             
         else:
@@ -193,9 +198,9 @@ def policy_based_train(
             evaluate = True
         
         
-        if (total_step_counter +1) % explore_time == 0 :#and total_step_counter >10000:
+        if (total_step_counter +1) % explore_time == 0 and episode_reward>0:#and total_step_counter >10000:
                  crucial_steps = True
-                 number_of_crusial_episodes = 5          
+                 number_of_crusial_episodes = 3          
             
 
         if done or truncated:
