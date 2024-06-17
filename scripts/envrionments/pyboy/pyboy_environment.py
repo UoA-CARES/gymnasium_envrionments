@@ -12,7 +12,11 @@ class PyboyEnvironment(GymEnvironment):
         super().__init__(config)
 
         self.env = suite.make(
-            config.task, config.act_freq, config.emulation_speed, config.headless
+            config.domain,
+            config.task,
+            config.act_freq,
+            config.emulation_speed,
+            config.headless,
         )
 
     @cached_property
