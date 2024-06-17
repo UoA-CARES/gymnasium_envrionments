@@ -112,6 +112,7 @@ def policy_based_train(
             )
             
             action_env = env.sample_action()
+            explore = False
             # print(f"action_env:{action_env}")
             # input()
 
@@ -126,18 +127,19 @@ def policy_based_train(
                 #print(f"actions:{len(crucial_actions)},episode_numbers:{len(episode_n)}, episode_steps:{episode_s}")
                 # print(actions[0])
                 # input()
-            # print(f"episode_timesteps:{episode_timesteps}")
-            # input()
+            print(f"episode_timesteps:{episode_timesteps}, len:{len(crucial_actions)},number_of_crusial_episodes:{number_of_crusial_episodes}")
+                        
              # Check that the index is within bounds
+            action_env = crucial_actions[episode_timesteps - 1]
+            if episode_timesteps == len(crucial_actions):
+                print(f"Reach end of crucial path for {6-number_of_crusial_episodes} time")
+                # input()
             if episode_timesteps  >= len(crucial_actions):
-              
+               
                 crucial_steps = False
+                print(f"Reach end of crucial path for {6-number_of_crusial_episodes} time")
                 explore = True
-            else:
-                action_env = crucial_actions[episode_timesteps - 1]
-                # action_env = hlp.denormalize(action, env.max_action_value, env.min_action_value)
-
-           
+            
             
         else:
             noise_scale *= noise_decay
@@ -175,13 +177,11 @@ def policy_based_train(
         episode_reward += reward_extrinsic    
         
         if total_step_counter > batch_size:
-            
-            if (not memory.long_term_memory.is_full() and episode_timesteps > batch_size) or \
+            #print(f" is full: {memory.long_term_memory.is_full()},total_reward:{total_reward}, min_reward:{memory.long_term_memory.get_min_reward()}, episode_timesteps:{episode_timesteps}")
+            if (not memory.long_term_memory.is_full() ) or \
             (memory.long_term_memory.is_full() and total_reward > memory.long_term_memory.get_min_reward() and episode_timesteps > 2):
-
-                 
+                   # print(f"total_reward:{total_reward}, min_reward:{memory.long_term_memory.get_min_reward()}")
                     states, actions,rewards, next_states, dones, episode_nums, episode_steps =memory.short_term_memory.sample_complete_episode(episode_num,episode_timesteps)
-
                    
                     memory.long_term_memory.add([episode_num,total_reward, states, actions,rewards, next_states, dones, episode_nums, episode_steps])
                     
@@ -197,12 +197,11 @@ def policy_based_train(
         if (total_step_counter + 1) % number_steps_per_evaluation == 0:
             evaluate = True
         
-        
-        if (total_step_counter +1) % explore_time == 0 and episode_reward>0:#and total_step_counter >10000:
-                 crucial_steps = True
-                 number_of_crusial_episodes = 3          
-            
-
+        if (total_step_counter +1) % explore_time == 0 :#and episode_reward>0:and total_step_counter >10000:
+                 number_of_crusial_episodes = 6   
+                 #crucial_steps = False
+                 #print(f"crucial steps:{crucial_steps}")
+              
         if done or truncated:
             #print(f"dones:{done}, truncated:{truncated}")
             #last_episode_experience = [episode_num, total_reward, state, action, reward_extrinsic, episode_num, episode_timesteps]
@@ -215,10 +214,18 @@ def policy_based_train(
                 episode_time=episode_time,
                 display=True,
             )
-            explore = False
-            if number_of_crusial_episodes > 0:
+            if number_of_crusial_episodes == 1:
+                crucial_steps = False
+                number_of_crusial_episodes -= 1  
+                explore = True
+                print(f"Explore time!")
+                
+            elif number_of_crusial_episodes > 0 :
+                
                 number_of_crusial_episodes -= 1  
                 crucial_steps = True
+            
+                
            
            
             if evaluate:
