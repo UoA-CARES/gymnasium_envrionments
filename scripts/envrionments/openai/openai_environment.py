@@ -45,8 +45,8 @@ class OpenAIEnvrionment(GymEnvironment):
         # Note issues: https://github.com/rail-berkeley/softlearning/issues/75
         self.env.action_space.seed(seed)
 
-    def reset(self) -> np.ndarray:
-        state, _ = self.env.reset()
+    def reset(self, seed=0) -> np.ndarray:
+        state, _ = self.env.reset(seed=seed)
         return state
 
     def step(self, action: int) -> tuple:
