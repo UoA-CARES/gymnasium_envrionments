@@ -19,6 +19,9 @@ This package is a basic example of running the CARES RL algorithms on OpenAI/DMC
 
 `train.py` takes in hyperparameters that allow you to customise the training gym enviromment – see options below - or RL algorithm. Use `python3 train.py -h` for help on what parameters are available for customisation.
 
+## Docker
+Refer [here](./docker/README.md) for instructions on how to use our docker image
+
 ## Gym Environments
 This package contains wrappers for the following gym environments:
 
