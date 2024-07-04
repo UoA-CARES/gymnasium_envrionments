@@ -76,7 +76,9 @@ def main():
             env.observation_space, env.action_num, alg_config
         )
 
-        file_path = "/home/pokemon/cares_rl_logs/SACAE/SACAE-pokemon-fight-24_07_03_12:35:07/10"
+        file_path = (
+            "/home/pokemon/cares_rl_logs/SACAE/SACAE-pokemon-fight-24_07_03_12:35:07/10"
+        )
         model_name = "SACAE-checkpoint-80"
         agent.load_models(file_path, model_name)
 
