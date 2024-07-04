@@ -30,23 +30,16 @@ class GymEnvironmentConfig(EnvironmentConfig):
     gym: str = Field(description="Gym Environment <openai, dmcs, pyboy>")
     task: str
     domain: Optional[str] = ""
-    image_observation: Optional[int] = 0
+    display: Optional[int] = 0
 
+    # image observation configurations
+    frames_to_stack: Optional[int] = 3
+    frame_width: Optional[int] = 84
+    frame_height: Optional[int] = 84
+    grey_scale: Optional[int] = 0
+
+    # pyboy configurations TODO move...
     rom_path: Optional[str] = f"{Path.home()}/cares_rl_configs"
     act_freq: Optional[int] = 24
     emulation_speed: Optional[int] = 0
     headless: Optional[int] = 0
-
-
-# class OpenAIEnvironmentConfig(GymEnvironmentConfig):
-#     gym: str = Field("openai", Literal=True)
-
-# class DMCSEnvironmentConfig(GymEnvironmentConfig):
-#     gym: str = Field("dmcs", Literal=True)
-#     domain: str
-
-# class PyboyEnvironmentConfig(GymEnvironmentConfig):
-#     gym: str = Field("pyboy", Literal=True)
-
-# class PokemonEnvironmentConfig(PyboyEnvironmentConfig):
-#     task: str = Field("Pokemon", Literal=True)

@@ -39,7 +39,10 @@ def main():
     network_factory = NetworkFactory()
     memory_factory = MemoryFactory()
 
-    iterations_folder = f"{alg_config.algorithm}-{env_config.task}-{datetime.now().strftime('%y_%m_%d_%H:%M:%S')}"
+    domain = f"{env_config.domain}-" if env_config.domain != "" else ""
+    task = domain + env_config.task
+
+    iterations_folder = f"{alg_config.algorithm}/{alg_config.algorithm}-{task}-{datetime.now().strftime('%y_%m_%d_%H:%M:%S')}"
     glob_log_dir = f"{Path.home()}/cares_rl_logs/{iterations_folder}"
 
     logging.info(
@@ -85,7 +88,7 @@ def main():
             f"Training iteration {training_iteration+1}/{len(training_config.seeds)} with Seed: {seed}"
         )
         # This line should be here for seed consistency issues
-        env = env_factory.create_environment(env_config)
+        env = env_factory.create_environment(env_config, alg_config.image_observation)
         hlp.set_seed(seed)
         env.set_seed(seed)
 
@@ -99,9 +102,7 @@ def main():
                 f"Unkown agent for default algorithms {alg_config.algorithm}"
             )
 
-        # TODO need to make a memory configuration for prioritised methods
-        memory_kwargs = {}
-        memory = memory_factory.create_memory(alg_config.buffer_size, **memory_kwargs)
+        memory = memory_factory.create_memory(alg_config)
 
         # create the record class - standardised results tracking
         log_dir = f"{seed}"
@@ -121,14 +122,33 @@ def main():
 
         # Train the policy or value based approach
         if alg_config.algorithm == "PPO":
-            ppe.ppo_train(env, agent, record, training_config, alg_config)
+            ppe.ppo_train(
+                env,
+                agent,
+                record,
+                training_config,
+                alg_config,
+                display=env_config.display,
+            )
         elif agent.type == "policy":
             pbe.policy_based_train(
-                env, agent, memory, record, training_config, alg_config
+                env,
+                agent,
+                memory,
+                record,
+                training_config,
+                alg_config,
+                display=env_config.display,
             )
         elif agent.type == "value":
             vbe.value_based_train(
-                env, agent, memory, record, training_config, alg_config
+                env,
+                agent,
+                memory,
+                record,
+                training_config,
+                alg_config,
+                display=env_config.display,
             )
         else:
             raise ValueError(f"Agent type is unkown: {agent.type}")
