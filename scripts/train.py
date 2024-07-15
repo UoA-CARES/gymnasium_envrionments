@@ -39,7 +39,7 @@ def main():
     network_factory = NetworkFactory()
     memory_factory = MemoryFactory()
 
-    iterations_folder = f"{alg_config.algorithm}-{env_config.task}-{datetime.now().strftime('%y_%m_%d_%H:%M:%S')}"
+    iterations_folder = f"{alg_config.algorithm}-{env_config.task}-{datetime.now().strftime('%y_%m_%d_%H-%M-%S')}"
     glob_log_dir = f"{Path.home()}/cares_rl_logs/{iterations_folder}"
 
     logging.info(
@@ -101,7 +101,7 @@ def main():
 
         # TODO need to make a memory configuration for prioritised methods
         memory_kwargs = {}
-        memory = memory_factory.create_memory(alg_config.buffer_size, **memory_kwargs)
+        memory = memory_factory.create_memory(alg_config, **memory_kwargs)
 
         # create the record class - standardised results tracking
         log_dir = f"{seed}"
