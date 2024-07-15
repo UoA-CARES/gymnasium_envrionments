@@ -2,9 +2,9 @@ dm_control==1.0.15
 gymnasium==0.29.0
 gymnasium[classic-control]==0.29.0
 gymnasium[mujoco]==0.29.0
-numpy==1.23.5
+numpy==1.26.4
 opencv-contrib-python==4.6.0.66
 pydantic==1.10.13
-torch==2.0.1
-pyboy==1.6.7
+torch==2.3.1
+pyboy==2.2.1
 mediapy==1.1.9

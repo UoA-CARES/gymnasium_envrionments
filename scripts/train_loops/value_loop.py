@@ -74,6 +74,7 @@ def value_based_train(
     record,
     train_config: TrainingConfig,
     alg_config: AlgorithmConfig,
+    display=False,
 ):
     start_time = time.time()
 
@@ -109,6 +110,9 @@ def value_based_train(
             action = agent.select_action_from_policy(state)
 
         next_state, reward, done, truncated = env.step(action)
+        if display:
+            env.render()
+
         memory.add(state, action, reward, next_state, done)
         state = next_state
         episode_reward += reward
