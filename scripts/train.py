@@ -42,7 +42,7 @@ def main():
     domain = f"{env_config.domain}-" if env_config.domain != "" else ""
     task = domain + env_config.task
 
-    iterations_folder = f"{alg_config.algorithm}/{alg_config.algorithm}-{task}-{datetime.now().strftime('%y_%m_%d_%H:%M:%S')}"
+    iterations_folder = f"{alg_config.algorithm}/{alg_config.algorithm}-{task}-{datetime.now().strftime('%y_%m_%d_%H-%M-%S')}"
     glob_log_dir = f"{Path.home()}/cares_rl_logs/{iterations_folder}"
 
     logging.info(
