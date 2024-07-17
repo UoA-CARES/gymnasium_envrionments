@@ -1,7 +1,7 @@
 from functools import cached_property
 
 import numpy as np
-from envrionments.gym_environment import GymEnvironment
+from environments.gym_environment import GymEnvironment
 from util.configurations import GymEnvironmentConfig
 
 from pyboy_environment import suite
@@ -36,9 +36,7 @@ class PyboyEnvironment(GymEnvironment):
         return self.env.action_num
 
     def sample_action(self):
-        return np.random.uniform(
-            self.min_action_value, self.max_action_value, size=self.action_num
-        )
+        return np.random.uniform(self.min_action_value, self.max_action_value, size=self.action_num)
 
     def set_seed(self, seed: int) -> None:
         self.env.set_seed(seed)

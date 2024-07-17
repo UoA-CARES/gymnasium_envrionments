@@ -3,12 +3,12 @@ from functools import cached_property
 import cv2
 import gymnasium as gym
 import numpy as np
-from envrionments.gym_environment import GymEnvironment
+from environments.gym_environment import GymEnvironment
 from gymnasium import spaces
 from util.configurations import GymEnvironmentConfig
 
 
-class OpenAIEnvrionment(GymEnvironment):
+class OpenAIEnvironment(GymEnvironment):
     def __init__(self, config: GymEnvironmentConfig) -> None:
         super().__init__(config)
         self.env = gym.make(config.task, render_mode="rgb_array")
@@ -32,9 +32,7 @@ class OpenAIEnvrionment(GymEnvironment):
         elif isinstance(self.env.action_space, spaces.Discrete):
             action_num = self.env.action_space.n
         else:
-            raise ValueError(
-                f"Unhandled action space type: {type(self.env.action_space)}"
-            )
+            raise ValueError(f"Unhandled action space type: {type(self.env.action_space)}")
         return action_num
 
     def sample_action(self) -> int:
