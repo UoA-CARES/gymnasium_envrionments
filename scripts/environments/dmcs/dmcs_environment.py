@@ -36,14 +36,18 @@ class DMCSEnvironment(GymEnvironment):
         return self.env.action_spec().shape[0]
 
     def sample_action(self) -> int:
-        return np.random.uniform(self.min_action_value, self.max_action_value, size=self.action_num)
+        return np.random.uniform(
+            self.min_action_value, self.max_action_value, size=self.action_num
+        )
 
     def set_seed(self, seed: int) -> None:
         self.env = suite.load(self.domain, self.task, task_kwargs={"random": seed})
 
     def reset(self) -> np.ndarray:
         time_step = self.env.reset()
-        observation = np.hstack(list(time_step.observation.values()))  # # e.g. position, orientation, joint_angles
+        observation = np.hstack(
+            list(time_step.observation.values())
+        )  # # e.g. position, orientation, joint_angles
         return observation
 
     def step(self, action: int) -> tuple:

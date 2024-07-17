@@ -43,9 +43,7 @@ def main():
     domain = f"{env_config.domain}-" if env_config.domain != "" else ""
     task = domain + env_config.task
 
-    iterations_folder = (
-        f"{alg_config.algorithm}/{alg_config.algorithm}-{task}-{datetime.now().strftime('%y_%m_%d_%H-%M-%S')}"
-    )
+    iterations_folder = f"{alg_config.algorithm}/{alg_config.algorithm}-{task}-{datetime.now().strftime('%y_%m_%d_%H-%M-%S')}"
     glob_log_dir = f"{Path.home()}/cares_rl_logs/{iterations_folder}"
 
     logging.info(
@@ -71,29 +69,39 @@ def main():
     )
 
     logging.info(f"\n{yaml.dump(dict(training_config), default_flow_style=False)}")
-    logging.info(f"Device: {torch.device('cuda' if torch.cuda.is_available() else 'cpu')}")
+    logging.info(
+        f"Device: {torch.device('cuda' if torch.cuda.is_available() else 'cpu')}"
+    )
 
     input("Double check your experiement configurations :) Press ENTER to continue.")
 
     if not torch.cuda.is_available():
-        no_gpu_answer = input("No cuda detected. Do you still want to continue? Note: Training will be slow. [y/n]")
+        no_gpu_answer = input(
+            "No cuda detected. Do you still want to continue? Note: Training will be slow. [y/n]"
+        )
 
         if no_gpu_answer not in ["y", "Y"]:
             logging.info("Terminating Experiement - check CUDA is installed.")
             sys.exit()
 
     for training_iteration, seed in enumerate(training_config.seeds):
-        logging.info(f"Training iteration {training_iteration+1}/{len(training_config.seeds)} with Seed: {seed}")
+        logging.info(
+            f"Training iteration {training_iteration+1}/{len(training_config.seeds)} with Seed: {seed}"
+        )
         # This line should be here for seed consistency issues
         env = env_factory.create_environment(env_config, alg_config.image_observation)
         hlp.set_seed(seed)
         env.set_seed(seed)
 
         logging.info(f"Algorithm: {alg_config.algorithm}")
-        agent = network_factory.create_network(env.observation_space, env.action_num, alg_config)
+        agent = network_factory.create_network(
+            env.observation_space, env.action_num, alg_config
+        )
 
         if agent is None:
-            raise ValueError(f"Unkown agent for default algorithms {alg_config.algorithm}")
+            raise ValueError(
+                f"Unkown agent for default algorithms {alg_config.algorithm}"
+            )
 
         memory = memory_factory.create_memory(alg_config)
 

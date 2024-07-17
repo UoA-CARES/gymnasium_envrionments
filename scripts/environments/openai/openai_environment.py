@@ -32,7 +32,9 @@ class OpenAIEnvironment(GymEnvironment):
         elif isinstance(self.env.action_space, spaces.Discrete):
             action_num = self.env.action_space.n
         else:
-            raise ValueError(f"Unhandled action space type: {type(self.env.action_space)}")
+            raise ValueError(
+                f"Unhandled action space type: {type(self.env.action_space)}"
+            )
         return action_num
 
     def sample_action(self) -> int:

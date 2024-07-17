@@ -12,7 +12,9 @@ class EnvironmentFactory:
     def __init__(self) -> None:
         pass
 
-    def create_environment(self, config: GymEnvironmentConfig, image_observation) -> GymEnvironment:
+    def create_environment(
+        self, config: GymEnvironmentConfig, image_observation
+    ) -> GymEnvironment:
         logging.info(f"Training Environment: {config.gym}")
         if config.gym == "dmcs":
             env = DMCSEnvironment(config)

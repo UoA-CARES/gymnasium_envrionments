@@ -53,7 +53,9 @@ class ImageWrapper:
 
     def reset(self):
         _ = self.gym.reset()
-        frame = self.grab_frame(height=self.frame_height, width=self.frame_width, grey_scale=self.grey_scale)
+        frame = self.grab_frame(
+            height=self.frame_height, width=self.frame_width, grey_scale=self.grey_scale
+        )
         frame = np.moveaxis(frame, -1, 0)
         for _ in range(self.frames_to_stack):
             self.frames_stacked.append(frame)
@@ -62,7 +64,9 @@ class ImageWrapper:
 
     def step(self, action):
         _, reward, done, truncated = self.gym.step(action)
-        frame = self.grab_frame(height=self.frame_height, width=self.frame_width, grey_scale=self.grey_scale)
+        frame = self.grab_frame(
+            height=self.frame_height, width=self.frame_width, grey_scale=self.grey_scale
+        )
         frame = np.moveaxis(frame, -1, 0)
         self.frames_stacked.append(frame)
         stacked_frames = np.concatenate(list(self.frames_stacked), axis=0)
