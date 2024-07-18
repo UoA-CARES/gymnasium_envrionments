@@ -4,7 +4,7 @@ from functools import cached_property
 
 import cv2
 import numpy as np
-from envrionments.gym_environment import GymEnvironment, GymEnvironmentConfig
+from environments.gym_environment import GymEnvironment, GymEnvironmentConfig
 
 
 class ImageWrapper:

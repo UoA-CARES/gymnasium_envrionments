@@ -1,7 +1,7 @@
 from functools import cached_property
 
 import numpy as np
-from envrionments.gym_environment import GymEnvironment
+from environments.gym_environment import GymEnvironment
 from util.configurations import GymEnvironmentConfig
 
 from pyboy_environment import suite

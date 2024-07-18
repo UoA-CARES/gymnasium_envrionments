@@ -4,7 +4,7 @@ from functools import cached_property
 import cv2
 import numpy as np
 from dm_control import suite
-from envrionments.gym_environment import GymEnvironment
+from environments.gym_environment import GymEnvironment
 from util.configurations import GymEnvironmentConfig
 
 

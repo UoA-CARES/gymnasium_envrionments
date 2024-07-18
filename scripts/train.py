@@ -14,7 +14,8 @@ import train_loops.policy_loop as pbe
 import train_loops.ppo_loop as ppe
 import train_loops.value_loop as vbe
 import yaml
-from envrionments.environment_factory import EnvironmentFactory
+
+from environments.environment_factory import EnvironmentFactory
 from util.configurations import GymEnvironmentConfig
 
 from cares_reinforcement_learning.memory.memory_factory import MemoryFactory
@@ -151,7 +152,7 @@ def main():
                 display=env_config.display,
             )
         else:
-            raise ValueError(f"Agent type is unkown: {agent.type}")
+            raise ValueError(f"Agent type is unknown: {agent.type}")
 
         record.save()
 
