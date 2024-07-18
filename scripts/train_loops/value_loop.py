@@ -1,3 +1,4 @@
+import copy
 import logging
 import random
 import time
@@ -122,7 +123,16 @@ def value_based_train(
                 agent.train_policy(memory, batch_size)
 
         if (total_step_counter + 1) % number_steps_per_evaluation == 0:
-            evaluate = True
+            logging.info("*************--Evaluation Loop--*************")
+            evaluate_value_network(
+                copy.deepcopy(env),
+                agent,
+                train_config,
+                alg_config,
+                record=record,
+                total_steps=total_step_counter,
+            )
+            logging.info("--------------------------------------------")
 
         if done or truncated:
             episode_time = time.time() - episode_start
@@ -134,19 +144,6 @@ def value_based_train(
                 episode_time=episode_time,
                 display=True,
             )
-
-            if evaluate:
-                logging.info("*************--Evaluation Loop--*************")
-                evaluate_value_network(
-                    env,
-                    agent,
-                    train_config,
-                    alg_config,
-                    record=record,
-                    total_steps=total_step_counter,
-                )
-                logging.info("--------------------------------------------")
-                evaluate = False
 
             # Reset environment
             state = env.reset()
