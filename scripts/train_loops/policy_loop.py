@@ -1,7 +1,6 @@
+import copy
 import logging
 import time
-
-import numpy as np
 
 from cares_reinforcement_learning.util import helpers as hlp
 from cares_reinforcement_learning.util.configurations import (
@@ -13,13 +12,13 @@ from cares_reinforcement_learning.util.configurations import (
 def evaluate_policy_network(
     env, agent, config: TrainingConfig, record=None, total_steps=0
 ):
+    state = env.reset()
+
     if record is not None:
         frame = env.grab_frame()
         record.start_video(total_steps + 1, frame)
 
     number_eval_episodes = int(config.number_eval_episodes)
-
-    state = env.reset()
 
     for eval_episode_counter in range(number_eval_episodes):
         episode_timesteps = 0
@@ -96,8 +95,6 @@ def policy_based_train(
     episode_reward = 0
     episode_num = 0
 
-    evaluate = False
-
     state = env.reset()
 
     episode_start = time.time()
@@ -155,7 +152,15 @@ def policy_based_train(
                 agent.train_policy(memory, batch_size)
 
         if (total_step_counter + 1) % number_steps_per_evaluation == 0:
-            evaluate = True
+            logging.info("*************--Evaluation Loop--*************")
+            evaluate_policy_network(
+                copy.deepcopy(env),
+                agent,
+                train_config,
+                record=record,
+                total_steps=total_step_counter,
+            )
+            logging.info("--------------------------------------------")
 
         if done or truncated:
             episode_time = time.time() - episode_start
@@ -167,18 +172,6 @@ def policy_based_train(
                 episode_time=episode_time,
                 display=True,
             )
-
-            if evaluate:
-                logging.info("*************--Evaluation Loop--*************")
-                evaluate_policy_network(
-                    env,
-                    agent,
-                    train_config,
-                    record=record,
-                    total_steps=total_step_counter,
-                )
-                logging.info("--------------------------------------------")
-                evaluate = False
 
             # Reset environment
             state = env.reset()
