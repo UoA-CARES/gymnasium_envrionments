@@ -1,3 +1,4 @@
+import copy
 import logging
 import time
 
@@ -76,8 +77,6 @@ def ppo_train(
 
     memory = MemoryBuffer()
 
-    evaluate = False
-
     state = env.reset()
 
     episode_start = time.time()
@@ -107,7 +106,15 @@ def ppo_train(
             agent.train_policy(memory)
 
         if (total_step_counter + 1) % number_steps_per_evaluation == 0:
-            evaluate = True
+            logging.info("*************--Evaluation Loop--*************")
+            evaluate_ppo_network(
+                copy.deepcopy(env),
+                agent,
+                train_config,
+                record=record,
+                total_steps=total_step_counter,
+            )
+            logging.info("--------------------------------------------")
 
         if done or truncated:
             episode_time = time.time() - episode_start
@@ -119,18 +126,6 @@ def ppo_train(
                 episode_time=episode_time,
                 display=True,
             )
-
-            if evaluate:
-                logging.info("*************--Evaluation Loop--*************")
-                evaluate_ppo_network(
-                    env,
-                    agent,
-                    train_config,
-                    record=record,
-                    total_steps=total_step_counter,
-                )
-                logging.info("--------------------------------------------")
-                evaluate = False
 
             # Reset environment
             state = env.reset()
