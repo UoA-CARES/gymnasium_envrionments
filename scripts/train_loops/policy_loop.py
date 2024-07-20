@@ -154,7 +154,7 @@ def policy_based_train(
         if (total_step_counter + 1) % number_steps_per_evaluation == 0:
             logging.info("*************--Evaluation Loop--*************")
             evaluate_policy_network(
-                copy.deepcopy(env),
+                env,
                 agent,
                 train_config,
                 record=record,
