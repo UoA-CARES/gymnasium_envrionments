@@ -6,6 +6,8 @@ and memory instances, and then trains the agent using the specified algorithm.
 
 import logging
 import sys
+import os
+
 from datetime import datetime
 from pathlib import Path
 
@@ -17,6 +19,7 @@ import yaml
 
 from environments.environment_factory import EnvironmentFactory
 from util.configurations import GymEnvironmentConfig
+from util.parse_path import create_path_from_format_string
 
 from cares_reinforcement_learning.memory.memory_factory import MemoryFactory
 from cares_reinforcement_learning.util import NetworkFactory, Record, RLParser
@@ -39,12 +42,6 @@ def main():
     env_factory = EnvironmentFactory()
     network_factory = NetworkFactory()
     memory_factory = MemoryFactory()
-
-    domain = f"{env_config.domain}-" if env_config.domain != "" else ""
-    task = domain + env_config.task
-
-    iterations_folder = f"{alg_config.algorithm}/{alg_config.algorithm}-{task}-{datetime.now().strftime('%y_%m_%d_%H-%M-%S')}"
-    glob_log_dir = f"{Path.home()}/cares_rl_logs/{iterations_folder}"
 
     logging.info(
         "\n---------------------------------------------------\n"
@@ -73,7 +70,7 @@ def main():
         f"Device: {torch.device('cuda' if torch.cuda.is_available() else 'cpu')}"
     )
 
-    input("Double check your experiement configurations :) Press ENTER to continue.")
+    run_name = input("Double check your experiment configurations :) Press ENTER to continue. (Optional - Enter a name for this run)\n")
 
     if not torch.cuda.is_available():
         no_gpu_answer = input(
@@ -81,7 +78,7 @@ def main():
         )
 
         if no_gpu_answer not in ["y", "Y"]:
-            logging.info("Terminating Experiement - check CUDA is installed.")
+            logging.info("Terminating Experiment - check CUDA is installed.")
             sys.exit()
 
     for training_iteration, seed in enumerate(training_config.seeds):
@@ -100,13 +97,16 @@ def main():
 
         if agent is None:
             raise ValueError(
-                f"Unkown agent for default algorithms {alg_config.algorithm}"
+                f"Unknown agent for default algorithms {alg_config.algorithm}"
             )
 
         memory = memory_factory.create_memory(alg_config)
 
+
+        glob_log_dir = os.environ.get("CARES_LOG_DIR", f"{Path.home()}/cares_rl_logs")
+        
+        log_dir = create_path_from_format_string(training_config.log_path, algorithm=alg_config.algorithm, domain=env_config.domain, task=env_config.task, gym=env_config.gym, seed=seed, run_name=run_name) 
         # create the record class - standardised results tracking
-        log_dir = f"{seed}"
         record = Record(
             glob_log_dir=glob_log_dir,
             log_dir=log_dir,
