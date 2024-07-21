@@ -70,7 +70,9 @@ def main():
         f"Device: {torch.device('cuda' if torch.cuda.is_available() else 'cpu')}"
     )
 
-    run_name = input("Double check your experiment configurations :) Press ENTER to continue. (Optional - Enter a name for this run)\n")
+    run_name = input(
+        "Double check your experiment configurations :) Press ENTER to continue. (Optional - Enter a name for this run)\n"
+    )
 
     if not torch.cuda.is_available():
         no_gpu_answer = input(
@@ -102,10 +104,17 @@ def main():
 
         memory = memory_factory.create_memory(alg_config)
 
-
         glob_log_dir = os.environ.get("CARES_LOG_DIR", f"{Path.home()}/cares_rl_logs")
-        
-        log_dir = create_path_from_format_string(training_config.log_path, algorithm=alg_config.algorithm, domain=env_config.domain, task=env_config.task, gym=env_config.gym, seed=seed, run_name=run_name) 
+
+        log_dir = create_path_from_format_string(
+            training_config.log_path,
+            algorithm=alg_config.algorithm,
+            domain=env_config.domain,
+            task=env_config.task,
+            gym=env_config.gym,
+            seed=seed,
+            run_name=run_name,
+        )
         # create the record class - standardised results tracking
         record = Record(
             glob_log_dir=glob_log_dir,
