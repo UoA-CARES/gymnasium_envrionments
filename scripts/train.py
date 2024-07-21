@@ -103,8 +103,6 @@ def main():
 
         memory = memory_factory.create_memory(alg_config)
 
-        glob_log_dir = os.environ.get("CARES_LOG_DIR", f"{Path.home()}/cares_rl_logs")
-
         log_dir = hlp.create_path_from_format_string(
             training_config.log_path,
             algorithm=alg_config.algorithm,
@@ -116,7 +114,7 @@ def main():
         )
         # create the record class - standardised results tracking
         record = Record(
-            glob_log_dir=glob_log_dir,
+            glob_log_dir="",
             log_dir=log_dir,
             algorithm=alg_config.algorithm,
             task=env_config.task,
