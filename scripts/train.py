@@ -19,7 +19,6 @@ import yaml
 
 from environments.environment_factory import EnvironmentFactory
 from util.configurations import GymEnvironmentConfig
-from util.parse_path import create_path_from_format_string
 
 from cares_reinforcement_learning.memory.memory_factory import MemoryFactory
 from cares_reinforcement_learning.util import NetworkFactory, Record, RLParser
@@ -106,7 +105,7 @@ def main():
 
         glob_log_dir = os.environ.get("CARES_LOG_DIR", f"{Path.home()}/cares_rl_logs")
 
-        log_dir = create_path_from_format_string(
+        log_dir = hlp.create_path_from_format_string(
             training_config.log_path,
             algorithm=alg_config.algorithm,
             domain=env_config.domain,
