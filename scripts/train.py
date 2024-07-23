@@ -8,6 +8,7 @@ import logging
 import sys
 
 import torch
+import train_loops.discrete_policy_loop as dpbe
 import train_loops.policy_loop as pbe
 import train_loops.ppo_loop as ppe
 import train_loops.value_loop as vbe
@@ -128,6 +129,16 @@ def main():
             ppe.ppo_train(
                 env,
                 agent,
+                record,
+                training_config,
+                alg_config,
+                display=env_config.display,
+            )
+        elif agent.type == "discrete_policy":
+            dpbe.discrete_policy_based_train(
+                env,
+                agent,
+                memory,
                 record,
                 training_config,
                 alg_config,
