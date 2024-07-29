@@ -114,7 +114,6 @@ def main():
         )
         # create the record class - standardised results tracking
         record = Record(
-            glob_log_dir="",
             log_dir=log_dir,
             algorithm=alg_config.algorithm,
             task=env_config.task,
