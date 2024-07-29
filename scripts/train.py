@@ -84,8 +84,12 @@ def main():
         )
         # This line should be here for seed consistency issues
         env = env_factory.create_environment(env_config, alg_config.image_observation)
+        env_eval = env_factory.create_environment(
+            env_config, alg_config.image_observation
+        )
         hlp.set_seed(seed)
         env.set_seed(seed)
+        env_eval.set_seed(seed)
 
         logging.info(f"Algorithm: {alg_config.algorithm}")
         agent = network_factory.create_network(
@@ -127,6 +131,7 @@ def main():
         if alg_config.algorithm == "PPO":
             ppe.ppo_train(
                 env,
+                env_eval,
                 agent,
                 record,
                 training_config,
@@ -136,6 +141,7 @@ def main():
         elif agent.type == "policy":
             pbe.policy_based_train(
                 env,
+                env_eval,
                 agent,
                 memory,
                 record,
@@ -146,6 +152,7 @@ def main():
         elif agent.type == "value":
             vbe.value_based_train(
                 env,
+                env_eval,
                 agent,
                 memory,
                 record,
