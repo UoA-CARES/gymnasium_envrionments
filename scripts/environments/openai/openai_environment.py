@@ -15,10 +15,12 @@ class OpenAIEnvironment(GymEnvironment):
 
     @cached_property
     def max_action_value(self) -> float:
+        return self.env.action_space.n - 1
         return self.env.action_space.high[0]
 
     @cached_property
     def min_action_value(self) -> float:
+        return 0
         return self.env.action_space.low[0]
 
     @cached_property

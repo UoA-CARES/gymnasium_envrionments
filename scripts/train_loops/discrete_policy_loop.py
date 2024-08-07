@@ -7,6 +7,52 @@ from cares_reinforcement_learning.util.configurations import (
     TrainingConfig,
 )
 
+def evaluate_policy_network(
+    env, agent, config: TrainingConfig, record=None, total_steps=0
+):
+    state = env.reset()
+
+    if record is not None:
+        frame = env.grab_frame()
+        record.start_video(total_steps + 1, frame)
+
+    number_eval_episodes = int(config.number_eval_episodes)
+
+    for eval_episode_counter in range(number_eval_episodes):
+        episode_timesteps = 0
+        episode_reward = 0
+        episode_num = 0
+        done = False
+        truncated = False
+
+        while not done and not truncated:
+            episode_timesteps += 1
+            action = agent.select_action_from_policy(state, evaluation=True).item()
+
+            state, reward, done, truncated = env.step(action)
+            episode_reward += reward
+
+            if eval_episode_counter == 0 and record is not None:
+                frame = env.grab_frame()
+                record.log_video(frame)
+
+            if done or truncated:
+                if record is not None:
+                    record.log_eval(
+                        total_steps=total_steps + 1,
+                        episode=eval_episode_counter + 1,
+                        episode_reward=episode_reward,
+                        display=True,
+                    )
+
+                # Reset environment
+                state = env.reset()
+                episode_reward = 0
+                episode_timesteps = 0
+                episode_num += 1
+
+    record.stop_video()
+
 def discrete_policy_based_train(
     env,
     agent,
@@ -53,7 +99,6 @@ def discrete_policy_based_train(
             logging.info(
                 f"Running Exploration Steps {total_step_counter + 1}/{max_steps_exploration}"
             )
-
             action = env.sample_action()
 
         else:
@@ -61,7 +106,8 @@ def discrete_policy_based_train(
             noise_scale = max(min_noise, noise_scale)
 
             # algorithm range [-1, 1]
-            action = agent.select_action_from_policy(state, noise_scale=noise_scale)
+            action_tensor = agent.select_action_from_policy(state, noise_scale=noise_scale)
+            action = action_tensor.item()
 
         next_state, reward_extrinsic, done, truncated = env.step(action)
         if display:
@@ -90,6 +136,17 @@ def discrete_policy_based_train(
         ):
             for _ in range(G):
                 agent.train_policy(memory, batch_size)
+
+        if (total_step_counter + 1) % number_steps_per_evaluation == 0:
+            logging.info("*************--Evaluation Loop--*************")
+            evaluate_policy_network(
+                env,
+                agent,
+                train_config,
+                record=record,
+                total_steps=total_step_counter,
+            )
+            logging.info("--------------------------------------------")
 
         if done or truncated:
             episode_time = time.time() - episode_start
