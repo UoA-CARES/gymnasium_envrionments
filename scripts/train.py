@@ -6,6 +6,7 @@ and memory instances, and then trains the agent using the specified algorithm.
 
 import logging
 import sys
+import os
 
 import torch
 import train_loops.policy_loop as pbe
@@ -103,8 +104,13 @@ def main():
 
         memory = memory_factory.create_memory(alg_config)
 
+        log_path_template = os.environ.get(
+            "CARES_LOG_PATH_TEMPLATE",
+            "{algorithm}/{algorithm}-{domain_task}-{date}/{seed}",
+        )
+
         log_dir = hlp.create_path_from_format_string(
-            training_config.log_path,
+            log_path_template,
             algorithm=alg_config.algorithm,
             domain=env_config.domain,
             task=env_config.task,
