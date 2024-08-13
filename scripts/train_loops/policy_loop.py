@@ -122,7 +122,9 @@ def policy_based_train(
             noise_scale = max(min_noise, noise_scale)
 
             # algorithm range [-1, 1]
-            normalised_action = agent.select_action_from_policy(state, noise_scale=noise_scale)
+            normalised_action = agent.select_action_from_policy(
+                state, noise_scale=noise_scale
+            )
             # mapping to env range [e.g. -2 , 2 for pendulum] - note for DMCS this is redudenant but required for openai
             if normalisation:
                 denormalised_action = hlp.denormalize(
@@ -137,7 +139,9 @@ def policy_based_train(
 
         intrinsic_reward = 0
         if intrinsic_on and total_step_counter > max_steps_exploration:
-            intrinsic_reward = agent.get_intrinsic_reward(state, normalised_action, next_state)
+            intrinsic_reward = agent.get_intrinsic_reward(
+                state, normalised_action, next_state
+            )
 
         total_reward = reward_extrinsic + intrinsic_reward
 
