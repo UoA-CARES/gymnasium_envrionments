@@ -103,8 +103,11 @@ def main():
             )
 
         memory = memory_factory.create_memory(alg_config)
-        
-        log_path_template = os.environ.get("CARES_LOG_PATH_TEMPLATE", "{algorithm}/{algorithm}-{domain_task}-{date}/{seed}")
+
+        log_path_template = os.environ.get(
+            "CARES_LOG_PATH_TEMPLATE",
+            "{algorithm}/{algorithm}-{domain_task}-{date}/{seed}",
+        )
 
         log_dir = hlp.create_path_from_format_string(
             log_path_template,
