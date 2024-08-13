@@ -70,6 +70,7 @@ def evaluate_value_network(
 
 def value_based_train(
     env,
+    env_eval,
     agent,
     memory,
     record,
@@ -91,8 +92,6 @@ def value_based_train(
     episode_timesteps = 0
     episode_reward = 0
     episode_num = 0
-
-    evaluate = False
 
     state = env.reset()
 
@@ -125,7 +124,7 @@ def value_based_train(
         if (total_step_counter + 1) % number_steps_per_evaluation == 0:
             logging.info("*************--Evaluation Loop--*************")
             evaluate_value_network(
-                copy.deepcopy(env),
+                env_eval,
                 agent,
                 train_config,
                 alg_config,

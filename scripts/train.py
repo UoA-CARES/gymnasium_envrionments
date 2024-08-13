@@ -6,6 +6,7 @@ and memory instances, and then trains the agent using the specified algorithm.
 
 import logging
 import sys
+import os
 
 import torch
 import train_loops.discrete_policy_loop as dpbe
@@ -85,8 +86,12 @@ def main():
         )
         # This line should be here for seed consistency issues
         env = env_factory.create_environment(env_config, alg_config.image_observation)
+        env_eval = env_factory.create_environment(
+            env_config, alg_config.image_observation
+        )
         hlp.set_seed(seed)
         env.set_seed(seed)
+        env_eval.set_seed(seed)
 
         logging.info(f"Algorithm: {alg_config.algorithm}")
         agent = network_factory.create_network(
@@ -100,8 +105,13 @@ def main():
 
         memory = memory_factory.create_memory(alg_config)
 
+        log_path_template = os.environ.get(
+            "CARES_LOG_PATH_TEMPLATE",
+            "{algorithm}/{algorithm}-{domain_task}-{date}/{seed}",
+        )
+
         log_dir = hlp.create_path_from_format_string(
-            training_config.log_path,
+            log_path_template,
             algorithm=alg_config.algorithm,
             domain=env_config.domain,
             task=env_config.task,
@@ -127,17 +137,8 @@ def main():
         if alg_config.algorithm == "PPO":
             ppe.ppo_train(
                 env,
+                env_eval,
                 agent,
-                record,
-                training_config,
-                alg_config,
-                display=env_config.display,
-            )
-        elif agent.type == "discrete_policy":
-            dpbe.discrete_policy_based_train(
-                env,
-                agent,
-                memory,
                 record,
                 training_config,
                 alg_config,
@@ -146,16 +147,31 @@ def main():
         elif agent.type == "policy":
             pbe.policy_based_train(
                 env,
+                env_eval,
                 agent,
                 memory,
                 record,
                 training_config,
                 alg_config,
                 display=env_config.display,
+                normalisation=True,
+            )
+        elif agent.type == "discrete_policy":
+            pbe.policy_based_train(
+                env,
+                env_eval,
+                agent,
+                memory,
+                record,
+                training_config,
+                alg_config,
+                display=env_config.display,
+                normalisation=False,
             )
         elif agent.type == "value":
             vbe.value_based_train(
                 env,
+                env_eval,
                 agent,
                 memory,
                 record,

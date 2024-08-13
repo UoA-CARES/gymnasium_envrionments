@@ -59,6 +59,7 @@ def evaluate_ppo_network(
 
 def ppo_train(
     env,
+    env_eval,
     agent,
     record,
     train_config: TrainingConfig,
@@ -108,7 +109,7 @@ def ppo_train(
         if (total_step_counter + 1) % number_steps_per_evaluation == 0:
             logging.info("*************--Evaluation Loop--*************")
             evaluate_ppo_network(
-                copy.deepcopy(env),
+                env_eval,
                 agent,
                 train_config,
                 record=record,
