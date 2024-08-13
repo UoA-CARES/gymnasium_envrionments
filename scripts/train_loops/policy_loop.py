@@ -68,6 +68,7 @@ def policy_based_train(
     train_config: TrainingConfig,
     alg_config: AlgorithmConfig,
     display=False,
+    normalisation=True,
 ):
     start_time = time.time()
 
@@ -107,36 +108,42 @@ def policy_based_train(
                 f"Running Exploration Steps {total_step_counter + 1}/{max_steps_exploration}"
             )
 
-            action_env = env.sample_action()
+            denormalised_action = env.sample_action()
 
             # algorithm range [-1, 1] - note for DMCS this is redudenant but required for openai
-            action = hlp.normalize(
-                action_env, env.max_action_value, env.min_action_value
-            )
+            if normalisation:
+                normalised_action = hlp.normalize(
+                    denormalised_action, env.max_action_value, env.min_action_value
+                )
+            else:
+                normalised_action = denormalised_action
         else:
             noise_scale *= noise_decay
             noise_scale = max(min_noise, noise_scale)
 
             # algorithm range [-1, 1]
-            action = agent.select_action_from_policy(state, noise_scale=noise_scale)
+            normalised_action = agent.select_action_from_policy(state, noise_scale=noise_scale)
             # mapping to env range [e.g. -2 , 2 for pendulum] - note for DMCS this is redudenant but required for openai
-            action_env = hlp.denormalize(
-                action, env.max_action_value, env.min_action_value
-            )
+            if normalisation:
+                denormalised_action = hlp.denormalize(
+                    normalised_action, env.max_action_value, env.min_action_value
+                )
+            else:
+                denormalised_action = normalised_action
 
-        next_state, reward_extrinsic, done, truncated = env.step(action_env)
+        next_state, reward_extrinsic, done, truncated = env.step(denormalised_action)
         if display:
             env.render()
 
         intrinsic_reward = 0
         if intrinsic_on and total_step_counter > max_steps_exploration:
-            intrinsic_reward = agent.get_intrinsic_reward(state, action, next_state)
+            intrinsic_reward = agent.get_intrinsic_reward(state, normalised_action, next_state)
 
         total_reward = reward_extrinsic + intrinsic_reward
 
         memory.add(
             state,
-            action,
+            normalised_action,
             total_reward,
             next_state,
             done,
