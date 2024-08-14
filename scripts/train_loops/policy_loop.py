@@ -10,7 +10,7 @@ from cares_reinforcement_learning.util.configurations import (
 
 
 def evaluate_policy_network(
-    env, agent, config: TrainingConfig, record=None, total_steps=0
+    env, agent, config: TrainingConfig, record=None, total_steps=0, normalisation=True
 ):
     state = env.reset()
 
@@ -29,12 +29,12 @@ def evaluate_policy_network(
 
         while not done and not truncated:
             episode_timesteps += 1
-            action = agent.select_action_from_policy(state, evaluation=True)
-            action_env = hlp.denormalize(
-                action, env.max_action_value, env.min_action_value
-            )
+            normalised_action = agent.select_action_from_policy(state, evaluation=True)
+            denormalised_action = hlp.denormalize(
+                normalised_action, env.max_action_value, env.min_action_value
+            ) if normalisation else normalised_action
 
-            state, reward, done, truncated = env.step(action_env)
+            state, reward, done, truncated = env.step(denormalised_action)
             episode_reward += reward
 
             if eval_episode_counter == 0 and record is not None:
@@ -171,6 +171,7 @@ def policy_based_train(
                 train_config,
                 record=record,
                 total_steps=total_step_counter,
+                normalisation=normalisation
             )
             logging.info("--------------------------------------------")
 
