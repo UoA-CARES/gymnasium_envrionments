@@ -30,9 +30,13 @@ def evaluate_policy_network(
         while not done and not truncated:
             episode_timesteps += 1
             normalised_action = agent.select_action_from_policy(state, evaluation=True)
-            denormalised_action = hlp.denormalize(
-                normalised_action, env.max_action_value, env.min_action_value
-            ) if normalisation else normalised_action
+            denormalised_action = (
+                hlp.denormalize(
+                    normalised_action, env.max_action_value, env.min_action_value
+                )
+                if normalisation
+                else normalised_action
+            )
 
             state, reward, done, truncated = env.step(denormalised_action)
             episode_reward += reward
@@ -171,7 +175,7 @@ def policy_based_train(
                 train_config,
                 record=record,
                 total_steps=total_step_counter,
-                normalisation=normalisation
+                normalisation=normalisation,
             )
             logging.info("--------------------------------------------")
 
