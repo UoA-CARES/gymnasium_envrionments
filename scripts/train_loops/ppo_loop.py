@@ -103,8 +103,9 @@ def ppo_train(
         state = next_state
         episode_reward += reward
 
+        info = {}
         if (total_step_counter + 1) % max_steps_per_batch == 0:
-            agent.train_policy(memory)
+            info = agent.train_policy(memory)
 
         if (total_step_counter + 1) % number_steps_per_evaluation == 0:
             logging.info("*************--Evaluation Loop--*************")
@@ -125,6 +126,7 @@ def ppo_train(
                 episode_steps=episode_timesteps,
                 episode_reward=episode_reward,
                 episode_time=episode_time,
+                info=info,
                 display=True,
             )
 
