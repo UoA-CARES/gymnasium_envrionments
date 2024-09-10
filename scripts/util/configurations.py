@@ -43,3 +43,4 @@ class GymEnvironmentConfig(EnvironmentConfig):
     act_freq: Optional[int] = 24
     emulation_speed: Optional[int] = 0
     headless: Optional[int] = 0
+    discrete: Optional[int] = 0

@@ -17,6 +17,7 @@ class PyboyEnvironment(GymEnvironment):
             config.act_freq,
             config.emulation_speed,
             config.headless,
+            config.discrete,
         )
 
     @cached_property
