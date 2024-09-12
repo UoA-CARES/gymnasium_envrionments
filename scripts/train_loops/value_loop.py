@@ -117,9 +117,10 @@ def value_based_train(
         state = next_state
         episode_reward += reward
 
+        info = {}
         if len(memory) > batch_size:
             for _ in range(G):
-                agent.train_policy(memory, batch_size)
+                info = agent.train_policy(memory, batch_size)
 
         if (total_step_counter + 1) % number_steps_per_evaluation == 0:
             logging.info("*************--Evaluation Loop--*************")
@@ -141,6 +142,7 @@ def value_based_train(
                 episode_steps=episode_timesteps,
                 episode_reward=episode_reward,
                 episode_time=episode_time,
+                info=info,
                 display=True,
             )
 
