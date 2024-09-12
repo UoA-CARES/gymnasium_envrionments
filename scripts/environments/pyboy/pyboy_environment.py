@@ -1,6 +1,7 @@
 from functools import cached_property
 
 import numpy as np
+import logging
 from environments.gym_environment import GymEnvironment
 from util.configurations import GymEnvironmentConfig
 
@@ -46,6 +47,7 @@ class PyboyEnvironment(GymEnvironment):
         return self.env.reset()
 
     def step(self, action: int) -> tuple:
+        # debug-log logging.info("Logging109")
         return self.env.step(action)
 
     def grab_frame(self, height=240, width=300) -> np.ndarray:

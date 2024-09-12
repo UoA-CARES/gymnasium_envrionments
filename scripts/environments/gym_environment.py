@@ -12,9 +12,13 @@ class GymEnvironment(metaclass=abc.ABCMeta):
         self.task = config.task
 
     def render(self):
+        # debug-log logging.info("Logging128")
         frame = self.grab_frame()
+        # debug-log logging.info("Logging129")
         cv2.imshow(f"{self.task}", frame)
+        # debug-log logging.info("Logging130")
         cv2.waitKey(10)
+        # debug-log logging.info("Logging131")
 
     @cached_property
     @abc.abstractmethod
