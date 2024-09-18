@@ -38,6 +38,9 @@ class ImageWrapper:
     def max_action_value(self):
         return self.gym.max_action_value
 
+    def render(self):
+        self.gym.render()
+
     def sample_action(self):
         return self.gym.sample_action()
 
