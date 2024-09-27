@@ -210,7 +210,7 @@ def policy_based_train(
         state = next_state
         episode_reward += reward_extrinsic    
         
-        if total_step_counter > batch_size:
+        if total_step_counter > batch_size and episode_reward>0:
             #print(f" is full: {memory.long_term_memory.is_full()},total_reward:{total_reward}, min_reward:{memory.long_term_memory.get_min_reward()}, episode_timesteps:{episode_timesteps}")
             if (not memory.long_term_memory_total.is_full() ) or \
                 (memory.long_term_memory_total.is_full() and total_reward > memory.long_term_memory_total.get_min_reward() and episode_timesteps > 2):
