@@ -62,21 +62,23 @@ def main():
     )
 
     logging.info(f"\n{yaml.dump(dict(training_config), default_flow_style=False)}")
-    logging.info(
-        f"Device: {torch.device('cuda' if torch.cuda.is_available() else 'cpu')}"
-    )
+
+    device = hlp.get_device()
+    logging.info(f"Device: {device}")
 
     run_name = input(
         "Double check your experiment configurations :) Press ENTER to continue. (Optional - Enter a name for this run)\n"
     )
 
-    if not torch.cuda.is_available():
+    if device.type == "cpu":
         no_gpu_answer = input(
-            "No cuda detected. Do you still want to continue? Note: Training will be slow. [y/n]"
+            "Device being set as CPU - No cuda or mps detected. Do you still want to continue? Note: Training will be slower on cpu only. [y/n]"
         )
 
         if no_gpu_answer not in ["y", "Y"]:
-            logging.info("Terminating Experiment - check CUDA is installed.")
+            logging.info(
+                "Terminating Experiment - check CUDA or mps is installed correctly."
+            )
             sys.exit()
 
     for training_iteration, seed in enumerate(training_config.seeds):
