@@ -10,7 +10,7 @@ from datetime import datetime
 from pathlib import Path
 
 import torch
-import train_loops.policy_loop as pbe
+import train_loops.crucial_policy_loop_repeat_s_episode_s_initial as pbe
 import train_loops.ppo_loop as ppe
 import train_loops.value_loop as vbe
 import yaml

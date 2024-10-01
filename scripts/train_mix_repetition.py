@@ -10,7 +10,7 @@ from datetime import datetime
 from pathlib import Path
 
 import torch
-import train_loops.crusial_path_policy_loop_mix_reward_di as cpbe
+import train_loops.policy_loop_repeat_mix_reward as cpbe
 import train_loops.episodic_policy_loop as epbe
 import train_loops.policy_loop as ppe
 #import train_loops.ppo_loop as ppe

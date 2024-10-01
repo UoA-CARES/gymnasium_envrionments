@@ -10,7 +10,7 @@ from datetime import datetime
 from pathlib import Path
 
 import torch
-import train_loops.crusial_path_policy_loop_t_reward_di_policy as cpbe
+import train_loops.policy_loop_repeat_episodic_di as cpbe
 import train_loops.episodic_policy_loop as epbe
 import train_loops.policy_loop as ppe
 #import train_loops.ppo_loop as ppe
@@ -41,7 +41,7 @@ def main():
     network_factory = NetworkFactory()
     memory_factory = MemoryFactory()
 
-    iterations_folder = f"{alg_config.algorithm}-{env_config.task}-{datetime.now().strftime('%y_%m_%d_%H-%M-%S')}-t_reward"
+    iterations_folder = f"{alg_config.algorithm}-{env_config.task}-{datetime.now().strftime('%y_%m_%d_%H-%M-%S')}-episode_reward"
     glob_log_dir = f"{Path.home()}/cares_rl_logs/{iterations_folder}"
 
     logging.info(
@@ -127,7 +127,7 @@ def main():
                 epbe.policy_based_train(
                     env, agent, memory, record, training_config, alg_config
                 )
-            elif alg_config.algorithm in ["ReTD3" ,"RESAC"]:
+            elif  alg_config.algorithm in ["ReTD3" ,"RESAC"]:
                 cpbe.policy_based_train(
                     env, agent, memory, record, training_config, alg_config
                 )

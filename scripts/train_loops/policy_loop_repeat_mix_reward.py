@@ -93,7 +93,6 @@ def policy_based_train(
 
     batch_size = alg_config.batch_size
     G = alg_config.G
-    explore_time = 10000
     episode_timesteps = 0
     episode_reward = 0
     episode_num = 0
@@ -104,6 +103,9 @@ def policy_based_train(
     s = []
     cs = []
     save_episode = False
+    
+    RF = 10000
+    RN = 5
 
     evaluate = False
     state = env.reset()
@@ -126,25 +128,32 @@ def policy_based_train(
                 action_env, env.max_action_value, env.min_action_value
             )
         elif crucial_steps and number_of_crusial_episodes > 0:
+            if memory.long_term_memory.is_empty():
+                crucial_steps = False
+                print(f"Long term memory is empty")
+                continue
             
             if episode_timesteps == 1:
-                crucial_actions,crucial_states, crucial_episode_num, episode_steps,crucial_rewards,crucial_total_reward= memory.long_term_memory.get_crucial_path(1)
+                if(number_of_crusial_episodes > RN/2):
+                   crucial_actions,crucial_states, crucial_episode_num, episode_steps,crucial_rewards,crucial_total_reward= memory.long_term_memory.get_crucial_path(1)
+                else:
+                   crucial_actions,crucial_states, crucial_episode_num, episode_steps,crucial_rewards,crucial_total_reward= memory.long_term_memory_total.get_crucial_path(1)
             
                 #print(f"actions:{len(crucial_actions)},episode_numbers:{len(episode_n)}, episode_steps:{episode_s}")
                 #print(f"crucial_episode_num:{crucial_episode_num}, crucial_total-reward:{crucial_total_reward}")
                 #print(f"long_term memory max_reward:{memory.long_term_memory.max_reward}")
                 # input()
-            print(f"episode_timesteps:{episode_timesteps}, len:{len(crucial_actions)},number_of_crusial_episodes:{number_of_crusial_episodes},crucial_episode_num:{crucial_episode_num}")
+            #print(f"episode_timesteps:{episode_timesteps}, len:{len(crucial_actions)},number_of_crusial_episodes:{number_of_crusial_episodes},crucial_episode_num:{crucial_episode_num}")
             # get the action from the crucial path without noise
             action = crucial_actions[episode_timesteps - 1]  
             action_env = hlp.denormalize(
                 action, env.max_action_value, env.min_action_value
             )
             
-            print(f"state:{state[0:2]}, crucial_state:{crucial_states[episode_timesteps - 1][0:2]},crucial_episode_num:{crucial_episode_num}")
-            if not np.allclose(state[0:2], crucial_states[episode_timesteps - 1][0:2], rtol=1e-05, atol=1e-08): 
-                print("Mismatch found, waiting for input.")
-                #input()
+            # print(f"state:{state[0:2]}, crucial_state:{crucial_states[episode_timesteps - 1][0:2]},crucial_episode_num:{crucial_episode_num}")
+            # if not np.allclose(state[0:2], crucial_states[episode_timesteps - 1][0:2], rtol=1e-05, atol=1e-08): 
+            #     print("Mismatch found, waiting for input.")
+            #     #input()
           
             # get the action from the crucial path and add noise
             # noise_scale *= noise_decay
@@ -207,14 +216,14 @@ def policy_based_train(
         state = next_state
         episode_reward += reward_extrinsic    
         
-        if total_step_counter > batch_size:
+        if total_step_counter > batch_size and total_reward > 0:
             #print(f" is full: {memory.long_term_memory.is_full()},total_reward:{total_reward}, min_reward:{memory.long_term_memory.get_min_reward()}, episode_timesteps:{episode_timesteps}")
-            if (not memory.long_term_memory.is_full() ) or \
-                (memory.long_term_memory.is_full() and total_reward > memory.long_term_memory.get_min_reward() and episode_timesteps > 2):
-                print(f"total_reward:{total_reward}, min_reward:{memory.long_term_memory.get_min_reward()}")
+            if (not memory.long_term_memory_total.is_full() ) or \
+                (memory.long_term_memory_total.is_full() and total_reward > memory.long_term_memory_total.get_min_reward() and episode_timesteps > 2):
+                #print(f"total_reward:{total_reward}, min_reward:{memory.long_term_memory_total.get_min_reward()}")
                 states, actions,rewards, next_states, dones, episode_nums, episode_steps =memory.short_term_memory.sample_complete_episode(episode_num,episode_timesteps)
                 
-                memory.long_term_memory.add([episode_num,total_reward, states, actions,rewards, next_states, dones, episode_nums, episode_steps])
+                memory.long_term_memory_total.add([episode_num,total_reward, states, actions,rewards, next_states, dones, episode_nums, episode_steps])
                 save_episode = True
                             
         if (
@@ -227,8 +236,8 @@ def policy_based_train(
         if (total_step_counter + 1) % number_steps_per_evaluation == 0:
             evaluate = True
         
-        if (total_step_counter +1) % explore_time == 0 :#and episode_reward>0:and total_step_counter >10000:
-                 number_of_crusial_episodes = 6   
+        if (total_step_counter +1) % RF == 0 and episode_reward>0: #and total_step_counter >10000:
+                 number_of_crusial_episodes = RN+1   
                  #crucial_steps = False
                  #print(f"crucial steps:{crucial_steps}")
               
@@ -264,15 +273,15 @@ def policy_based_train(
                 print(f"total_reward:{total_reward}, episode_reward:{episode_reward}")
             
              # 1. when try to find episode with higher episode reward
-            # elif (not memory.long_term_memory.is_full() and not crucial_steps) or \
-            # (not crucial_steps and memory.long_term_memory.is_full() and episode_reward > memory.long_term_memory.get_min_reward() and episode_timesteps > 2):
-            #         print(f"addddddddddddddddddd episode num:{episode_num}, episode reward:{episode_reward}, min_reward:{memory.long_term_memory.get_min_reward()}")
+            elif (not memory.long_term_memory.is_full() and not crucial_steps and episode_reward > 0) or \
+            (not crucial_steps and memory.long_term_memory.is_full() and episode_reward > memory.long_term_memory.get_min_reward() and episode_timesteps > 2):
+                     print(f"addddddddddddddddddd episode num:{episode_num}, episode reward:{episode_reward}, min_reward:{memory.long_term_memory.get_min_reward()}")
                    
             #        # print(f"total_reward:{total_reward}, min_reward:{memory.long_term_memory.get_min_reward()}")
-            #         states, actions,rewards, next_states, dones, episode_nums, episode_steps =memory.short_term_memory.sample_complete_episode(episode_num,episode_timesteps)
+                     states, actions,rewards, next_states, dones, episode_nums, episode_steps =memory.short_term_memory.sample_complete_episode(episode_num,episode_timesteps)
             #         # print(f"episode_num:{episode_num}, episode_step:{episode_timesteps},episode_nums:{episode_nums}")
             #         # input()
-            #         memory.long_term_memory.add([episode_num,episode_reward, states, actions,rewards, next_states, dones, episode_nums, episode_steps])
+                     memory.long_term_memory.add([episode_num,episode_reward, states, actions,rewards, next_states, dones, episode_nums, episode_steps])
             
             # 2. when try to find episode with higher total reward
             # if save_episode:

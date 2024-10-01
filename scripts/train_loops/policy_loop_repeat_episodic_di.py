@@ -1,5 +1,6 @@
 import logging
 import time
+import random
 
 import numpy as np
 
@@ -59,7 +60,6 @@ def evaluate_policy_network(
 
     #record.stop_video()
 
-
 def policy_based_train(
     env,
     agent,
@@ -68,6 +68,7 @@ def policy_based_train(
     train_config: TrainingConfig,
     alg_config: AlgorithmConfig,
 ):
+    print("Policy Based Training")
     start_time = time.time()
     explore = False
     crucial_steps = False
@@ -93,7 +94,6 @@ def policy_based_train(
 
     batch_size = alg_config.batch_size
     G = alg_config.G
-    explore_time = 10000
     episode_timesteps = 0
     episode_reward = 0
     episode_num = 0
@@ -107,8 +107,13 @@ def policy_based_train(
     save_episode = False
 
     evaluate = False
+    RF = 10000
+    RN = 5
+    
+    
+    
+    state = env.reset()
 
-    state = env.reset(seed=current_seed)
 
     episode_start = time.time()
     for total_step_counter in range(int(max_steps_training)):
@@ -120,7 +125,7 @@ def policy_based_train(
             )
             
             action_env = env.sample_action()
-            explore = False
+            #explore = False
             # print(f"action_env:{action_env}")
             # input()
 
@@ -133,21 +138,21 @@ def policy_based_train(
             if episode_timesteps == 1:
                 crucial_actions,crucial_states, crucial_episode_num, episode_steps,crucial_rewards,crucial_total_reward= memory.long_term_memory.get_crucial_path(1)
                 current_seed = crucial_episode_num
-                state = env.reset(seed=current_seed)
+                #state = env.reset(seed=current_seed)
                 #print(f"actions:{len(crucial_actions)},episode_numbers:{len(episode_n)}, episode_steps:{episode_s}")
                 #print(f"crucial_episode_num:{crucial_episode_num}, crucial_total-reward:{crucial_total_reward}")
                 #print(f"long_term memory max_reward:{memory.long_term_memory.max_reward}")
                 # input()
-            print(f"episode_timesteps:{episode_timesteps}, len:{len(crucial_actions)},number_of_crusial_episodes:{number_of_crusial_episodes},crucial_episode_num:{crucial_episode_num}")
+            # print(f"crucial path: episode_timesteps:{episode_timesteps}, len:{len(crucial_actions)},number_of_crusial_episodes:{number_of_crusial_episodes},crucial_episode_num:{crucial_episode_num}")
             # get the action from the crucial path without noise
             action = crucial_actions[episode_timesteps - 1]  
             action_env = hlp.denormalize(
                 action, env.max_action_value, env.min_action_value
             )
             
-            print(f"state:{state[0:2]}, crucial_state:{crucial_states[episode_timesteps - 1][0:2]},crucial_episode_num:{crucial_episode_num},current_seed:{current_seed}")
-            if not np.allclose(state[0:2], crucial_states[episode_timesteps - 1][0:2], rtol=1e-05, atol=1e-08): 
-                print("Mismatch found, waiting for input.")
+            # print(f"state:{state[0:2]}, crucial_state:{crucial_states[episode_timesteps - 1][0:2]},crucial_episode_num:{crucial_episode_num},current_seed:{current_seed}")
+            # if not np.allclose(state[0:2], crucial_states[episode_timesteps - 1][0:2], rtol=1e-05, atol=1e-08): 
+            #     print("Mismatch found, waiting for input.")
                 #input()
           
             # get the action from the crucial path and add noise
@@ -167,7 +172,7 @@ def policy_based_train(
             if episode_timesteps  >= len(crucial_actions):
                
                 crucial_steps = False
-                print(f"Reach end of crucial path for {6-number_of_crusial_episodes} time")
+                print(f"Reach end of crucial path for {RN-number_of_crusial_episodes} time")
                 #explore = True
             
             
@@ -196,8 +201,6 @@ def policy_based_train(
 
         total_reward = reward_extrinsic + intrinsic_reward
         
-       
-
         memory.short_term_memory.add(
             state,
             action,
@@ -213,15 +216,16 @@ def policy_based_train(
         episode_reward += reward_extrinsic    
         
         # if total_step_counter > batch_size:
-            #print(f" is full: {memory.long_term_memory.is_full()},total_reward:{total_reward}, min_reward:{memory.long_term_memory.get_min_reward()}, episode_timesteps:{episode_timesteps}")
-        # if (not memory.long_term_memory.is_full() ) or \
-        # (memory.long_term_memory.is_full() and total_reward > memory.long_term_memory.get_min_reward() and episode_timesteps > 2):
-        #         # print(f"total_reward:{total_reward}, min_reward:{memory.long_term_memory.get_min_reward()}")
-        #         # states, actions,rewards, next_states, dones, episode_nums, episode_steps =memory.short_term_memory.sample_complete_episode(episode_num,episode_timesteps)
-                
-        #         # memory.long_term_memory.add([episode_num,total_reward, states, actions,rewards, next_states, dones, episode_nums, episode_steps])
-        #         save_episode = True
-                            
+            
+        #     if (not memory.long_term_memory.is_full() and episode_timesteps > batch_size) or \
+        #     (memory.long_term_memory.is_full() and episode_reward > memory.long_term_memory.get_min_reward() and episode_timesteps > 2):
+
+                 
+        #             states, actions,rewards, next_states, dones, episode_nums, episode_steps =memory.short_term_memory.sample_episode(episode_num,episode_timesteps, batch_size)
+
+                   
+        #             memory.long_term_memory.add([episode_num,total_reward, states, actions,rewards, next_states, dones, episode_nums, episode_steps])
+                               
         if (
             total_step_counter >= max_steps_exploration
             and total_step_counter % number_steps_per_train_policy == 0
@@ -232,8 +236,9 @@ def policy_based_train(
         if (total_step_counter + 1) % number_steps_per_evaluation == 0:
             evaluate = True
         
-        if (total_step_counter +1) % explore_time == 0 :#and episode_reward>0:and total_step_counter >10000:
-                 number_of_crusial_episodes = 6   
+    
+        if (total_step_counter +1) % RF == 0 and memory.long_term_memory.get_length()>0:#and total_step_counter >10000:
+                 number_of_crusial_episodes = RN  
                  #crucial_steps = False
                  #print(f"crucial steps:{crucial_steps}")
               
@@ -251,9 +256,8 @@ def policy_based_train(
                 episode_time=episode_time,
                 display=True,
             )
-            if number_of_crusial_episodes == 1:
+            if number_of_crusial_episodes == 0:
                 crucial_steps = False
-                number_of_crusial_episodes-= 1  
                 #explore = True
                 #print(f"Explore time!")
                 # for i in range (len(cs)):
@@ -269,7 +273,7 @@ def policy_based_train(
                 print(f"total_reward:{total_reward}, episode_reward:{episode_reward}")
             
              # 1. when try to find episode with higher episode reward
-            elif (not memory.long_term_memory.is_full() and not crucial_steps) or \
+            elif (not memory.long_term_memory.is_full() and not crucial_steps and episode_reward > 0 ) or \
             (not crucial_steps and memory.long_term_memory.is_full() and episode_reward > memory.long_term_memory.get_min_reward() and episode_timesteps > 2):
                     print(f"addddddddddddddddddd episode num:{episode_num}, episode reward:{episode_reward}, min_reward:{memory.long_term_memory.get_min_reward()}")
                    
@@ -302,13 +306,7 @@ def policy_based_train(
                 evaluate = False
 
             # Reset environment
-            if number_of_crusial_episodes > 0:
-               current_seed = crucial_episode_num
-            else:
-               current_seed = episode_num +1
-                
-            state = env.reset(seed=current_seed)
-
+            state = env.reset()
             episode_timesteps = 0
             episode_reward = 0
             episode_num += 1
