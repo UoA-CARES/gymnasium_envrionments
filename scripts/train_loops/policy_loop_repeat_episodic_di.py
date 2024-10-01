@@ -238,7 +238,7 @@ def policy_based_train(
         
     
         if (total_step_counter +1) % RF == 0 and memory.long_term_memory.get_length()>0:#and total_step_counter >10000:
-                 number_of_crusial_episodes = RN  
+                 number_of_crusial_episodes = RN+1   
                  #crucial_steps = False
                  #print(f"crucial steps:{crucial_steps}")
               
@@ -256,8 +256,9 @@ def policy_based_train(
                 episode_time=episode_time,
                 display=True,
             )
-            if number_of_crusial_episodes == 0:
+            if number_of_crusial_episodes == 1:
                 crucial_steps = False
+                number_of_crusial_episodes-= 1  
                 #explore = True
                 #print(f"Explore time!")
                 # for i in range (len(cs)):
