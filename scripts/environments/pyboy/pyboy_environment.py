@@ -40,6 +40,9 @@ class PyboyEnvironment(GymEnvironment):
     def sample_action(self):
         return self.env.sample_action()
 
+    def action_as_string(self, action):
+        return self.env.action_as_string(action)
+
     def set_seed(self, seed: int) -> None:
         self.env.set_seed(seed)
 

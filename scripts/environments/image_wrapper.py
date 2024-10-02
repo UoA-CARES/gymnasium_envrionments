@@ -37,6 +37,9 @@ class ImageWrapper:
     @cached_property
     def max_action_value(self):
         return self.gym.max_action_value
+    
+    def action_as_string(self, action):
+        return self.gym.action_as_string(action)
 
     def sample_action(self):
         return self.gym.sample_action()

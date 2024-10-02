@@ -1,12 +1,38 @@
 import copy
 import logging
 import time
+import os
 
 from cares_reinforcement_learning.util import helpers as hlp
 from cares_reinforcement_learning.util.configurations import (
     AlgorithmConfig,
     TrainingConfig,
 )
+import cv2
+import numpy as np
+
+def overlay_info(image, **kwargs):
+    # Create a copy of the image to overlay text
+    output_image = image.copy()
+
+    # Define the position for the text (top-left corner)
+    text_x, text_y = 10, 30
+
+    # Set the font, scale, color, and thickness for the text
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    font_scale = 0.4  # Smaller font scale
+    color = (0, 0, 255)  # Red color in BGR
+    thickness = 1       # Thicker text
+
+    # Create overlay text from the kwargs dictionary
+    overlay_text = "\n".join([f"{key}: {value}" for key, value in kwargs.items()])
+
+    # Split the overlay text into lines and calculate position for each line
+    for i, line in enumerate(overlay_text.split('\n')):
+        cv2.putText(output_image, line, (text_x, text_y + i * 20), 
+                    font, font_scale, color, thickness, cv2.LINE_AA)
+
+    return output_image
 
 
 def evaluate_policy_network(
@@ -89,6 +115,11 @@ def policy_based_train(
     display=False,
     normalisation=True,
 ):
+
+
+    highest_reward = float("-inf")
+    start_new_video = True
+
     # debug-log logging.info("Logging9")
     start_time = time.time()
 
@@ -134,6 +165,11 @@ def policy_based_train(
                 f"Running Exploration Steps {total_step_counter + 1}/{max_steps_exploration}"
             )
 
+            if start_new_video == True:
+                start_new_video = False
+                frame = env.grab_frame()
+                record.start_video("temp_train_video", frame)
+
             denormalised_action = env.sample_action()
 
             # debug-log logging.info("Logging16")
@@ -172,6 +208,14 @@ def policy_based_train(
             # debug-log logging.info("Logging128")
             env.render()
 
+        # debug-log logging.info("Logging42")
+        if record is not None:
+            # debug-log logging.info("Logging44")
+            frame = env.grab_frame()
+            frame_with_stats = overlay_info(frame, Reward=f"{episode_reward:.1f}")
+            record.log_video(frame_with_stats)
+            # debug-log logging.info("Logging45")
+
         # debug-log logging.info("Logging23")
         intrinsic_reward = 0
         if intrinsic_on and total_step_counter > max_steps_exploration:
@@ -209,18 +253,6 @@ def policy_based_train(
         if intrinsic_on:
             info["intrinsic_reward"] = intrinsic_reward
 
-        if (total_step_counter + 1) % number_steps_per_evaluation == 0:
-            logging.info("*************--Evaluation Loop--*************")
-            evaluate_policy_network(
-                env_eval,
-                agent,
-                train_config,
-                record=record,
-                total_steps=total_step_counter,
-                normalisation=normalisation,
-            )
-            logging.info("--------------------------------------------")
-
         if done or truncated:
             episode_time = time.time() - episode_start
             # debug-log logging.info("Logging30")
@@ -235,12 +267,42 @@ def policy_based_train(
             )
             # debug-log logging.info("Logging31")
 
+            record.stop_video()
+
+            if episode_reward > highest_reward:
+                highest_reward = episode_reward
+
+                vdir = os.path.join(record.directory, "videos")
+                highest_reward_video = os.path.join(vdir, "highest_reward.mp4")
+                training_video = os.path.join(vdir, "temp_train_video.mp4")
+
+                try:
+                    if os.path.exists(highest_reward_video):
+                        os.remove(highest_reward_video)
+                    
+                    os.rename(training_video, highest_reward_video)
+                except:
+                    logging.error("An error renaming the video occured :/")
+
             # Reset environment
+            start_new_video = True
             state = env.reset()
             episode_timesteps = 0
             episode_reward = 0
             episode_num += 1
             episode_start = time.time()
+        
+        if (total_step_counter + 1) % number_steps_per_evaluation == 0:
+            logging.info("*************--Evaluation Loop--*************")
+            evaluate_policy_network(
+                env_eval,
+                agent,
+                train_config,
+                record=record,
+                total_steps=total_step_counter,
+                normalisation=normalisation,
+            )
+            logging.info("--------------------------------------------")
 
     end_time = time.time()
     elapsed_time = end_time - start_time
