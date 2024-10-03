@@ -202,9 +202,9 @@ def policy_based_train(
             select_action_from_policy = agent.select_action_from_policy
 
             if "info" in inspect.signature(select_action_from_policy).parameters:
-                denormalised_action = select_action_from_policy(state, noise_scale=noise_scale, info=step_data)
+                normalised_action = select_action_from_policy(state, noise_scale=noise_scale, info=step_data)
             else:
-                denormalised_action = select_action_from_policy(state, noise_scale=noise_scale)
+                normalised_action = select_action_from_policy(state, noise_scale=noise_scale)
 
             # debug-log logging.info("Logging20")
             # mapping to env range [e.g. -2 , 2 for pendulum] - note for DMCS this is redudenant but required for openai
@@ -289,22 +289,23 @@ def policy_based_train(
             # debug-log logging.info("Logging31")
 
             record.stop_video()
+            video_dir = os.path.join(record.directory, "videos")
+            data_dir = os.path.join(record.directory, "data")
+
+            run_csv = os.path.join(data_dir, f"episode_{episode_num}.csv")
+            pd.DataFrame(run_data_rows).to_csv(run_csv, index=False)
 
             if episode_reward > highest_reward:
 
 
                 highest_reward = episode_reward
 
-                video_dir = os.path.join(record.directory, "videos")
-                data_dir = os.path.join(record.directory, "data")
 
                 highest_reward_video = os.path.join(video_dir, "highest_reward.mp4")
                 training_video = os.path.join(video_dir, "temp_train_video.mp4")
-                run_csv = os.path.join(data_dir, "highest_reward.csv")
 
                 logging.info(f"New highest reward of {episode_reward}. Saving video and run data...")
 
-                pd.DataFrame(run_data_rows).to_csv(run_csv, index=False)
 
                 try:
                     if os.path.exists(highest_reward_video):
