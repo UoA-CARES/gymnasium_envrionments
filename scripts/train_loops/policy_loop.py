@@ -2,6 +2,8 @@ import copy
 import logging
 import time
 import os
+import inspect
+import pandas as pd
 
 from cares_reinforcement_learning.util import helpers as hlp
 from cares_reinforcement_learning.util.configurations import (
@@ -115,10 +117,9 @@ def policy_based_train(
     display=False,
     normalisation=True,
 ):
+    
 
-
-    highest_reward = float("-inf")
-    start_new_video = True
+    start_new_run = True
 
     # debug-log logging.info("Logging9")
     start_time = time.time()
@@ -149,9 +150,13 @@ def policy_based_train(
 
     episode_timesteps = 0
     episode_reward = 0
+    highest_reward = float("-inf")
     episode_num = 0
 
     state = env.reset()
+
+    # Initialize the DataFrame with specified columns
+    run_data_rows = []
 
     # debug-log logging.info("Logging13")
     episode_start = time.time()
@@ -159,16 +164,20 @@ def policy_based_train(
         # debug-log logging.info("Logging14")
         episode_timesteps += 1
 
+        step_data = {}
+
+        if start_new_run == True:
+            start_new_run = False
+            frame = env.grab_frame()
+            record.start_video("temp_train_video", frame)
+            run_data_rows = []
+            
+        
         # debug-log logging.info("Logging15")
         if total_step_counter < max_steps_exploration:
             logging.info(
                 f"Running Exploration Steps {total_step_counter + 1}/{max_steps_exploration}"
             )
-
-            if start_new_video == True:
-                start_new_video = False
-                frame = env.grab_frame()
-                record.start_video("temp_train_video", frame)
 
             denormalised_action = env.sample_action()
 
@@ -188,9 +197,15 @@ def policy_based_train(
 
             # debug-log logging.info("Logging19")
             # algorithm range [-1, 1]
-            normalised_action = agent.select_action_from_policy(
-                state, noise_scale=noise_scale
-            )
+
+            # Horrible hack so I don't have to change all the algorithms
+            select_action_from_policy = agent.select_action_from_policy
+
+            if "info" in inspect.signature(select_action_from_policy).parameters:
+                denormalised_action = select_action_from_policy(state, noise_scale=noise_scale, info=step_data)
+            else:
+                denormalised_action = select_action_from_policy(state, noise_scale=noise_scale)
+
             # debug-log logging.info("Logging20")
             # mapping to env range [e.g. -2 , 2 for pendulum] - note for DMCS this is redudenant but required for openai
             if normalisation:
@@ -240,6 +255,12 @@ def policy_based_train(
         episode_reward += reward_extrinsic  # Note we only track the extrinsic reward for the episode for proper comparison
         # debug-log logging.info("Logging27")
 
+        step_data["action"] = denormalised_action
+        step_data["reward"] = total_reward
+        step_data["episode_reward"] = episode_reward
+
+        run_data_rows.append(step_data)
+
         info = {}
         if (
             total_step_counter >= max_steps_exploration
@@ -270,22 +291,34 @@ def policy_based_train(
             record.stop_video()
 
             if episode_reward > highest_reward:
+
+
                 highest_reward = episode_reward
 
-                vdir = os.path.join(record.directory, "videos")
-                highest_reward_video = os.path.join(vdir, "highest_reward.mp4")
-                training_video = os.path.join(vdir, "temp_train_video.mp4")
+                video_dir = os.path.join(record.directory, "videos")
+                data_dir = os.path.join(record.directory, "data")
+
+                highest_reward_video = os.path.join(video_dir, "highest_reward.mp4")
+                training_video = os.path.join(video_dir, "temp_train_video.mp4")
+                run_csv = os.path.join(data_dir, "highest_reward.csv")
+
+                logging.info(f"New highest reward of {episode_reward}. Saving video and run data...")
+
+                pd.DataFrame(run_data_rows).to_csv(run_csv, index=False)
 
                 try:
                     if os.path.exists(highest_reward_video):
                         os.remove(highest_reward_video)
+                except:
+                    logging.error("An error deleting the highest reward video occured :/")
                     
+                try:
                     os.rename(training_video, highest_reward_video)
                 except:
                     logging.error("An error renaming the video occured :/")
 
             # Reset environment
-            start_new_video = True
+            start_new_run = True
             state = env.reset()
             episode_timesteps = 0
             episode_reward = 0
