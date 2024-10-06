@@ -1,3 +1,6 @@
+# For more information, please refer to https://aka.ms/vscode-docker-python
+FROM pytorch/pytorch:2.0.1-cuda11.7-cudnn8-runtime
+SHELL [ "/bin/bash", "-c" ]
 
 RUN apt-get update && \
     apt-get upgrade -y && \
