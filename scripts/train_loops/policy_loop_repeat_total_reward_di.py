@@ -105,7 +105,7 @@ def policy_based_train(
     cs = []
     save_episode = False
     
-    RF = 10000
+    RF = 20000
     RN = 5
 
     evaluate = False
