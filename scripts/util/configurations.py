@@ -33,7 +33,7 @@ class GymEnvironmentConfig(EnvironmentConfig):
     display: Optional[int] = 0
 
     # image observation configurations
-    frames_to_stack: Optional[int] = 9
+    frames_to_stack: Optional[int] = 3
     frame_width: Optional[int] = 84
     frame_height: Optional[int] = 84
     grey_scale: Optional[int] = 0
