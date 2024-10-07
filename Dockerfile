@@ -37,6 +37,9 @@ WORKDIR /workspace/gymnasium_envrionments
 RUN git checkout -t origin/p4p-pokemon-docker
 RUN pip3 install -r requirements.txt
 
+WORKDIR /root
+RUN git clone https://github.com/PKWadsy/cares_pokemon_configs.git cares_rl_configs
+
 # We don't have GUI capabilities
 RUN pip3 uninstall opencv-python
 RUN pip3 install opencv-python-headless
