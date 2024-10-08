@@ -24,7 +24,11 @@ class ImageWrapper:
     def observation_space(self):
         channels = 1 if self.grey_scale else 3
         channels *= self.frames_to_stack
-        return (channels, self.frame_width, self.frame_height)
+        image_space = (channels, self.frame_width, self.frame_height)
+
+        vector_space = self.gym.observation_space
+
+        return {"image": image_space, "vector": vector_space}
 
     @cached_property
     def action_num(self):
@@ -55,7 +59,7 @@ class ImageWrapper:
         return frame
 
     def reset(self):
-        _ = self.gym.reset()
+        vector_state = self.gym.reset()
         frame = self.grab_frame(
             height=self.frame_height, width=self.frame_width, grey_scale=self.grey_scale
         )
@@ -63,14 +67,20 @@ class ImageWrapper:
         for _ in range(self.frames_to_stack):
             self.frames_stacked.append(frame)
         stacked_frames = np.concatenate(list(self.frames_stacked), axis=0)
-        return stacked_frames
+
+        state = {"image": stacked_frames, "vector": vector_state}
+
+        return state
 
     def step(self, action):
-        _, reward, done, truncated = self.gym.step(action)
+        vector_state, reward, done, truncated = self.gym.step(action)
         frame = self.grab_frame(
             height=self.frame_height, width=self.frame_width, grey_scale=self.grey_scale
         )
         frame = np.moveaxis(frame, -1, 0)
         self.frames_stacked.append(frame)
         stacked_frames = np.concatenate(list(self.frames_stacked), axis=0)
-        return stacked_frames, reward, done, truncated
+
+        state = {"image": stacked_frames, "vector": vector_state}
+
+        return state, reward, done, truncated
