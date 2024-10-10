@@ -106,7 +106,7 @@ def policy_based_train(
     save_episode = False
     max_reward = 0
     average_reward = 0
-    average_reward_list = [10]
+    average_reward_list = []
     evaluate = False
     
     RN = 2
@@ -209,6 +209,11 @@ def policy_based_train(
                 average_reward = sum(average_reward_list)/len(average_reward_list)
             else:
                 average_reward = 0
+            if (crucial_episode_num == 0):        
+                if len(average_reward_list) >= 10:
+                    average_reward_list.pop(0)  # Remove the oldest reward
+                average_reward_list.append(episode_reward)
+                print(f"average_reward_list:{average_reward_list}") 
             if crucial_episode_num == 1:
                 crucial_steps = False
                 crucial_episode_num-= 1  
@@ -235,10 +240,7 @@ def policy_based_train(
                     states, actions,rewards, next_states, dones, episode_nums, episode_steps =memory.short_term_memory.sample_complete_episode(episode_num,episode_timesteps)
                     crucial_actions = actions
                     crucial_episode_num = RN
-                    
-            if len(average_reward_list) >= 10:
-                average_reward_list.pop(0)  # Remove the oldest reward
-            average_reward_list.append(episode_reward)    
+               
             if evaluate:
                 logging.info("*************--Evaluation Loop--*************")
                 evaluate_policy_network(
