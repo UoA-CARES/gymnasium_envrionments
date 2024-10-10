@@ -42,5 +42,4 @@ class GymEnvironmentConfig(EnvironmentConfig):
     rom_path: Optional[str] = f"{Path.home()}/cares_rl_configs"
     act_freq: Optional[int] = 24
     emulation_speed: Optional[int] = 0
-    headless: Optional[int] = 0
-    discrete: Optional[int] = 0
+    headless: Optional[int] = 1
