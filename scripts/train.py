@@ -5,21 +5,18 @@ and memory instances, and then trains the agent using the specified algorithm.
 """
 
 import logging
-import sys
 import os
+import sys
 
-import torch
 import train_loops.policy_loop as pbe
 import train_loops.ppo_loop as ppe
 import train_loops.value_loop as vbe
 import yaml
-
-from environments.environment_factory import EnvironmentFactory
-from util.configurations import GymEnvironmentConfig
-
 from cares_reinforcement_learning.memory.memory_factory import MemoryFactory
 from cares_reinforcement_learning.util import NetworkFactory, Record, RLParser
 from cares_reinforcement_learning.util import helpers as hlp
+from environments.environment_factory import EnvironmentFactory
+from util.configurations import GymEnvironmentConfig
 
 logging.basicConfig(level=logging.INFO)
 
