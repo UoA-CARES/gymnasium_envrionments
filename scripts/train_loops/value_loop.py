@@ -1,3 +1,4 @@
+import copy
 import logging
 import random
 import time
@@ -69,6 +70,7 @@ def evaluate_value_network(
 
 def value_based_train(
     env,
+    env_eval,
     agent,
     memory,
     record,
@@ -90,8 +92,6 @@ def value_based_train(
     episode_timesteps = 0
     episode_reward = 0
     episode_num = 0
-
-    evaluate = False
 
     state = env.reset()
 
@@ -117,12 +117,22 @@ def value_based_train(
         state = next_state
         episode_reward += reward
 
+        info = {}
         if len(memory) > batch_size:
             for _ in range(G):
-                agent.train_policy(memory, batch_size)
+                info = agent.train_policy(memory, batch_size)
 
         if (total_step_counter + 1) % number_steps_per_evaluation == 0:
-            evaluate = True
+            logging.info("*************--Evaluation Loop--*************")
+            evaluate_value_network(
+                env_eval,
+                agent,
+                train_config,
+                alg_config,
+                record=record,
+                total_steps=total_step_counter,
+            )
+            logging.info("--------------------------------------------")
 
         if done or truncated:
             episode_time = time.time() - episode_start
@@ -132,21 +142,9 @@ def value_based_train(
                 episode_steps=episode_timesteps,
                 episode_reward=episode_reward,
                 episode_time=episode_time,
+                info=info,
                 display=True,
             )
-
-            if evaluate:
-                logging.info("*************--Evaluation Loop--*************")
-                evaluate_value_network(
-                    env,
-                    agent,
-                    train_config,
-                    alg_config,
-                    record=record,
-                    total_steps=total_step_counter,
-                )
-                logging.info("--------------------------------------------")
-                evaluate = False
 
             # Reset environment
             state = env.reset()

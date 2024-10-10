@@ -6,15 +6,15 @@ and memory instances, and then trains the agent using the specified algorithm.
 
 import logging
 import sys
-from datetime import datetime
-from pathlib import Path
+import os
 
 import torch
 import train_loops.policy_loop as pbe
 import train_loops.ppo_loop as ppe
 import train_loops.value_loop as vbe
 import yaml
-from envrionments.environment_factory import EnvironmentFactory
+
+from environments.environment_factory import EnvironmentFactory
 from util.configurations import GymEnvironmentConfig
 
 from cares_reinforcement_learning.memory.memory_factory import MemoryFactory
@@ -39,12 +39,6 @@ def main():
     network_factory = NetworkFactory()
     memory_factory = MemoryFactory()
 
-    domain = f"{env_config.domain}-" if env_config.domain != "" else ""
-    task = domain + env_config.task
-
-    iterations_folder = f"{alg_config.algorithm}/{alg_config.algorithm}-{task}-{datetime.now().strftime('%y_%m_%d_%H:%M:%S')}"
-    glob_log_dir = f"{Path.home()}/cares_rl_logs/{iterations_folder}"
-
     logging.info(
         "\n---------------------------------------------------\n"
         "ENVIRONMENT CONFIG\n"
@@ -68,19 +62,23 @@ def main():
     )
 
     logging.info(f"\n{yaml.dump(dict(training_config), default_flow_style=False)}")
-    logging.info(
-        f"Device: {torch.device('cuda' if torch.cuda.is_available() else 'cpu')}"
+
+    device = hlp.get_device()
+    logging.info(f"Device: {device}")
+
+    run_name = input(
+        "Double check your experiment configurations :) Press ENTER to continue. (Optional - Enter a name for this run)\n"
     )
 
-    input("Double check your experiement configurations :) Press ENTER to continue.")
-
-    if not torch.cuda.is_available():
+    if device.type == "cpu":
         no_gpu_answer = input(
-            "No cuda detected. Do you still want to continue? Note: Training will be slow. [y/n]"
+            "Device being set as CPU - No cuda or mps detected. Do you still want to continue? Note: Training will be slower on cpu only. [y/n]"
         )
 
         if no_gpu_answer not in ["y", "Y"]:
-            logging.info("Terminating Experiement - check CUDA is installed.")
+            logging.info(
+                "Terminating Experiment - check CUDA or mps is installed correctly."
+            )
             sys.exit()
 
     for training_iteration, seed in enumerate(training_config.seeds):
@@ -89,8 +87,12 @@ def main():
         )
         # This line should be here for seed consistency issues
         env = env_factory.create_environment(env_config, alg_config.image_observation)
+        env_eval = env_factory.create_environment(
+            env_config, alg_config.image_observation
+        )
         hlp.set_seed(seed)
         env.set_seed(seed)
+        env_eval.set_seed(seed)
 
         logging.info(f"Algorithm: {alg_config.algorithm}")
         agent = network_factory.create_network(
@@ -99,15 +101,27 @@ def main():
 
         if agent is None:
             raise ValueError(
-                f"Unkown agent for default algorithms {alg_config.algorithm}"
+                f"Unknown agent for default algorithms {alg_config.algorithm}"
             )
 
         memory = memory_factory.create_memory(alg_config)
 
+        log_path_template = os.environ.get(
+            "CARES_LOG_PATH_TEMPLATE",
+            "{algorithm}/{algorithm}-{domain_task}-{date}/{seed}",
+        )
+
+        log_dir = hlp.create_path_from_format_string(
+            log_path_template,
+            algorithm=alg_config.algorithm,
+            domain=env_config.domain,
+            task=env_config.task,
+            gym=env_config.gym,
+            seed=seed,
+            run_name=run_name,
+        )
         # create the record class - standardised results tracking
-        log_dir = f"{seed}"
         record = Record(
-            glob_log_dir=glob_log_dir,
             log_dir=log_dir,
             algorithm=alg_config.algorithm,
             task=env_config.task,
@@ -124,6 +138,7 @@ def main():
         if alg_config.algorithm == "PPO":
             ppe.ppo_train(
                 env,
+                env_eval,
                 agent,
                 record,
                 training_config,
@@ -133,16 +148,31 @@ def main():
         elif agent.type == "policy":
             pbe.policy_based_train(
                 env,
+                env_eval,
                 agent,
                 memory,
                 record,
                 training_config,
                 alg_config,
                 display=env_config.display,
+                normalisation=True,
+            )
+        elif agent.type == "discrete_policy":
+            pbe.policy_based_train(
+                env,
+                env_eval,
+                agent,
+                memory,
+                record,
+                training_config,
+                alg_config,
+                display=env_config.display,
+                normalisation=False,
             )
         elif agent.type == "value":
             vbe.value_based_train(
                 env,
+                env_eval,
                 agent,
                 memory,
                 record,
@@ -151,7 +181,7 @@ def main():
                 display=env_config.display,
             )
         else:
-            raise ValueError(f"Agent type is unkown: {agent.type}")
+            raise ValueError(f"Agent type is unknown: {agent.type}")
 
         record.save()
 
