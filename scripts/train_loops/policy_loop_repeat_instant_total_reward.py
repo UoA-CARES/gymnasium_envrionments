@@ -130,9 +130,8 @@ def policy_based_train(
                 action_env, env.max_action_value, env.min_action_value
             )
             
-        elif crucial_episode_num > 0 and crucial_steps:
-            #print (crucial_episode_num)
-            
+        elif crucial_episode_num > 0 and crucial_steps and episode_timesteps < len(crucial_actions):
+           
             action = crucial_actions[episode_timesteps - 1]  
             action_env = hlp.denormalize(
                 action, env.max_action_value, env.min_action_value
@@ -187,6 +186,7 @@ def policy_based_train(
                 print(f" finddddd higher total_reward:{total_reward}, max_reward:{max_reward}")
                 max_reward = total_reward
                 states, actions,rewards, next_states, dones, episode_nums, episode_steps =memory.short_term_memory.sample_complete_episode(episode_num,episode_timesteps)
+                crucial_steps = False
                 crucial_actions = actions
                 crucial_episode_num = RN+1
                             
@@ -227,7 +227,7 @@ def policy_based_train(
                 #input()
                 
             elif crucial_episode_num > 1 :
-                
+                print(f"crucial_episode_num:{crucial_episode_num}")
                 crucial_episode_num -= 1  
                 crucial_steps = True
                 print(f"total_reward:{total_reward}, episode_reward:{episode_reward}")
