@@ -5,20 +5,19 @@ and memory instances, and then trains the agent using the specified algorithm.
 """
 
 import logging
-import sys
 import os
+import sys
+from datetime import datetime
 
 import train_loops.policy_loop as pbe
 import train_loops.ppo_loop as ppe
 import train_loops.value_loop as vbe
 import yaml
-
-from environments.environment_factory import EnvironmentFactory
-from util.configurations import GymEnvironmentConfig
-
 from cares_reinforcement_learning.memory.memory_factory import MemoryFactory
 from cares_reinforcement_learning.util import NetworkFactory, Record, RLParser
 from cares_reinforcement_learning.util import helpers as hlp
+from environments.environment_factory import EnvironmentFactory
+from util.configurations import GymEnvironmentConfig
 
 logging.basicConfig(level=logging.INFO)
 
@@ -80,6 +79,13 @@ def main():
             )
             sys.exit()
 
+    log_path_template = os.environ.get(
+        "CARES_LOG_PATH_TEMPLATE",
+        "{algorithm}/{algorithm}-{domain_task}-{date}/{seed}",
+    )
+
+    date = datetime.now().strftime("%y_%m_%d_%H-%M-%S")
+
     for training_iteration, seed in enumerate(training_config.seeds):
         logging.info(
             f"Training iteration {training_iteration+1}/{len(training_config.seeds)} with Seed: {seed}"
@@ -105,11 +111,6 @@ def main():
 
         memory = memory_factory.create_memory(alg_config)
 
-        log_path_template = os.environ.get(
-            "CARES_LOG_PATH_TEMPLATE",
-            "{algorithm}/{algorithm}-{domain_task}-{date}/{seed}",
-        )
-
         log_dir = hlp.create_path_from_format_string(
             log_path_template,
             algorithm=alg_config.algorithm,
@@ -118,6 +119,7 @@ def main():
             gym=env_config.gym,
             seed=seed,
             run_name=run_name,
+            date=date,
         )
         # create the record class - standardised results tracking
         record = Record(
