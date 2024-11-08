@@ -32,7 +32,7 @@ def main():
 
     configurations = parser.parse_args()
     env_config = configurations["env_config"]
-    training_config = configurations["training_config"]
+    training_config = configurations["train_config"]
     alg_config = configurations["algorithm_config"]
 
     env_factory = EnvironmentFactory()
