@@ -8,7 +8,6 @@ import logging
 import sys
 import os
 
-import torch
 import train_loops.policy_loop as pbe
 import train_loops.ppo_loop as ppe
 import train_loops.value_loop as vbe
