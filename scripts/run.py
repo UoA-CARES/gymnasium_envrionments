@@ -223,7 +223,6 @@ def main():
             task=env_config.task,
             network=agent,
             plot_frequency=training_config.plot_frequency,
-            checkpoint_frequency=training_config.checkpoint_frequency,
         )
 
         record.save_config(env_config, "env_config")
