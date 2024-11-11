@@ -8,6 +8,7 @@ import logging
 import os
 import sys
 from datetime import datetime
+from pathlib import Path
 
 import train_loops.policy_loop as pbe
 import train_loops.ppo_loop as ppe
@@ -17,49 +18,65 @@ from cares_reinforcement_learning.memory.memory_factory import MemoryFactory
 from cares_reinforcement_learning.util import NetworkFactory, Record, RLParser
 from cares_reinforcement_learning.util import helpers as hlp
 from environments.environment_factory import EnvironmentFactory
+from natsort import natsorted
 from util.configurations import GymEnvironmentConfig
 
 logging.basicConfig(level=logging.INFO)
 
 
-def evaluate(training_config, alg_config, env, agent, record):
-    if alg_config.algorithm == "PPO":
-        ppe.evaluate_ppo_network(
-            env,
-            agent,
-            training_config,
-            record=record,
-            # display=env_config.display,
-        )
-    elif agent.type == "policy":
-        pbe.evaluate_policy_network(
-            env,
-            agent,
-            training_config,
-            record=record,
-            normalisation=True,
-            # display=env_config.display,
-        )
-    elif agent.type == "discrete_policy":
-        pbe.evaluate_policy_network(
-            env,
-            agent,
-            training_config,
-            record=record,
-            normalisation=False,
-            # display=env_config.display,
-        )
-    elif agent.type == "value":
-        vbe.evaluate_value_network(
-            env,
-            agent,
-            training_config,
-            alg_config,
-            record=record,
-            # display=env_config.display,
-        )
-    else:
-        raise ValueError(f"Agent type is unknown: {agent.type}")
+def evaluate(data_path, training_config, seed, alg_config, env, agent, record):
+
+    model_path = Path(f"{data_path}/{seed}/models/")
+    folders = list(model_path.glob("*"))
+
+    folders = natsorted(folders)
+
+    for folder in folders[:-2]:
+        agent.load_models(folder, f"{alg_config.algorithm}")
+
+        total_steps = int(folder.name.split("_")[-1]) - 1
+
+        if alg_config.algorithm == "PPO":
+            ppe.evaluate_ppo_network(
+                env,
+                agent,
+                training_config,
+                record=record,
+                total_steps=total_steps,
+                # display=env_config.display,
+            )
+        elif agent.type == "policy":
+            pbe.evaluate_policy_network(
+                env,
+                agent,
+                training_config,
+                record=record,
+                total_steps=total_steps,
+                normalisation=True,
+                # display=env_config.display,
+            )
+        elif agent.type == "discrete_policy":
+            pbe.evaluate_policy_network(
+                env,
+                agent,
+                training_config,
+                record=record,
+                total_steps=total_steps,
+                normalisation=False,
+                # display=env_config.display,
+            )
+        elif agent.type == "value":
+            vbe.evaluate_value_network(
+                env,
+                agent,
+                training_config,
+                alg_config,
+                record=record,
+                total_steps=total_steps,
+                # display=env_config.display,
+            )
+        else:
+            raise ValueError(f"Agent type is unknown: {agent.type}")
 
 
 def train(
@@ -121,9 +138,10 @@ def main():
     parser = RLParser(GymEnvironmentConfig)
 
     configurations = parser.parse_args()
+    run_config = configurations["run_config"]
     env_config = configurations["env_config"]
     training_config = configurations["train_config"]
-    alg_config = configurations["algorithm_config"]
+    alg_config = configurations["alg_config"]
 
     env_factory = EnvironmentFactory()
     network_factory = NetworkFactory()
@@ -171,19 +189,45 @@ def main():
             )
             sys.exit()
 
-    command = configurations["command"]
+    command = run_config.command
     logging.info(f"Command: {command}")
+
+    data_path = run_config.data_path
+    logging.info(f"Data Path: {data_path}")
 
     log_path_template = os.environ.get(
         "CARES_LOG_PATH_TEMPLATE",
-        "{algorithm}/{algorithm}-{domain_task}-{date}/{seed}",
+        "{algorithm}/{algorithm}-{domain_task}-{date}",
     )
 
     date = datetime.now().strftime("%y_%m_%d_%H-%M-%S")
 
-    for training_iteration, seed in enumerate(training_config.seeds):
+    base_log_dir = hlp.create_path_from_format_string(
+        log_path_template,
+        algorithm=alg_config.algorithm,
+        domain=env_config.domain,
+        task=env_config.task,
+        gym=env_config.gym,
+        run_name=run_name,
+        date=date,
+    )
+
+    logging.info(f"Base Log Directory: {base_log_dir}")
+
+    record = Record(
+        base_directory=f"{base_log_dir}",
+        algorithm=alg_config.algorithm,
+        task=env_config.task,
+        agent=None,
+    )
+
+    record.save_configurations(configurations)
+
+    # Split the evaluation and training loop setup
+
+    for iteration, seed in enumerate(training_config.seeds):
         logging.info(
-            f"Training iteration {training_iteration+1}/{len(training_config.seeds)} with Seed: {seed}"
+            f"Iteration {iteration+1}/{len(training_config.seeds)} with Seed: {seed}"
         )
         # This line should be here for seed consistency issues
         env = env_factory.create_environment(env_config, alg_config.image_observation)
@@ -206,28 +250,9 @@ def main():
 
         memory = memory_factory.create_memory(alg_config)
 
-        log_dir = hlp.create_path_from_format_string(
-            log_path_template,
-            algorithm=alg_config.algorithm,
-            domain=env_config.domain,
-            task=env_config.task,
-            gym=env_config.gym,
-            seed=seed,
-            run_name=run_name,
-            date=date,
-        )
         # create the record class - standardised results tracking
-        record = Record(
-            log_dir=log_dir,
-            algorithm=alg_config.algorithm,
-            task=env_config.task,
-            network=agent,
-            plot_frequency=training_config.plot_frequency,
-        )
-
-        record.save_config(env_config, "env_config")
-        record.save_config(training_config, "train_config")
-        record.save_config(alg_config, "alg_config")
+        record.set_agent(agent)
+        record.set_sub_directory(f"{seed}")
 
         if command == "train":
             # Train the policy or value based approach
@@ -244,7 +269,9 @@ def main():
         elif command == "evaluate":
             # Evaluate the policy or value based approach
             evaluate(
+                data_path,
                 training_config,
+                seed,
                 alg_config,
                 env_eval,
                 agent,
