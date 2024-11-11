@@ -189,11 +189,9 @@ def main():
             )
             sys.exit()
 
-    command = run_config.command
-    logging.info(f"Command: {command}")
+    logging.info(f"Command: {run_config.command}")
 
-    data_path = run_config.data_path
-    logging.info(f"Data Path: {data_path}")
+    logging.info(f"Data Path: {run_config.data_path}")
 
     log_path_template = os.environ.get(
         "CARES_LOG_PATH_TEMPLATE",
@@ -224,7 +222,6 @@ def main():
     record.save_configurations(configurations)
 
     # Split the evaluation and training loop setup
-
     for iteration, seed in enumerate(training_config.seeds):
         logging.info(
             f"Iteration {iteration+1}/{len(training_config.seeds)} with Seed: {seed}"
@@ -254,7 +251,7 @@ def main():
         record.set_agent(agent)
         record.set_sub_directory(f"{seed}")
 
-        if command == "train":
+        if run_config.command == "train":
             # Train the policy or value based approach
             train(
                 env_config,
@@ -266,10 +263,10 @@ def main():
                 memory,
                 record,
             )
-        elif command == "evaluate":
+        elif run_config.command == "evaluate":
             # Evaluate the policy or value based approach
             evaluate(
-                data_path,
+                run_config.data_path,
                 training_config,
                 seed,
                 alg_config,
