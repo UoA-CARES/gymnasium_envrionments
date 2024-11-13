@@ -5,9 +5,7 @@ and memory instances, and then trains the agent using the specified algorithm.
 """
 
 import logging
-import os
 import sys
-from datetime import datetime
 from pathlib import Path
 
 import train_loops.policy_loop as pbe
@@ -193,21 +191,12 @@ def main():
 
     logging.info(f"Data Path: {run_config.data_path}")
 
-    log_path_template = os.environ.get(
-        "CARES_LOG_PATH_TEMPLATE",
-        "{algorithm}/{algorithm}-{domain_task}-{date}",
-    )
-
-    date = datetime.now().strftime("%y_%m_%d_%H-%M-%S")
-
-    base_log_dir = hlp.create_path_from_format_string(
-        log_path_template,
-        algorithm=alg_config.algorithm,
+    base_log_dir = Record.create_base_directory(
         domain=env_config.domain,
         task=env_config.task,
         gym=env_config.gym,
+        algorithm=alg_config.algorithm,
         run_name=run_name,
-        date=date,
     )
 
     logging.info(f"Base Log Directory: {base_log_dir}")
