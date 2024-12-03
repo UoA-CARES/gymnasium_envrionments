@@ -1,4 +1,3 @@
-import copy
 import logging
 import time
 
@@ -191,7 +190,7 @@ def policy_based_train(
                 episode_steps=episode_timesteps,
                 episode_reward=episode_reward,
                 episode_time=episode_time,
-                info=info,
+                **info,
                 display=True,
             )
 

@@ -1,4 +1,3 @@
-import copy
 import logging
 import random
 import time
@@ -18,13 +17,13 @@ def evaluate_value_network(
     record=None,
     total_steps=0,
 ):
+    state = env.reset()
+
     if record is not None:
         frame = env.grab_frame()
         record.start_video(total_steps + 1, frame)
 
     number_eval_episodes = int(train_config.number_eval_episodes)
-
-    state = env.reset()
 
     exploration_rate = alg_config.exploration_min
 
@@ -142,7 +141,7 @@ def value_based_train(
                 episode_steps=episode_timesteps,
                 episode_reward=episode_reward,
                 episode_time=episode_time,
-                info=info,
+                **info,
                 display=True,
             )
 
