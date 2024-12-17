@@ -134,7 +134,7 @@ def policy_based_train(
         elif crucial_steps and number_of_crucial_episodes > 0:
             
             if episode_timesteps == 1:
-                crucial_actions,crucial_states, crucial_episode_num, episode_steps,crucial_rewards,crucial_total_reward= memory.vem_goal.fetch_nearest_episode(current_goal=state)
+                crucial_actions,crucial_states, crucial_episode_num, episode_steps,crucial_rewards,crucial_total_reward= memory.vem_goal.fetch_nearest_episode(current_state=state)
                 current_seed = crucial_episode_num
                 
             action = crucial_actions[episode_timesteps - 1]  

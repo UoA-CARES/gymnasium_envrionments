@@ -41,7 +41,7 @@ def main():
     network_factory = NetworkFactory()
     memory_factory = MemoryFactory()
 
-    iterations_folder = f"{alg_config.algorithm}-{env_config.task}-{datetime.now().strftime('%y_%m_%d_%H-%M-%S')}-episode_reward_RF20_RN5_VEM50_near_neighbour"
+    iterations_folder = f"{alg_config.algorithm}-{env_config.task}-{datetime.now().strftime('%y_%m_%d_%H-%M-%S')}-episode_reward_RF20_RN5_VEM500_near_neighbour"
     glob_log_dir = f"{Path.home()}/cares_rl_logs/{iterations_folder}"
 
     logging.info(
