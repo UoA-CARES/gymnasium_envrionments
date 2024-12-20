@@ -62,7 +62,7 @@ def evaluate_policy_network(
     record.stop_video()
 
 
-def policy_based_train(
+def policy_based_mbrl_train(
     env,
     env_eval,
     agent,
@@ -79,11 +79,6 @@ def policy_based_train(
     max_steps_exploration = alg_config.max_steps_exploration
     number_steps_per_evaluation = train_config.number_steps_per_evaluation
     number_steps_per_train_policy = alg_config.number_steps_per_train_policy
-
-    # Algorthm specific attributes - e.g. NaSA-TD3 dd
-    intrinsic_on = (
-        bool(alg_config.intrinsic_on) if hasattr(alg_config, "intrinsic_on") else False
-    )
 
     min_noise = alg_config.min_noise if hasattr(alg_config, "min_noise") else 0
     noise_decay = alg_config.noise_decay if hasattr(alg_config, "noise_decay") else 1.0
@@ -140,13 +135,7 @@ def policy_based_train(
         if display:
             env.render()
 
-        intrinsic_reward = 0
-        if intrinsic_on and total_step_counter > max_steps_exploration:
-            intrinsic_reward = agent.get_intrinsic_reward(
-                state, normalised_action, next_state
-            )
-
-        total_reward = reward_extrinsic + intrinsic_reward
+        total_reward = reward_extrinsic
 
         memory.add(
             state,
