@@ -1,5 +1,6 @@
 import logging
 import time
+
 from cares_reinforcement_learning.util import helpers as hlp
 from cares_reinforcement_learning.util.configurations import (
     AlgorithmConfig,
@@ -7,16 +8,16 @@ from cares_reinforcement_learning.util.configurations import (
 )
 
 
-def evaluate_mbrl_policy_network(
-    env, agent, config: TrainingConfig, record=None, total_steps=0
+def evaluate_policy_network(
+    env, agent, config: TrainingConfig, record=None, total_steps=0, normalisation=True
 ):
+    state = env.reset()
+
     if record is not None:
         frame = env.grab_frame()
         record.start_video(total_steps + 1, frame)
 
     number_eval_episodes = int(config.number_eval_episodes)
-
-    state = env.reset()
 
     for eval_episode_counter in range(number_eval_episodes):
         episode_timesteps = 0
@@ -27,12 +28,16 @@ def evaluate_mbrl_policy_network(
 
         while not done and not truncated:
             episode_timesteps += 1
-            action = agent.select_action_from_policy(state, evaluation=True)
-            action_env = hlp.denormalize(
-                action, env.max_action_value, env.min_action_value
+            normalised_action = agent.select_action_from_policy(state, evaluation=True)
+            denormalised_action = (
+                hlp.denormalize(
+                    normalised_action, env.max_action_value, env.min_action_value
+                )
+                if normalisation
+                else normalised_action
             )
 
-            state, reward, done, truncated = env.step(action_env)
+            state, reward, done, truncated = env.step(denormalised_action)
             episode_reward += reward
 
             if eval_episode_counter == 0 and record is not None:
@@ -57,13 +62,16 @@ def evaluate_mbrl_policy_network(
     record.stop_video()
 
 
-def policy_based_mbrl_train(
+def policy_based_train(
     env,
+    env_eval,
     agent,
     memory,
     record,
     train_config: TrainingConfig,
     alg_config: AlgorithmConfig,
+    display=False,
+    normalisation=True,
 ):
     start_time = time.time()
 
@@ -88,13 +96,9 @@ def policy_based_mbrl_train(
     batch_size = alg_config.batch_size
     G = alg_config.G
     G_model = alg_config.G_model
-
-    # Variables for the training loop.
     episode_timesteps = 0
     episode_reward = 0
     episode_num = 0
-
-    evaluate = False
 
     state = env.reset()
 
@@ -107,34 +111,46 @@ def policy_based_mbrl_train(
                 f"Running Exploration Steps {total_step_counter + 1}/{max_steps_exploration}"
             )
 
-            action_env = env.sample_action()
+            denormalised_action = env.sample_action()
 
             # algorithm range [-1, 1] - note for DMCS this is redudenant but required for openai
-            action = hlp.normalize(
-                action_env, env.max_action_value, env.min_action_value
-            )
+            if normalisation:
+                normalised_action = hlp.normalize(
+                    denormalised_action, env.max_action_value, env.min_action_value
+                )
+            else:
+                normalised_action = denormalised_action
         else:
             noise_scale *= noise_decay
             noise_scale = max(min_noise, noise_scale)
 
             # algorithm range [-1, 1]
-            action = agent.select_action_from_policy(state, noise_scale=noise_scale)
-            # mapping to env range [e.g. -2 , 2 for pendulum] - note for DMCS this is redudenant but required for openai
-            action_env = hlp.denormalize(
-                action, env.max_action_value, env.min_action_value
+            normalised_action = agent.select_action_from_policy(
+                state, noise_scale=noise_scale
             )
+            # mapping to env range [e.g. -2 , 2 for pendulum] - note for DMCS this is redudenant but required for openai
+            if normalisation:
+                denormalised_action = hlp.denormalize(
+                    normalised_action, env.max_action_value, env.min_action_value
+                )
+            else:
+                denormalised_action = normalised_action
 
-        next_state, reward_extrinsic, done, truncated = env.step(action_env)
+        next_state, reward_extrinsic, done, truncated = env.step(denormalised_action)
+        if display:
+            env.render()
 
         intrinsic_reward = 0
         if intrinsic_on and total_step_counter > max_steps_exploration:
-            intrinsic_reward = agent.get_intrinsic_reward(state, action, next_state)
+            intrinsic_reward = agent.get_intrinsic_reward(
+                state, normalised_action, next_state
+            )
 
         total_reward = reward_extrinsic + intrinsic_reward
 
         memory.add(
             state,
-            action,
+            normalised_action,
             total_reward,
             next_state,
             done,
@@ -143,6 +159,7 @@ def policy_based_mbrl_train(
         state = next_state
         episode_reward += reward_extrinsic  # Note we only track the extrinsic reward for the episode for proper comparison
 
+        info = {}
         if (
             total_step_counter >= max_steps_exploration
             and total_step_counter % number_steps_per_train_policy == 0
@@ -166,7 +183,16 @@ def policy_based_mbrl_train(
                 agent.train_policy(memory, batch_size)
 
         if (total_step_counter + 1) % number_steps_per_evaluation == 0:
-            evaluate = True
+            logging.info("*************--Evaluation Loop--*************")
+            evaluate_policy_network(
+                env_eval,
+                agent,
+                train_config,
+                record=record,
+                total_steps=total_step_counter,
+                normalisation=normalisation,
+            )
+            logging.info("--------------------------------------------")
 
         if done or truncated:
             episode_time = time.time() - episode_start
@@ -176,27 +202,16 @@ def policy_based_mbrl_train(
                 episode_steps=episode_timesteps,
                 episode_reward=episode_reward,
                 episode_time=episode_time,
+                **info,
                 display=True,
             )
-
-            if evaluate:
-                logging.info("*************--Evaluation Loop--*************")
-                evaluate_mbrl_policy_network(
-                    env,
-                    agent,
-                    train_config,
-                    record=record,
-                    total_steps=total_step_counter,
-                )
-                logging.info("--------------------------------------------")
-                evaluate = False
-
-            # Reset environment
-            state = env.reset()
             # MBRL: Update the statistics.
             if len(memory) > 0:
                 statistics = memory.get_statistics()
                 agent.set_statistics(statistics)
+
+            # Reset environment
+            state = env.reset()
             episode_timesteps = 0
             episode_reward = 0
             episode_num += 1
