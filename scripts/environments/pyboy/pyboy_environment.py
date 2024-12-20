@@ -1,7 +1,7 @@
 from functools import cached_property
 
 import numpy as np
-from envrionments.gym_environment import GymEnvironment
+from environments.gym_environment import GymEnvironment
 from util.configurations import GymEnvironmentConfig
 
 from pyboy_environment import suite
@@ -12,7 +12,11 @@ class PyboyEnvironment(GymEnvironment):
         super().__init__(config)
 
         self.env = suite.make(
-            config.task, config.act_freq, config.emulation_speed, config.headless
+            config.domain,
+            config.task,
+            config.act_freq,
+            config.emulation_speed,
+            config.headless,
         )
 
     @cached_property

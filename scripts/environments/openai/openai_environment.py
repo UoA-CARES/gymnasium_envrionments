@@ -3,12 +3,12 @@ from functools import cached_property
 import cv2
 import gymnasium as gym
 import numpy as np
-from envrionments.gym_environment import GymEnvironment
+from environments.gym_environment import GymEnvironment
 from gymnasium import spaces
 from util.configurations import GymEnvironmentConfig
 
 
-class OpenAIEnvrionment(GymEnvironment):
+class OpenAIEnvironment(GymEnvironment):
     def __init__(self, config: GymEnvironmentConfig) -> None:
         super().__init__(config)
         self.env = gym.make(config.task, render_mode="rgb_array")

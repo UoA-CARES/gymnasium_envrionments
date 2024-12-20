@@ -2,6 +2,7 @@ import abc
 import logging
 from functools import cached_property
 
+import cv2
 from util.configurations import GymEnvironmentConfig
 
 
@@ -9,6 +10,11 @@ class GymEnvironment(metaclass=abc.ABCMeta):
     def __init__(self, config: GymEnvironmentConfig) -> None:
         logging.info(f"Training with Task {config.task}")
         self.task = config.task
+
+    def render(self):
+        frame = self.grab_frame()
+        cv2.imshow(f"{self.task}", frame)
+        cv2.waitKey(10)
 
     @cached_property
     @abc.abstractmethod
