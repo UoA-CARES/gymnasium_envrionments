@@ -121,23 +121,23 @@ def policy_based_mbrl_train(
 
         next_state, reward_extrinsic, done, truncated = env.step(denormalised_action)
 
-        # if len(memory) > max_steps_exploration:
-        #     # Converting to tensor
-        #     tensor_action = torch.FloatTensor(normalised_action).to(agent.device).unsqueeze(dim=0)
-        #     tensor_state = torch.FloatTensor(state).to(agent.device).unsqueeze(dim=0)
-        #     pred_ns, _, _, _ = agent.world_model.pred_next_states(observation=tensor_state,
-        #                                                           actions=tensor_action)
-        #     pred_reward, _ = agent.world_model.pred_rewards(tensor_state, tensor_action, pred_ns)
-        #
-        #     # MSE Reward
-        #     pred_reward = pred_reward.detach().squeeze().cpu().numpy()
-        #     l1_one_rwd_error = abs(pred_reward - reward_extrinsic)
-        #     reward_model_error_t += l1_one_rwd_error
-        #
-        #     # MSE. L1 of dynamics
-        #     np_pred_ns = pred_ns.detach().squeeze().cpu().numpy()
-        #     one_step_mse = (np.square(np_pred_ns - next_state)).mean()
-        #     world_model_error_t += one_step_mse
+        if len(memory) > max_steps_exploration:
+            # Converting to tensor
+            tensor_action = torch.FloatTensor(normalised_action).to(agent.device).unsqueeze(dim=0)
+            tensor_state = torch.FloatTensor(state).to(agent.device).unsqueeze(dim=0)
+            pred_ns, _, _, _ = agent.world_model.pred_next_states(observation=tensor_state,
+                                                                  actions=tensor_action)
+            pred_reward, _ = agent.world_model.pred_rewards(tensor_state, tensor_action, pred_ns)
+
+            # MSE Reward
+            pred_reward = pred_reward.detach().squeeze().cpu().numpy()
+            l1_one_rwd_error = abs(pred_reward - reward_extrinsic)
+            reward_model_error_t += l1_one_rwd_error
+
+            # MSE. L1 of dynamics
+            np_pred_ns = pred_ns.detach().squeeze().cpu().numpy()
+            one_step_mse = (np.square(np_pred_ns - next_state)).mean()
+            world_model_error_t += one_step_mse
 
 
         if display:
@@ -192,10 +192,6 @@ def policy_based_mbrl_train(
             logging.info("--------------------------------------------")
 
         if done or truncated:
-            # logging.info(f"Training World Model Error {world_model_error_t}, Reward Error {reward_model_error_t}")
-            # reward_model_error_t = 0
-            # world_model_error_t = 0
-
             episode_time = time.time() - episode_start
             record.log_train(
                 total_steps=total_step_counter + 1,
@@ -204,8 +200,16 @@ def policy_based_mbrl_train(
                 episode_reward=episode_reward,
                 episode_time=episode_time,
                 **info,
+                world_model_error_t=world_model_error_t,
+                reward_model_error_t=reward_model_error_t,
                 display=True,
             )
+
+            logging.info(f"Training World Model Error {world_model_error_t}, Reward Error {reward_model_error_t}")
+            reward_model_error_t = 0
+            world_model_error_t = 0
+
+
             # MBRL: Update the statistics.
             if len(memory) > 0:
                 statistics = memory.get_statistics()
