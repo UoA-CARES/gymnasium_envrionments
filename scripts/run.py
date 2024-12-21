@@ -11,6 +11,7 @@ from pathlib import Path
 import train_loops.policy_loop as pbe
 import train_loops.ppo_loop as ppe
 import train_loops.value_loop as vbe
+import train_loops.policy_mbrl_loop as mbrl_loop
 import yaml
 from cares_reinforcement_learning.memory.memory_factory import MemoryFactory
 from cares_reinforcement_learning.util import NetworkFactory, Record, RLParser
@@ -73,6 +74,16 @@ def evaluate(data_path, training_config, seed, alg_config, env, agent, record):
                 total_steps=total_steps,
                 # display=env_config.display,
             )
+        elif agent.type == "mbrl":
+            mbrl_loop.evaluate_policy_network(
+                env,
+                agent,
+                training_config,
+                alg_config,
+                record=record,
+                total_steps=total_steps,
+                # display=env_config.display,
+            )
         else:
             raise ValueError(f"Agent type is unknown: {agent.type}")
 
@@ -116,6 +127,17 @@ def train(
         )
     elif agent.type == "value":
         vbe.value_based_train(
+            env,
+            env_eval,
+            agent,
+            memory,
+            record,
+            training_config,
+            alg_config,
+            display=env_config.display,
+        )
+    elif agent.type == "mbrl":
+        mbrl_loop.policy_based_mbrl_train(
             env,
             env_eval,
             agent,

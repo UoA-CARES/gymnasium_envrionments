@@ -1,5 +1,8 @@
 import logging
 import time
+import torch
+import numpy as np
+
 
 from cares_reinforcement_learning.util import helpers as hlp
 from cares_reinforcement_learning.util.configurations import (
@@ -19,6 +22,9 @@ def evaluate_policy_network(
 
     number_eval_episodes = int(config.number_eval_episodes)
 
+    world_model_error = 0.0
+    reward_model_error = 0.0
+
     for eval_episode_counter in range(number_eval_episodes):
         episode_timesteps = 0
         episode_reward = 0
@@ -37,8 +43,27 @@ def evaluate_policy_network(
                 else normalised_action
             )
 
-            state, reward, done, truncated = env.step(denormalised_action)
+            next_state, reward, done, truncated = env.step(denormalised_action)
+
+            # Converting to tensor
+            tensor_action = torch.FloatTensor(denormalised_action).to(agent.device).unsqueeze(dim=0)
+            tensor_state = torch.FloatTensor(state).to(agent.device).unsqueeze(dim=0)
+            pred_ns, _, _, _ = agent.world_model.pred_next_states(observation=tensor_state,
+                                                                 actions=tensor_action)
+            pred_reward,_ = agent.world_model.pred_rewards(tensor_state, tensor_action, pred_ns)
+
+            # MSE Reward
+            pred_reward = pred_reward.detach().squeeze().cpu().numpy()
+            l1_one_rwd_error = abs(pred_reward - reward)
+            reward_model_error += l1_one_rwd_error
+
+            # MSE. L1 of dynamics
+            np_pred_ns = pred_ns.detach().squeeze().cpu().numpy()
+            one_step_mse = (np.square(np_pred_ns - next_state)).mean()
+            world_model_error += one_step_mse
+
             episode_reward += reward
+            state = next_state
 
             if eval_episode_counter == 0 and record is not None:
                 frame = env.grab_frame()
@@ -59,6 +84,7 @@ def evaluate_policy_network(
                 episode_timesteps = 0
                 episode_num += 1
 
+    logging.info(f"World Model Error {world_model_error}, Reward Error {reward_model_error}")
     record.stop_video()
 
 
