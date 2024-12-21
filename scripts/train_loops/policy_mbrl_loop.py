@@ -120,6 +120,8 @@ def policy_based_mbrl_train(
     episode_timesteps = 0
     episode_reward = 0
     episode_num = 0
+    reward_model_error = 0
+    world_model_error = 0
 
     state = env.reset()
 
@@ -158,6 +160,25 @@ def policy_based_mbrl_train(
                 denormalised_action = normalised_action
 
         next_state, reward_extrinsic, done, truncated = env.step(denormalised_action)
+
+        # Converting to tensor
+        tensor_action = torch.FloatTensor(denormalised_action).to(agent.device).unsqueeze(dim=0)
+        tensor_state = torch.FloatTensor(state).to(agent.device).unsqueeze(dim=0)
+        pred_ns, _, _, _ = agent.world_model.pred_next_states(observation=tensor_state,
+                                                              actions=tensor_action)
+        pred_reward, _ = agent.world_model.pred_rewards(tensor_state, tensor_action, pred_ns)
+
+        # MSE Reward
+        pred_reward = pred_reward.detach().squeeze().cpu().numpy()
+        l1_one_rwd_error = abs(pred_reward - reward_extrinsic)
+        reward_model_error += l1_one_rwd_error
+
+        # MSE. L1 of dynamics
+        np_pred_ns = pred_ns.detach().squeeze().cpu().numpy()
+        one_step_mse = (np.square(np_pred_ns - next_state)).mean()
+        world_model_error += one_step_mse
+
+
         if display:
             env.render()
 
@@ -224,6 +245,11 @@ def policy_based_mbrl_train(
             if len(memory) > 0:
                 statistics = memory.get_statistics()
                 agent.set_statistics(statistics)
+
+            logging.info(f"Training World Model Error {world_model_error}, Reward Error {reward_model_error}")
+
+            reward_model_error = 0
+            world_model_error = 0
 
             # Reset environment
             state = env.reset()
