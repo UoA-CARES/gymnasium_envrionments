@@ -205,10 +205,8 @@ def policy_based_mbrl_train(
                 display=True,
             )
 
-            logging.info(f"Training World Model Error {world_model_error_t}, Reward Error {reward_model_error_t}")
             reward_model_error_t = 0
             world_model_error_t = 0
-
 
             # MBRL: Update the statistics.
             if len(memory) > 0:
