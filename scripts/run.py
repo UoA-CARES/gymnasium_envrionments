@@ -7,6 +7,8 @@ and memory instances, and then trains the agent using the specified algorithm.
 import logging
 import sys
 from pathlib import Path
+import os
+os.environ["MUJOCO_GL"] = "egl"
 
 import train_loops.policy_loop as pbe
 import train_loops.ppo_loop as ppe
