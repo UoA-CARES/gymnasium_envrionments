@@ -206,6 +206,7 @@ def main():
         algorithm=alg_config.algorithm,
         task=env_config.task,
         agent=None,
+        record_video=training_config.record_eval_video,
     )
 
     record.save_configurations(configurations)
