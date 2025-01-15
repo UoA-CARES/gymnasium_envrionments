@@ -22,12 +22,15 @@ def evaluate_policy_network(
 
     number_eval_episodes = int(config.number_eval_episodes)
 
+
     for eval_episode_counter in range(number_eval_episodes):
         episode_timesteps = 0
         episode_reward = 0
         episode_num = 0
         done = False
         truncated = False
+        reward_model_error_t = 0
+        world_model_error_t = 0
 
         while not done and not truncated:
             episode_timesteps += 1
@@ -35,6 +38,23 @@ def evaluate_policy_network(
             denormalised_action = normalised_action
 
             next_state, reward, done, truncated = env.step(denormalised_action)
+
+            # Converting to tensor
+            tensor_action = torch.FloatTensor(normalised_action).to(agent.device).unsqueeze(dim=0)
+            tensor_state = torch.FloatTensor(state).to(agent.device).unsqueeze(dim=0)
+            pred_ns, _, _, _ = agent.world_model.pred_next_states(observation=tensor_state,
+                                                                  actions=tensor_action)
+            pred_reward, _ = agent.world_model.pred_rewards(tensor_state, tensor_action, pred_ns)
+
+            # MSE Reward
+            pred_reward = pred_reward.detach().squeeze().cpu().numpy()
+            l1_one_rwd_error = abs(pred_reward - reward)
+            reward_model_error_t += l1_one_rwd_error
+
+            # MSE. L1 of dynamics
+            np_pred_ns = pred_ns.detach().squeeze().cpu().numpy()
+            one_step_mse = (np.square(np_pred_ns - next_state)).mean()
+            world_model_error_t += one_step_mse
 
             episode_reward += reward
             state = next_state
@@ -49,8 +69,11 @@ def evaluate_policy_network(
                         total_steps=total_steps + 1,
                         episode=eval_episode_counter + 1,
                         episode_reward=episode_reward,
+                        world_model_error_t=world_model_error_t / episode_timesteps,
                         display=True,
                     )
+                reward_model_error_t = 0
+                world_model_error_t = 0
 
                 # Reset environment
                 state = env.reset()
