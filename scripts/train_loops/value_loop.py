@@ -121,6 +121,8 @@ def value_based_train(
             for _ in range(G):
                 info = agent.train_policy(memory, batch_size)
 
+        info["exploration_rate"] = exploration_rate
+
         if (total_step_counter + 1) % number_steps_per_evaluation == 0:
             logging.info("*************--Evaluation Loop--*************")
             evaluate_value_network(
