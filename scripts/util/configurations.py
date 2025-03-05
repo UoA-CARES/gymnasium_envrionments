@@ -23,6 +23,7 @@ class GymEnvironmentConfig(EnvironmentConfig):
         act_freq (int): Action frequency (default: 24)
         emulation_speed (int): Emulation speed (default: 0)
         headless (bool): Whether to run in headless mode (default: False)
+        discrete (bool): Whether action space is discrete (default: False)
     """
 
     gym: str = Field(description="Gym Environment <openai, dmcs, pyboy>")
@@ -41,3 +42,4 @@ class GymEnvironmentConfig(EnvironmentConfig):
     act_freq: int = 24
     emulation_speed: int = 0
     headless: int = 1
+    discrete: int = 0
