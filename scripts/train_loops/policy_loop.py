@@ -12,6 +12,7 @@ from cares_reinforcement_learning.util.configurations import (
 import cv2
 import numpy as np
 
+
 def overlay_info(image, **kwargs):
     # Create a copy of the image to overlay text
     output_image = image.copy()
@@ -23,15 +24,23 @@ def overlay_info(image, **kwargs):
     font = cv2.FONT_HERSHEY_SIMPLEX
     font_scale = 0.4  # Smaller font scale
     color = (0, 0, 255)  # Red color in BGR
-    thickness = 1       # Thicker text
+    thickness = 1  # Thicker text
 
     # Create overlay text from the kwargs dictionary
     overlay_text = "\n".join([f"{key}: {value}" for key, value in kwargs.items()])
 
     # Split the overlay text into lines and calculate position for each line
-    for i, line in enumerate(overlay_text.split('\n')):
-        cv2.putText(output_image, line, (text_x, text_y + i * 20), 
-                    font, font_scale, color, thickness, cv2.LINE_AA)
+    for i, line in enumerate(overlay_text.split("\n")):
+        cv2.putText(
+            output_image,
+            line,
+            (text_x, text_y + i * 20),
+            font,
+            font_scale,
+            color,
+            thickness,
+            cv2.LINE_AA,
+        )
 
     return output_image
 
@@ -57,10 +66,14 @@ def evaluate_policy_network(
         while not done and not truncated:
             episode_timesteps += 1
             normalised_action = agent.select_action_from_policy(state, evaluation=True)
-            
-            denormalised_action = hlp.denormalize(
-                normalised_action, env.max_action_value, env.min_action_value
-            ) if normalisation else normalised_action
+
+            denormalised_action = (
+                hlp.denormalize(
+                    normalised_action, env.max_action_value, env.min_action_value
+                )
+                if normalisation
+                else normalised_action
+            )
 
             state, reward, done, truncated = env.step(denormalised_action)
             episode_reward += reward
@@ -98,7 +111,6 @@ def policy_based_train(
     display=False,
     normalisation=True,
 ):
-    
 
     start_new_run = True
 
@@ -146,8 +158,7 @@ def policy_based_train(
             frame = env.grab_frame()
             record.start_video("temp_train_video", frame)
             run_data_rows = []
-            
-        
+
         if total_step_counter < max_steps_exploration:
             logging.info(
                 f"Running Exploration Steps {total_step_counter + 1}/{max_steps_exploration}"
@@ -172,9 +183,13 @@ def policy_based_train(
             select_action_from_policy = agent.select_action_from_policy
 
             if "info" in inspect.signature(select_action_from_policy).parameters:
-                normalised_action = select_action_from_policy(state, noise_scale=noise_scale, info=step_data)
+                normalised_action = select_action_from_policy(
+                    state, noise_scale=noise_scale, info=step_data
+                )
             else:
-                normalised_action = select_action_from_policy(state, noise_scale=noise_scale)
+                normalised_action = select_action_from_policy(
+                    state, noise_scale=noise_scale
+                )
 
             # mapping to env range [e.g. -2 , 2 for pendulum] - note for DMCS this is redudenant but required for openai
             if normalisation:
@@ -228,7 +243,7 @@ def policy_based_train(
 
         if intrinsic_on:
             info["intrinsic_reward"] = intrinsic_reward
-            
+
         if done or truncated:
             episode_time = time.time() - episode_start
             record.log_train(
@@ -250,15 +265,17 @@ def policy_based_train(
 
             if episode_reward > highest_reward:
 
-
                 highest_reward = episode_reward
 
-
-                new_record_video = os.path.join(video_dir, f"new_record_episode_{episode_num+1}.mp4")
+                new_record_video = os.path.join(
+                    video_dir, f"new_record_episode_{episode_num+1}.mp4"
+                )
                 training_video = os.path.join(video_dir, "temp_train_video.mp4")
 
-                logging.info(f"New highest reward of {episode_reward}. Saving video and run data...")
-                    
+                logging.info(
+                    f"New highest reward of {episode_reward}. Saving video and run data..."
+                )
+
                 try:
                     os.rename(training_video, new_record_video)
                 except:
