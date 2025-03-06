@@ -254,20 +254,13 @@ def policy_based_train(
                 highest_reward = episode_reward
 
 
-                highest_reward_video = os.path.join(video_dir, "highest_reward.mp4")
+                new_record_video = os.path.join(video_dir, f"new_record_episode_{episode_num+1}.mp4")
                 training_video = os.path.join(video_dir, "temp_train_video.mp4")
 
                 logging.info(f"New highest reward of {episode_reward}. Saving video and run data...")
-
-
-                try:
-                    if os.path.exists(highest_reward_video):
-                        os.remove(highest_reward_video)
-                except:
-                    logging.error("An error deleting the highest reward video occured :/")
                     
                 try:
-                    os.rename(training_video, highest_reward_video)
+                    os.rename(training_video, new_record_video)
                 except:
                     logging.error("An error renaming the video occured :/")
 
@@ -278,18 +271,6 @@ def policy_based_train(
             episode_reward = 0
             episode_num += 1
             episode_start = time.time()
-        
-        if (total_step_counter + 1) % number_steps_per_evaluation == 0:
-            logging.info("*************--Evaluation Loop--*************")
-            evaluate_policy_network(
-                env_eval,
-                agent,
-                train_config,
-                record=record,
-                total_steps=total_step_counter,
-                normalisation=normalisation,
-            )
-            logging.info("--------------------------------------------")
 
     end_time = time.time()
     elapsed_time = end_time - start_time
