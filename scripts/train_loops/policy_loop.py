@@ -257,8 +257,8 @@ def policy_based_train(
             )
 
             record.stop_video()
-            video_dir = os.path.join(record.directory, "videos")
-            data_dir = os.path.join(record.directory, "data")
+            video_dir = os.path.join(record.current_sub_directory, "videos")
+            data_dir = os.path.join(record.current_sub_directory, "data")
 
             run_csv = os.path.join(data_dir, f"episode_{episode_num}.csv")
             pd.DataFrame(run_data_rows).to_csv(run_csv, index=False)
