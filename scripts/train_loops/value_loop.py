@@ -25,8 +25,6 @@ def evaluate_value_network(
 
     number_eval_episodes = int(train_config.number_eval_episodes)
 
-    exploration_rate = alg_config.exploration_min
-
     for eval_episode_counter in range(number_eval_episodes):
         episode_timesteps = 0
         episode_reward = 0
@@ -37,10 +35,7 @@ def evaluate_value_network(
         while not done and not truncated:
             episode_timesteps += 1
 
-            if random.random() < exploration_rate:
-                action = randrange(env.action_num)
-            else:
-                action = agent.select_action_from_policy(state)
+            action = agent.select_action_from_policy(state)
 
             state, reward, done, truncated = env.step(action)
             episode_reward += reward
