@@ -7,6 +7,7 @@ from cares_reinforcement_learning.util.configurations import (
     AlgorithmConfig,
     TrainingConfig,
 )
+from cares_reinforcement_learning.util.helpers import EpsilonScheduler
 
 
 def evaluate_value_network(
@@ -74,9 +75,6 @@ def value_based_train(
 ):
     start_time = time.time()
 
-    exploration_min = alg_config.exploration_min
-    exploration_decay = alg_config.exploration_decay
-
     max_steps_training = alg_config.max_steps_training
     number_steps_per_evaluation = train_config.number_steps_per_evaluation
 
@@ -89,14 +87,19 @@ def value_based_train(
 
     state = env.reset()
 
+    epsilon_scheduler = EpsilonScheduler(
+        start_epsilon=alg_config.start_epsilon,
+        end_epsilon=alg_config.end_epsilon,
+        decay_steps=alg_config.decay_steps,
+    )
+
     exploration_rate = 1
 
     episode_start = time.time()
     for total_step_counter in range(int(max_steps_training)):
         episode_timesteps += 1
 
-        exploration_rate *= exploration_decay
-        exploration_rate = max(exploration_min, exploration_rate)
+        exploration_rate = epsilon_scheduler.get_epsilon(total_step_counter)
 
         if random.random() < exploration_rate:
             action = randrange(env.action_num)
@@ -112,6 +115,7 @@ def value_based_train(
         episode_reward += reward
 
         info = {}
+
         if len(memory) > batch_size:
             for _ in range(G):
                 info = agent.train_policy(memory, batch_size)
