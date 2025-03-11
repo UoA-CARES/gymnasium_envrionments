@@ -3,6 +3,7 @@ Configuration class for Gym Environments.
 """
 
 from pathlib import Path
+from typing import Optional
 
 from cares_reinforcement_learning.util.configurations import EnvironmentConfig
 from pydantic import Field
@@ -23,21 +24,23 @@ class GymEnvironmentConfig(EnvironmentConfig):
         act_freq (int): Action frequency (default: 24)
         emulation_speed (int): Emulation speed (default: 0)
         headless (bool): Whether to run in headless mode (default: False)
+        discrete (bool): Whether action space is discrete (default: False)
     """
 
     gym: str = Field(description="Gym Environment <openai, dmcs, pyboy>")
     task: str
-    domain: str = ""
-    display: int = 0
+    domain: Optional[str] = ""
+    display: Optional[int] = 0
 
     # image observation configurations
-    frames_to_stack: int = 3
-    frame_width: int = 84
-    frame_height: int = 84
-    grey_scale: int = 0
+    frames_to_stack: Optional[int] = 3
+    frame_width: Optional[int] = 84
+    frame_height: Optional[int] = 84
+    grey_scale: Optional[int] = 0
 
     # pyboy configurations TODO move...
-    rom_path: str = f"{Path.home()}/cares_rl_configs"
-    act_freq: int = 24
-    emulation_speed: int = 0
-    headless: int = 1
+    rom_path: Optional[str] = f"{Path.home()}/cares_rl_configs"
+    act_freq: Optional[int] = 24
+    emulation_speed: Optional[int] = 0
+    headless: Optional[int] = 1
+    discrete: Optional[int] = 0

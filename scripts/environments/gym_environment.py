@@ -21,6 +21,10 @@ class GymEnvironment(metaclass=abc.ABCMeta):
     def min_action_value(self):
         raise NotImplementedError("Override this method")
 
+    @abc.abstractmethod
+    def action_as_string(self, action):
+        raise NotImplemented("Override this method")
+
     @cached_property
     @abc.abstractmethod
     def max_action_value(self):

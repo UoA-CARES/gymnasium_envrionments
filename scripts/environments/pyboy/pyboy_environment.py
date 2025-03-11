@@ -1,6 +1,7 @@
 from functools import cached_property
 
 import numpy as np
+import logging
 from environments.gym_environment import GymEnvironment
 from util.configurations import GymEnvironmentConfig
 
@@ -17,6 +18,7 @@ class PyboyEnvironment(GymEnvironment):
             config.act_freq,
             config.emulation_speed,
             config.headless,
+            config.discrete,
         )
 
     @cached_property
@@ -36,9 +38,10 @@ class PyboyEnvironment(GymEnvironment):
         return self.env.action_num
 
     def sample_action(self):
-        return np.random.uniform(
-            self.min_action_value, self.max_action_value, size=self.action_num
-        )
+        return self.env.sample_action()
+
+    def action_as_string(self, action):
+        return self.env.action_as_string(action)
 
     def set_seed(self, seed: int) -> None:
         self.env.set_seed(seed)
@@ -47,6 +50,7 @@ class PyboyEnvironment(GymEnvironment):
         return self.env.reset()
 
     def step(self, action: int) -> tuple:
+        # debug-log logging.info("Logging109")
         return self.env.step(action)
 
     def grab_frame(self, height=240, width=300) -> np.ndarray:
