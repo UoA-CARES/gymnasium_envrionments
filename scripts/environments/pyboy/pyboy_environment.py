@@ -18,7 +18,6 @@ class PyboyEnvironment(GymEnvironment):
             config.emulation_speed,
             config.headless,
         )
-    
 
     def get_overlay_info(self) -> dict:
         return self.env.get_overlay_info()

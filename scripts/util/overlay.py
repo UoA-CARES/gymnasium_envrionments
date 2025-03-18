@@ -3,6 +3,7 @@ from pathlib import Path
 
 file_path = Path(__file__).parent.resolve()
 
+
 def overlay_info(image, **kwargs):
     """Overlay key-value information on an image."""
     output_image = image.copy()
@@ -14,16 +15,23 @@ def overlay_info(image, **kwargs):
     thickness = 1
 
     # Define initial position for the text
-    text_x, text_y = 10, 30  
+    text_x, text_y = 10, 30
 
     # Get text height for proper spacing
     (w, h), baseline = cv2.getTextSize("A", font, font_scale, thickness)
-    line_height = h + baseline  
+    line_height = h + baseline
 
     # Iterate over key-value pairs and overlay text
     for i, (key, value) in enumerate(kwargs.items()):
         text = f"{key}: {value}"
-        cv2.putText(output_image, text, (text_x, text_y + i * line_height), 
-                    font, font_scale, color, thickness)
+        cv2.putText(
+            output_image,
+            text,
+            (text_x, text_y + i * line_height),
+            font,
+            font_scale,
+            color,
+            thickness,
+        )
 
     return output_image

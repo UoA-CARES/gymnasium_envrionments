@@ -8,6 +8,7 @@ from cares_reinforcement_learning.util.configurations import (
 )
 from util.overlay import overlay_info
 
+
 def evaluate_policy_network(
     env, agent, config: TrainingConfig, record=None, total_steps=0, normalisation=True
 ):
@@ -42,7 +43,9 @@ def evaluate_policy_network(
 
             if eval_episode_counter == 0 and record is not None:
                 frame = env.grab_frame()
-                overlay = overlay_info(frame, reward=f"{episode_reward:.1f}", **env.get_overlay_info())
+                overlay = overlay_info(
+                    frame, reward=f"{episode_reward:.1f}", **env.get_overlay_info()
+                )
                 record.log_video(overlay)
 
             if done or truncated:
