@@ -19,6 +19,9 @@ class PyboyEnvironment(GymEnvironment):
             config.headless,
         )
 
+    def get_overlay_info(self) -> dict:
+        return self.env.get_overlay_info()
+
     @cached_property
     def min_action_value(self) -> float:
         return self.env.min_action_value
