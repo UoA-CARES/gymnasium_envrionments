@@ -37,6 +37,7 @@ class GymEnvironmentConfig(EnvironmentConfig):
     grey_scale: int = 0
 
     # pyboy configurations TODO move...
+    # Default values are being set in multiple locations which may cause confusion
     rom_path: str = f"{Path.home()}/cares_rl_configs"
     act_freq: int = 24
     emulation_speed: int = 0
