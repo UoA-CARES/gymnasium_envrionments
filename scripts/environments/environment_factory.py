@@ -1,11 +1,11 @@
 import logging
 
-from environments.dmcs.dmcs_environment import DMCSEnvironment
 from environments.gym_environment import GymEnvironment
 from environments.image_wrapper import ImageWrapper
-from environments.openai.openai_environment import OpenAIEnvironment
-from environments.pyboy.pyboy_environment import PyboyEnvironment
 from util.configurations import GymEnvironmentConfig
+
+# Disable these as this is a deliberate use of dynamic imports
+# pylint: disable=import-outside-toplevel
 
 
 class EnvironmentFactory:
@@ -17,12 +17,20 @@ class EnvironmentFactory:
     ) -> GymEnvironment | ImageWrapper:
         logging.info(f"Training Environment: {config.gym}")
 
+        env: GymEnvironment | ImageWrapper
         if config.gym == "dmcs":
-            env: GymEnvironment = DMCSEnvironment(config)
+            from environments.dmcs.dmcs_environment import DMCSEnvironment
+
+            env = DMCSEnvironment(config)
         elif config.gym == "openai":
-            env: GymEnvironment = OpenAIEnvironment(config)
+            from environments.openai.openai_environment import OpenAIEnvironment
+
+            env = OpenAIEnvironment(config)
         elif config.gym == "pyboy":
-            env: GymEnvironment = PyboyEnvironment(config)
+            from environments.pyboy.pyboy_environment import PyboyEnvironment
+
+            env = PyboyEnvironment(config)
         else:
             raise ValueError(f"Unkown environment: {config.gym}")
+
         return ImageWrapper(config, env) if bool(image_observation) else env
