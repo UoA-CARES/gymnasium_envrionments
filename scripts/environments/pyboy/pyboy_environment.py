@@ -51,3 +51,6 @@ class PyboyEnvironment(GymEnvironment):
 
     def grab_frame(self, height=240, width=300) -> np.ndarray:
         return self.env.grab_frame(height, width)
+
+    def get_overlay_info(self) -> dict:
+        return self.env.get_overlay_info()

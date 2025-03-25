@@ -20,6 +20,9 @@ class ImageWrapper:
         self.frame_height = config.frame_height
         logging.info("Image Observation is on")
 
+    def get_overlay_info(self):
+        return self.gym.get_overlay_info()
+
     @cached_property
     def observation_space(self):
         channels = 1 if self.grey_scale else 3

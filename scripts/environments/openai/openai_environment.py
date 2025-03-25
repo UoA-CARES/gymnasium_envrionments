@@ -59,3 +59,7 @@ class OpenAIEnvironment(GymEnvironment):
         # Convert to BGR for use with OpenCV
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         return frame
+
+    def get_overlay_info(self) -> dict:
+        # TODO: Add overlay information for gyms as needed
+        return {}

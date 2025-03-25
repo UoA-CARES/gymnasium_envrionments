@@ -16,6 +16,10 @@ class GymEnvironment(metaclass=abc.ABCMeta):
         cv2.imshow(f"{self.task}", frame)
         cv2.waitKey(10)
 
+    @abc.abstractmethod
+    def get_overlay_info(self) -> dict:
+        raise NotImplementedError("Override this method")
+
     @cached_property
     @abc.abstractmethod
     def min_action_value(self):
