@@ -9,6 +9,7 @@ from cares_reinforcement_learning.util.configurations import (
 from util.overlay import overlay_info
 from util.single_line_logger import log_progress
 
+
 def evaluate_policy_network(
     env, agent, config: TrainingConfig, record=None, total_steps=0, normalisation=True
 ):
@@ -77,7 +78,7 @@ def policy_based_train(
     display=False,
     normalisation=True,
 ):
-    
+
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.INFO)
 
@@ -123,7 +124,8 @@ def policy_based_train(
         episode_timesteps += 1
 
         if total_step_counter < max_steps_exploration:
-            log_progress(logger,
+            log_progress(
+                logger,
                 f"Running Exploration Steps {total_step_counter + 1}/{max_steps_exploration}",
                 standard_handler,
             )
