@@ -19,9 +19,6 @@ class PyboyEnvironment(GymEnvironment):
             config.headless,
         )
 
-    def get_overlay_info(self) -> dict:
-        return self.env.get_overlay_info()
-
     @cached_property
     def min_action_value(self) -> float:
         return self.env.min_action_value
@@ -54,3 +51,6 @@ class PyboyEnvironment(GymEnvironment):
 
     def grab_frame(self, height=240, width=300) -> np.ndarray:
         return self.env.grab_frame(height, width)
+
+    def get_overlay_info(self) -> dict:
+        return self.env.get_overlay_info()
