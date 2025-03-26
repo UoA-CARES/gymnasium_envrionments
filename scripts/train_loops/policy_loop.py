@@ -7,7 +7,7 @@ from cares_reinforcement_learning.util.configurations import (
     TrainingConfig,
 )
 from util.overlay import overlay_info
-from util.single_line_logger import LogInPlaceHandler
+from scripts.util.log_in_place_handler import LogInPlaceHandler
 
 
 def evaluate_policy_network(
