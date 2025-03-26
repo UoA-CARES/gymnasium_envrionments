@@ -10,6 +10,7 @@ class InPlaceLogger(logging.Logger):
         self.addHandler(LogInPlaceHandler())
         self.propagate = False
 
+
 class LogInPlaceHandler(logging.StreamHandler):
     """Custom handler to overwrite the same terminal line for progress updates."""
 

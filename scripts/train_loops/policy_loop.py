@@ -79,7 +79,7 @@ def policy_based_train(
     normalisation=True,
 ):
     logging.setLoggerClass(InPlaceLogger)
-    training_logger = logging.getLogger('training')
+    training_logger = logging.getLogger("training")
 
     start_time = time.time()
 
@@ -115,7 +115,9 @@ def policy_based_train(
         episode_timesteps += 1
 
         if total_step_counter < max_steps_exploration:
-            training_logger.info(f"Running Exploration Steps {total_step_counter + 1}/{max_steps_exploration}")
+            training_logger.info(
+                f"Running Exploration Steps {total_step_counter + 1}/{max_steps_exploration}"
+            )
 
             denormalised_action = env.sample_action()
 
