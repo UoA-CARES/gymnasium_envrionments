@@ -15,6 +15,7 @@ class LogInPlaceHandler(logging.StreamHandler):
         sys.stdout.write(f"\r{msg}    ")  # Overwrite the line with some padding
         sys.stdout.flush()
 
+
 def log_in_place(logger: logging.Logger, msg: str) -> None:
     logger.propagate = False
     logger.info(msg)
