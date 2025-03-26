@@ -5,8 +5,8 @@ import sys
 class InPlaceLogger(logging.Logger):
     """Custom logger that immediately uses in-place logging handler for same line logging."""
 
-    def __init__(self, name: str, level: int = logging.INFO):
-        super().__init__(name, level=level)
+    def __init__(self, name: str):
+        super().__init__(name, level=logging.INFO)
         self.addHandler(LogInPlaceHandler())
         self.propagate = False
 
