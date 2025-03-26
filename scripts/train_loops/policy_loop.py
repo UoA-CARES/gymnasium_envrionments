@@ -118,7 +118,10 @@ def policy_based_train(
         episode_timesteps += 1
 
         if total_step_counter < max_steps_exploration:
-            log_in_place_handler.log(logger, f"Running Exploration Steps {total_step_counter + 1}/{max_steps_exploration}")
+            log_in_place_handler.log(
+                logger,
+                f"Running Exploration Steps {total_step_counter + 1}/{max_steps_exploration}",
+            )
 
             denormalised_action = env.sample_action()
 

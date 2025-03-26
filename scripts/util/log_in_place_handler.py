@@ -1,8 +1,10 @@
 import logging
 import sys
 
+
 class LogInPlaceHandler(logging.StreamHandler):
     """Custom handler to overwrite the same terminal line for progress updates."""
+
     def __init__(self):
         super().__init__(stream=sys.stdout)
         formatter = logging.Formatter("%(levelname)s: %(message)s")
