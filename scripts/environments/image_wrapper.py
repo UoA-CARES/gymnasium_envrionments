@@ -61,8 +61,8 @@ class ImageWrapper:
             frame.resize((height, width, 1))
         return frame
 
-    def reset(self):
-        vector_state = self.gym.reset()
+    def reset(self, training: bool = True):
+        vector_state = self.gym.reset(training=training)
         frame = self.grab_frame(
             height=self.frame_height, width=self.frame_width, grey_scale=self.grey_scale
         )

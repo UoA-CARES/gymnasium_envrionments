@@ -12,7 +12,7 @@ from util.overlay import overlay_info
 def evaluate_policy_network(
     env, agent, config: TrainingConfig, record=None, total_steps=0, normalisation=True
 ):
-    state = env.reset()
+    state = env.reset(training=False)
 
     if record is not None:
         frame = env.grab_frame()

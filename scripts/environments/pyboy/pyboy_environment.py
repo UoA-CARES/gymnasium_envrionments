@@ -43,8 +43,8 @@ class PyboyEnvironment(GymEnvironment):
     def set_seed(self, seed: int) -> None:
         self.env.set_seed(seed)
 
-    def reset(self) -> np.ndarray:
-        return self.env.reset()
+    def reset(self, training: bool = True) -> np.ndarray:
+        return self.env.reset(training)
 
     def step(self, action: int) -> tuple:
         return self.env.step(action)
