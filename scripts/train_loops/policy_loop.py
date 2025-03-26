@@ -7,7 +7,10 @@ from cares_reinforcement_learning.util.configurations import (
     TrainingConfig,
 )
 from util.overlay import overlay_info
-from scripts.util.log_in_place_handler import LogInPlaceHandler
+from util.log_in_place import (
+    LogInPlaceHandler, 
+    log_in_place
+)
 
 
 def evaluate_policy_network(
@@ -118,10 +121,7 @@ def policy_based_train(
         episode_timesteps += 1
 
         if total_step_counter < max_steps_exploration:
-            log_in_place_handler.log(
-                logger,
-                f"Running Exploration Steps {total_step_counter + 1}/{max_steps_exploration}",
-            )
+            log_in_place(logger, f"Running Exploration Steps {total_step_counter + 1}/{max_steps_exploration}")
 
             denormalised_action = env.sample_action()
 

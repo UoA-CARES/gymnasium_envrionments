@@ -12,10 +12,10 @@ class LogInPlaceHandler(logging.StreamHandler):
 
     def emit(self, record: logging.LogRecord) -> None:
         msg = self.format(record)
-        sys.stdout.write(f"\r{msg}\t")  # Overwrite the line with some padding
+        sys.stdout.write(f"\r{msg}    ")  # Overwrite the line with some padding
         sys.stdout.flush()
 
-    def log(self, logger: logging.Logger, msg: str) -> None:
-        logger.propagate = False
-        logger.info(msg)
-        logger.propagate = True
+def log_in_place(logger: logging.Logger, msg: str) -> None:
+    logger.propagate = False
+    logger.info(msg)
+    logger.propagate = True
