@@ -1,17 +1,28 @@
 import logging
 import time
 
-from cares_reinforcement_learning.util import helpers as hlp
+from cares_reinforcement_learning.util import (
+    helpers as hlp,
+    Record
+)
 from cares_reinforcement_learning.util.configurations import (
     AlgorithmConfig,
     TrainingConfig,
 )
+from cares_reinforcement_learning.memory.memory_buffer import MemoryBuffer
 from util.overlay import overlay_info
 from util.log_in_place import InPlaceLogger
+from environments.gym_environment import GymEnvironment
+from environments.image_wrapper import ImageWrapper
 
 
 def evaluate_policy_network(
-    env, agent, config: TrainingConfig, record=None, total_steps=0, normalisation=True
+    env: GymEnvironment | ImageWrapper, 
+    agent, 
+    config: TrainingConfig, 
+    record: Record = None, 
+    total_steps: int = 0, 
+    normalisation: bool = True
 ):
     state = env.reset(training=False)
 
@@ -68,11 +79,11 @@ def evaluate_policy_network(
 
 
 def policy_based_train(
-    env,
-    env_eval,
+    env: GymEnvironment | ImageWrapper,
+    env_eval: GymEnvironment | ImageWrapper,
     agent,
-    memory,
-    record,
+    memory: MemoryBuffer,
+    record: Record,
     train_config: TrainingConfig,
     alg_config: AlgorithmConfig,
     display=False,
