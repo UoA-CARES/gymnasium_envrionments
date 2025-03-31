@@ -39,6 +39,9 @@ The evaluate command is used to re-run the evaluation loops on a trained reinfor
 python run.py evaluate --data_path <PATH_TO_TRAINING_DATA>
 ```
 
+## Docker
+Refer [here](./docker/README.md) for instructions on how to use our docker image
+
 ## Gym Environments
 This package contains wrappers for the following gym environments:
 
