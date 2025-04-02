@@ -83,7 +83,7 @@ def policy_based_train(
     train_config: TrainingConfig,
     alg_config: AlgorithmConfig,
     display=False,
-    normalisation=True,
+    apply_action_normalisation=True,
 ):
     start_time = time.time()
 
@@ -131,13 +131,14 @@ def policy_based_train(
             denormalised_action = env.sample_action()
 
             # algorithm range [-1, 1] - note for DMCS this is redudenant but required for openai
-            if normalisation:
+            normalised_action = denormalised_action
+            if apply_action_normalisation:
                 normalised_action = hlp.normalize(
                     denormalised_action, env.max_action_value, env.min_action_value
                 )
-            else:
-                normalised_action = denormalised_action
         else:
+            # TODO - move this to algorithm side
+            # Currently only really used for TD3 varients - even then only CTD4 uses it on base
             noise_scale *= noise_decay
             noise_scale = max(min_noise, noise_scale)
 
@@ -148,14 +149,14 @@ def policy_based_train(
             )
 
             # mapping to env range [e.g. -2 , 2 for pendulum] - note for DMCS this is redudenant but required for openai
-            if normalisation:
+            denormalised_action = normalised_action
+            if apply_action_normalisation:
                 denormalised_action = hlp.denormalize(
                     normalised_action, env.max_action_value, env.min_action_value
                 )
-            else:
-                denormalised_action = normalised_action
 
         next_state, reward_extrinsic, done, truncated = env.step(denormalised_action)
+
         if display:
             env.render()
 
@@ -177,6 +178,7 @@ def policy_based_train(
         )
 
         state = next_state
+
         # Note we only track the extrinsic reward for the episode for proper comparison
         episode_reward += reward_extrinsic
 
@@ -199,7 +201,7 @@ def policy_based_train(
                 number_eval_episodes=train_config.number_eval_episodes,
                 record=record,
                 total_steps=total_step_counter,
-                normalisation=normalisation,
+                normalisation=apply_action_normalisation,
             )
             logging.info("--------------------------------------------")
 

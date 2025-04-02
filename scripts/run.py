@@ -114,7 +114,7 @@ def train(
             training_config,
             alg_config,
             display=env_config.display,
-            normalisation=True,
+            apply_action_normalisation=True,
         )
     elif agent.type == "discrete_policy":
         pbe.policy_based_train(
@@ -126,7 +126,7 @@ def train(
             training_config,
             alg_config,
             display=env_config.display,
-            normalisation=False,
+            apply_action_normalisation=False,
         )
     elif agent.type == "value":
         vbe.value_based_train(
