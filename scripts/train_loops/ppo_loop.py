@@ -7,15 +7,13 @@ from cares_reinforcement_learning.util.configurations import PPOConfig, Training
 
 
 def evaluate_ppo_network(
-    env, agent, config: TrainingConfig, record=None, total_steps=0
+    env, agent, number_eval_episodes: int, record=None, total_steps=0
 ):
     state = env.reset()
 
     if record is not None:
         frame = env.grab_frame()
         record.start_video(total_steps + 1, frame)
-
-    number_eval_episodes = int(config.number_eval_episodes)
 
     for eval_episode_counter in range(number_eval_episodes):
         episode_timesteps = 0
@@ -111,7 +109,7 @@ def ppo_train(
             evaluate_ppo_network(
                 env_eval,
                 agent,
-                train_config,
+                number_eval_episodes=train_config.number_eval_episodes,
                 record=record,
                 total_steps=total_step_counter,
             )

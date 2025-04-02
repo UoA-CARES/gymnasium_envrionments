@@ -5,6 +5,7 @@ and memory instances, and then trains the agent using the specified algorithm.
 """
 
 import logging
+import os
 import sys
 from pathlib import Path
 
@@ -22,23 +23,23 @@ from util.configurations import GymEnvironmentConfig
 logging.basicConfig(level=logging.INFO)
 
 
-def evaluate(data_path, training_config, seed, alg_config, env, agent, record):
-
-    model_path = Path(f"{data_path}/{seed}/models/")
-    folders = list(model_path.glob("*"))
-
-    folders = natsorted(folders)
-
-    for folder in folders[:-2]:
+def run_evaluation_loop(
+    number_eval_episodes: int, alg_config, env, agent, record, folders
+):
+    for folder in folders:
         agent.load_models(folder, f"{alg_config.algorithm}")
 
-        total_steps = int(folder.name.split("_")[-1]) - 1
+        # ewww this is bad - fix this at some point
+        try:
+            total_steps = int(folder.name.split("_")[-1]) - 1
+        except ValueError:
+            total_steps = 0
 
         if alg_config.algorithm == "PPO":
             ppe.evaluate_ppo_network(
                 env,
                 agent,
-                training_config,
+                number_eval_episodes,
                 record=record,
                 total_steps=total_steps,
                 # display=env_config.display,
@@ -47,7 +48,7 @@ def evaluate(data_path, training_config, seed, alg_config, env, agent, record):
             pbe.evaluate_policy_network(
                 env,
                 agent,
-                training_config,
+                number_eval_episodes,
                 record=record,
                 total_steps=total_steps,
                 normalisation=True,
@@ -57,7 +58,7 @@ def evaluate(data_path, training_config, seed, alg_config, env, agent, record):
             pbe.evaluate_policy_network(
                 env,
                 agent,
-                training_config,
+                number_eval_episodes,
                 record=record,
                 total_steps=total_steps,
                 normalisation=False,
@@ -67,14 +68,49 @@ def evaluate(data_path, training_config, seed, alg_config, env, agent, record):
             vbe.evaluate_value_network(
                 env,
                 agent,
-                training_config,
-                alg_config,
+                number_eval_episodes,
                 record=record,
                 total_steps=total_steps,
                 # display=env_config.display,
             )
         else:
             raise ValueError(f"Agent type is unknown: {agent.type}")
+
+
+def test(data_path, number_eval_episodes, alg_config, env, agent, record):
+    # Model Path is the seeds directory - remove files
+    algorithm_directory = Path(f"{data_path}/")
+    algorithm_data = list(algorithm_directory.glob("*"))
+
+    seed_folders = [entry for entry in algorithm_data if os.path.isdir(entry)]
+
+    seed_folders = natsorted(seed_folders)
+
+    print(f"Folders: {seed_folders}")
+
+    for folder in seed_folders:
+        model_path = Path(f"{folder}/models/final")
+        print(f"Model Path: {model_path}")
+        run_evaluation_loop(
+            number_eval_episodes, alg_config, env, agent, record, [model_path]
+        )
+
+
+def evaluate(data_path, training_config, seed, alg_config, env, agent, record):
+
+    model_path = Path(f"{data_path}/{seed}/models/")
+    folders = list(model_path.glob("*"))
+
+    folders = natsorted(folders)
+
+    run_evaluation_loop(
+        training_config.number_eval_episodes,
+        alg_config,
+        env,
+        agent,
+        record,
+        folders[:-2],
+    )
 
 
 def train(
@@ -147,11 +183,19 @@ def main():
 
     logging.info(
         "\n---------------------------------------------------\n"
+        "RUN CONFIG\n"
+        "---------------------------------------------------"
+    )
+
+    logging.info(f"\n{yaml.dump(run_config.dict(), default_flow_style=False)}")
+
+    logging.info(
+        "\n---------------------------------------------------\n"
         "ENVIRONMENT CONFIG\n"
         "---------------------------------------------------"
     )
 
-    logging.info(f"\n{yaml.dump(dict(env_config), default_flow_style=False)}")
+    logging.info(f"\n{yaml.dump(env_config.dict(), default_flow_style=False)}")
 
     logging.info(
         "\n---------------------------------------------------\n"
@@ -159,7 +203,7 @@ def main():
         "---------------------------------------------------"
     )
 
-    logging.info(f"\n{yaml.dump(dict(alg_config), default_flow_style=False)}")
+    logging.info(f"\n{yaml.dump(alg_config.dict(), default_flow_style=False)}")
 
     logging.info(
         "\n---------------------------------------------------\n"
@@ -167,7 +211,7 @@ def main():
         "---------------------------------------------------"
     )
 
-    logging.info(f"\n{yaml.dump(dict(training_config), default_flow_style=False)}")
+    logging.info(f"\n{yaml.dump(training_config.dict(), default_flow_style=False)}")
 
     device = hlp.get_device()
     logging.info(f"Device: {device}")
@@ -211,31 +255,36 @@ def main():
 
     record.save_configurations(configurations)
 
+    seeds = run_config.seeds if run_config.command == "test" else training_config.seeds
+
     # Split the evaluation and training loop setup
-    for iteration, seed in enumerate(training_config.seeds):
-        logging.info(
-            f"Iteration {iteration+1}/{len(training_config.seeds)} with Seed: {seed}"
-        )
+    for iteration, seed in enumerate(seeds):
+        logging.info(f"Iteration {iteration+1}/{len(seeds)} with Seed: {seed}")
+
+        # Create the Environment
         # This line should be here for seed consistency issues
+        logging.info(f"Loading Environment: {env_config.gym}")
         env = env_factory.create_environment(env_config, alg_config.image_observation)
         env_eval = env_factory.create_environment(
             env_config, alg_config.image_observation
         )
+
+        # Set the seed for everything
         hlp.set_seed(seed)
         env.set_seed(seed)
         env_eval.set_seed(seed)
 
+        # Create the algorithm
         logging.info(f"Algorithm: {alg_config.algorithm}")
         agent = network_factory.create_network(
             env.observation_space, env.action_num, alg_config
         )
 
+        # legacy handler for other gyms - expcetion should in factory
         if agent is None:
             raise ValueError(
                 f"Unknown agent for default algorithms {alg_config.algorithm}"
             )
-
-        memory = memory_factory.create_memory(alg_config)
 
         # create the record class - standardised results tracking
         record.set_agent(agent)
@@ -243,6 +292,10 @@ def main():
 
         if run_config.command == "train":
             # Train the policy or value based approach
+
+            # Create the memory - only required for training
+            memory = memory_factory.create_memory(alg_config)
+
             train(
                 env_config,
                 training_config,
@@ -259,6 +312,15 @@ def main():
                 run_config.data_path,
                 training_config,
                 seed,
+                alg_config,
+                env_eval,
+                agent,
+                record,
+            )
+        elif run_config.command == "test":
+            test(
+                run_config.data_path,
+                run_config.episodes,
                 alg_config,
                 env_eval,
                 agent,
