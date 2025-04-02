@@ -86,11 +86,8 @@ def test(data_path, number_eval_episodes, alg_config, env, agent, record):
 
     seed_folders = natsorted(seed_folders)
 
-    print(f"Folders: {seed_folders}")
-
     for folder in seed_folders:
         model_path = Path(f"{folder}/models/final")
-        print(f"Model Path: {model_path}")
         run_evaluation_loop(
             number_eval_episodes, alg_config, env, agent, record, [model_path]
         )
@@ -101,7 +98,8 @@ def evaluate(data_path, training_config, seed, alg_config, env, agent, record):
     model_path = Path(f"{data_path}/{seed}/models/")
     folders = list(model_path.glob("*"))
 
-    folders = natsorted(folders)
+    # sort folders and remove the final and best model folders
+    folders = natsorted(folders)[:-2]
 
     run_evaluation_loop(
         training_config.number_eval_episodes,
@@ -109,7 +107,7 @@ def evaluate(data_path, training_config, seed, alg_config, env, agent, record):
         env,
         agent,
         record,
-        folders[:-2],
+        folders,
     )
 
 
