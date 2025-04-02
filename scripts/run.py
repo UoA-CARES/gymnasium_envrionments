@@ -10,7 +10,6 @@ import sys
 from pathlib import Path
 
 import train_loops.policy_loop as pbe
-import train_loops.ppo_loop as ppe
 import train_loops.value_loop as vbe
 import yaml
 from cares_reinforcement_learning.memory.memory_factory import MemoryFactory
@@ -35,16 +34,7 @@ def run_evaluation_loop(
         except ValueError:
             total_steps = 0
 
-        if alg_config.algorithm == "PPO":
-            ppe.evaluate_ppo_network(
-                env,
-                agent,
-                number_eval_episodes,
-                record=record,
-                total_steps=total_steps,
-                # display=env_config.display,
-            )
-        elif agent.type == "policy":
+        if agent.type == "policy":
             pbe.evaluate_policy_network(
                 env,
                 agent,
@@ -114,17 +104,7 @@ def evaluate(data_path, training_config, seed, alg_config, env, agent, record):
 def train(
     env_config, training_config, alg_config, env, env_eval, agent, memory, record
 ):
-    if alg_config.algorithm == "PPO":
-        ppe.ppo_train(
-            env,
-            env_eval,
-            agent,
-            record,
-            training_config,
-            alg_config,
-            display=env_config.display,
-        )
-    elif agent.type == "policy":
+    if agent.type == "policy":
         pbe.policy_based_train(
             env,
             env_eval,
