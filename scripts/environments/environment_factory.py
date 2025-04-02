@@ -15,7 +15,6 @@ class EnvironmentFactory:
     def create_environment(
         self, config: GymEnvironmentConfig, image_observation
     ) -> GymEnvironment | ImageWrapper:
-        logging.info(f"Training Environment: {config.gym}")
 
         env: GymEnvironment | ImageWrapper
         if config.gym == "dmcs":
