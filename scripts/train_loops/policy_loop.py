@@ -7,6 +7,7 @@ from cares_reinforcement_learning.util.configurations import (
     TrainingConfig,
 )
 from util.overlay import overlay_info
+from util.log_in_place import InPlaceLogger
 
 
 def evaluate_policy_network(
@@ -85,6 +86,9 @@ def policy_based_train(
     display=False,
     apply_action_normalisation=True,
 ):
+    logging.setLoggerClass(InPlaceLogger)
+    exploration_logger = logging.getLogger("exploration")
+
     start_time = time.time()
 
     max_steps_training = alg_config.max_steps_training
@@ -124,7 +128,7 @@ def policy_based_train(
         action_data = []
 
         if total_step_counter < max_steps_exploration:
-            logging.info(
+            exploration_logger.info(
                 f"Running Exploration Steps {total_step_counter + 1}/{max_steps_exploration}"
             )
 
