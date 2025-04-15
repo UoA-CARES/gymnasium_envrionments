@@ -95,11 +95,6 @@ def policy_based_train(
     number_steps_per_evaluation = train_config.number_steps_per_evaluation
     number_steps_per_train_policy = alg_config.number_steps_per_train_policy
 
-    # TODO tidy these up a lot - push back into algorithm side
-    min_noise = alg_config.min_noise if hasattr(alg_config, "min_noise") else 0
-    noise_decay = alg_config.noise_decay if hasattr(alg_config, "noise_decay") else 1.0
-    noise_scale = alg_config.noise_scale if hasattr(alg_config, "noise_scale") else 0.1
-
     logging.info(
         f"Training {max_steps_training} Exploration {max_steps_exploration} Evaluation {number_steps_per_evaluation}"
     )
@@ -136,13 +131,8 @@ def policy_based_train(
                     denormalised_action, env.max_action_value, env.min_action_value
                 )
         else:
-            # TODO - move this to algorithm side
-            # Currently only really used for TD3 varients - even then only CTD4 uses it on base
-            noise_scale *= noise_decay
-            noise_scale = max(min_noise, noise_scale)
-
             # algorithm range [-1, 1])
-            result = agent.select_action_from_policy(state, noise_scale=noise_scale)
+            result = agent.select_action_from_policy(state)
             normalised_action, *action_data = (
                 (result,) if not isinstance(result, tuple) else result
             )

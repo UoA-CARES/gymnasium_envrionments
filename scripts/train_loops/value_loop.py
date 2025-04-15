@@ -1,18 +1,16 @@
 import logging
-import random
 import time
-from random import randrange
 
+from cares_reinforcement_learning.algorithm.algorithm import Algorithm
 from cares_reinforcement_learning.util.configurations import (
     AlgorithmConfig,
     TrainingConfig,
 )
-from cares_reinforcement_learning.util.helpers import EpsilonScheduler
 
 
 def evaluate_value_network(
     env,
-    agent,
+    agent: Algorithm,
     number_eval_episodes: int,
     record=None,
     total_steps: int = 0,
@@ -33,7 +31,7 @@ def evaluate_value_network(
         while not done and not truncated:
             episode_timesteps += 1
 
-            action = agent.select_action_from_policy(state)
+            action = agent.select_action_from_policy(state, evaluation=True)
 
             state, reward, done, truncated = env.step(action)
             episode_reward += reward
@@ -63,7 +61,7 @@ def evaluate_value_network(
 def value_based_train(
     env,
     env_eval,
-    agent,
+    agent: Algorithm,
     memory,
     record,
     train_config: TrainingConfig,
@@ -84,24 +82,11 @@ def value_based_train(
 
     state = env.reset()
 
-    epsilon_scheduler = EpsilonScheduler(
-        start_epsilon=alg_config.start_epsilon,
-        end_epsilon=alg_config.end_epsilon,
-        decay_steps=alg_config.decay_steps,
-    )
-
-    exploration_rate = 1
-
     episode_start = time.time()
     for total_step_counter in range(int(max_steps_training)):
         episode_timesteps += 1
 
-        exploration_rate = epsilon_scheduler.get_epsilon(total_step_counter)
-
-        if random.random() < exploration_rate:
-            action = randrange(env.action_num)
-        else:
-            action = agent.select_action_from_policy(state)
+        action = agent.select_action_from_policy(state)
 
         next_state, reward, done, truncated = env.step(action)
         if display:
@@ -113,11 +98,8 @@ def value_based_train(
 
         info = {}
 
-        if len(memory) > batch_size:
-            for _ in range(G):
-                info = agent.train_policy(memory, batch_size)
-
-        info["exploration_rate"] = exploration_rate
+        for _ in range(G):
+            info = agent.train_policy(memory, batch_size, total_step_counter)
 
         if (total_step_counter + 1) % number_steps_per_evaluation == 0:
             logging.info("*************--Evaluation Loop--*************")
