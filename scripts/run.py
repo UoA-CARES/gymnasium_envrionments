@@ -12,6 +12,7 @@ from pathlib import Path
 import train_loops.policy_loop as pbe
 import train_loops.value_loop as vbe
 import yaml
+from cares_reinforcement_learning.algorithm.algorithm import Algorithm
 from cares_reinforcement_learning.memory.memory_factory import MemoryFactory
 from cares_reinforcement_learning.util import NetworkFactory, Record, RLParser
 from cares_reinforcement_learning.util import helpers as hlp
@@ -23,7 +24,12 @@ logging.basicConfig(level=logging.INFO)
 
 
 def run_evaluation_loop(
-    number_eval_episodes: int, alg_config, env, agent, record, folders
+    number_eval_episodes: int,
+    alg_config,
+    env,
+    agent: Algorithm,
+    record: Record,
+    folders: list[Path],
 ):
     for folder in folders:
         agent.load_models(folder, f"{alg_config.algorithm}")
@@ -34,7 +40,7 @@ def run_evaluation_loop(
         except ValueError:
             total_steps = 0
 
-        if agent.type == "policy":
+        if agent.policy_type == "policy":
             pbe.evaluate_policy_network(
                 env,
                 agent,
@@ -44,7 +50,7 @@ def run_evaluation_loop(
                 normalisation=True,
                 # display=env_config.display,
             )
-        elif agent.type == "discrete_policy":
+        elif agent.policy_type == "discrete_policy":
             pbe.evaluate_policy_network(
                 env,
                 agent,
@@ -54,7 +60,7 @@ def run_evaluation_loop(
                 normalisation=False,
                 # display=env_config.display,
             )
-        elif agent.type == "value":
+        elif agent.policy_type == "value":
             vbe.evaluate_value_network(
                 env,
                 agent,
@@ -83,7 +89,9 @@ def test(data_path, number_eval_episodes, alg_config, env, agent, record):
         )
 
 
-def evaluate(data_path, training_config, seed, alg_config, env, agent, record):
+def evaluate(
+    data_path, training_config, seed, alg_config, env, agent: Algorithm, record: Record
+):
 
     model_path = Path(f"{data_path}/{seed}/models/")
     folders = list(model_path.glob("*"))
@@ -102,9 +110,16 @@ def evaluate(data_path, training_config, seed, alg_config, env, agent, record):
 
 
 def train(
-    env_config, training_config, alg_config, env, env_eval, agent, memory, record
+    env_config,
+    training_config,
+    alg_config,
+    env,
+    env_eval,
+    agent: Algorithm,
+    memory,
+    record,
 ):
-    if agent.type == "policy":
+    if agent.policy_type == "policy":
         pbe.policy_based_train(
             env,
             env_eval,
@@ -116,7 +131,7 @@ def train(
             display=env_config.display,
             apply_action_normalisation=True,
         )
-    elif agent.type == "discrete_policy":
+    elif agent.policy_type == "discrete_policy":
         pbe.policy_based_train(
             env,
             env_eval,
@@ -128,7 +143,7 @@ def train(
             display=env_config.display,
             apply_action_normalisation=False,
         )
-    elif agent.type == "value":
+    elif agent.policy_type == "value":
         vbe.value_based_train(
             env,
             env_eval,

@@ -14,7 +14,9 @@ class ImageWrapper:
         self.grey_scale = bool(config.grey_scale)
 
         self.frames_to_stack = config.frames_to_stack
-        self.frames_stacked = deque([], maxlen=self.frames_to_stack)
+        self.frames_stacked: deque[list[np.ndarray]] = deque(
+            [], maxlen=self.frames_to_stack
+        )
 
         self.frame_width = config.frame_width
         self.frame_height = config.frame_height

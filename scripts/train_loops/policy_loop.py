@@ -1,19 +1,22 @@
 import logging
 import time
 
+from cares_reinforcement_learning.algorithm.algorithm import Algorithm
+from cares_reinforcement_learning.memory import MemoryBuffer
 from cares_reinforcement_learning.util import helpers as hlp
 from cares_reinforcement_learning.util.configurations import (
     AlgorithmConfig,
     TrainingConfig,
 )
+from cares_reinforcement_learning.util.record import Record
 from util.overlay import overlay_info
 
 
 def evaluate_policy_network(
     env,
-    agent,
+    agent: Algorithm,
     number_eval_episodes: int,
-    record=None,
+    record: Record | None = None,
     total_steps=0,
     normalisation=True,
 ):
@@ -77,13 +80,13 @@ def evaluate_policy_network(
 def policy_based_train(
     env,
     env_eval,
-    agent,
-    memory,
-    record,
+    agent: Algorithm,
+    memory: MemoryBuffer,
+    record: Record,
     train_config: TrainingConfig,
     alg_config: AlgorithmConfig,
-    display=False,
-    apply_action_normalisation=True,
+    display: bool = False,
+    apply_action_normalisation: bool = True,
 ):
     start_time = time.time()
 
@@ -91,12 +94,6 @@ def policy_based_train(
     max_steps_exploration = alg_config.max_steps_exploration
     number_steps_per_evaluation = train_config.number_steps_per_evaluation
     number_steps_per_train_policy = alg_config.number_steps_per_train_policy
-
-    # Algorthm specific attributes - e.g. NaSA-TD3 dd
-    # TODO - move to algorithm side - default to 0
-    intrinsic_on = (
-        bool(alg_config.intrinsic_on) if hasattr(alg_config, "intrinsic_on") else False
-    )
 
     # TODO tidy these up a lot - push back into algorithm side
     min_noise = alg_config.min_noise if hasattr(alg_config, "min_noise") else 0
@@ -108,6 +105,8 @@ def policy_based_train(
     )
 
     batch_size = alg_config.batch_size
+
+    # pylint: disable-next=invalid-name
     G = alg_config.G
 
     episode_timesteps = 0
@@ -117,15 +116,15 @@ def policy_based_train(
     state = env.reset()
 
     episode_start = time.time()
-    for total_step_counter in range(int(max_steps_training)):
+    for train_step_counter in range(int(max_steps_training)):
         episode_timesteps += 1
 
         # Data from taking actions for memory buffer - e.g. log_prob from PPO
         action_data = []
 
-        if total_step_counter < max_steps_exploration:
+        if train_step_counter < max_steps_exploration:
             logging.info(
-                f"Running Exploration Steps {total_step_counter + 1}/{max_steps_exploration}"
+                f"Running Exploration Steps {train_step_counter + 1}/{max_steps_exploration}"
             )
 
             denormalised_action = env.sample_action()
@@ -142,7 +141,7 @@ def policy_based_train(
             noise_scale *= noise_decay
             noise_scale = max(min_noise, noise_scale)
 
-            # algorithm range [-1, 1]
+            # algorithm range [-1, 1])
             result = agent.select_action_from_policy(state, noise_scale=noise_scale)
             normalised_action, *action_data = (
                 (result,) if not isinstance(result, tuple) else result
@@ -161,7 +160,7 @@ def policy_based_train(
             env.render()
 
         intrinsic_reward = 0
-        if intrinsic_on and total_step_counter > max_steps_exploration:
+        if train_step_counter > max_steps_exploration:
             intrinsic_reward = agent.get_intrinsic_reward(
                 state, normalised_action, next_state
             )
@@ -184,23 +183,22 @@ def policy_based_train(
 
         info = {}
         if (
-            total_step_counter >= max_steps_exploration
-            and (total_step_counter + 1) % number_steps_per_train_policy == 0
+            train_step_counter >= max_steps_exploration
+            and (train_step_counter + 1) % number_steps_per_train_policy == 0
         ):
             for _ in range(G):
-                info = agent.train_policy(memory, batch_size)
+                info = agent.train_policy(memory, batch_size, train_step_counter)
 
-        if intrinsic_on:
-            info["intrinsic_reward"] = intrinsic_reward
+        info["intrinsic_reward"] = intrinsic_reward
 
-        if (total_step_counter + 1) % number_steps_per_evaluation == 0:
+        if (train_step_counter + 1) % number_steps_per_evaluation == 0:
             logging.info("*************--Evaluation Loop--*************")
             evaluate_policy_network(
                 env_eval,
                 agent,
                 number_eval_episodes=train_config.number_eval_episodes,
                 record=record,
-                total_steps=total_step_counter,
+                total_steps=train_step_counter,
                 normalisation=apply_action_normalisation,
             )
             logging.info("--------------------------------------------")
@@ -208,7 +206,7 @@ def policy_based_train(
         if done or truncated:
             episode_time = time.time() - episode_start
             record.log_train(
-                total_steps=total_step_counter + 1,
+                total_steps=train_step_counter + 1,
                 episode=episode_num + 1,
                 episode_steps=episode_timesteps,
                 episode_reward=episode_reward,
