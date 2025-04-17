@@ -63,7 +63,7 @@ class ImageWrapper:
             frame.resize((height, width, 1))
         return frame
 
-    def reset(self) -> dict:
+    def reset(self) -> dict[str, np.ndarray]:
         vector_state = self.gym.reset()
         frame = self.grab_frame(
             height=self.frame_height, width=self.frame_width, grey_scale=self.grey_scale
