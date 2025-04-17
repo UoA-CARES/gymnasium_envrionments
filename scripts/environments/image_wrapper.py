@@ -36,15 +36,15 @@ class ImageWrapper:
         return {"image": image_space, "vector": vector_space}
 
     @cached_property
-    def action_num(self):
+    def action_num(self) -> int:
         return self.gym.action_num
 
     @cached_property
-    def min_action_value(self):
+    def min_action_value(self) -> float:
         return self.gym.min_action_value
 
     @cached_property
-    def max_action_value(self):
+    def max_action_value(self) -> float:
         return self.gym.max_action_value
 
     def render(self):
@@ -53,17 +53,17 @@ class ImageWrapper:
     def sample_action(self):
         return self.gym.sample_action()
 
-    def set_seed(self, seed):
+    def set_seed(self, seed: int) -> None:
         self.gym.set_seed(seed)
 
-    def grab_frame(self, height=240, width=300, grey_scale=False):
+    def grab_frame(self, height: int = 240, width: int = 300, grey_scale: bool = False):
         frame = self.gym.grab_frame(height=height, width=width)
         if grey_scale:
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
             frame.resize((height, width, 1))
         return frame
 
-    def reset(self):
+    def reset(self) -> dict:
         vector_state = self.gym.reset()
         frame = self.grab_frame(
             height=self.frame_height, width=self.frame_width, grey_scale=self.grey_scale

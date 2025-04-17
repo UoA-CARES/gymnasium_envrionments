@@ -35,7 +35,7 @@ class DMCSEnvironment(GymEnvironment):
     def action_num(self) -> int:
         return self.env.action_spec().shape[0]
 
-    def sample_action(self) -> int:
+    def sample_action(self) -> np.ndarray:
         return np.random.uniform(
             self.min_action_value, self.max_action_value, size=self.action_num
         )
