@@ -3,6 +3,7 @@ import logging
 from functools import cached_property
 
 import cv2
+import numpy as np
 from util.configurations import GymEnvironmentConfig
 
 
@@ -22,22 +23,22 @@ class GymEnvironment(metaclass=abc.ABCMeta):
 
     @cached_property
     @abc.abstractmethod
-    def min_action_value(self):
+    def min_action_value(self) -> float:
         raise NotImplementedError("Override this method")
 
     @cached_property
     @abc.abstractmethod
-    def max_action_value(self):
+    def max_action_value(self) -> float:
         raise NotImplementedError("Override this method")
 
     @cached_property
     @abc.abstractmethod
-    def observation_space(self):
+    def observation_space(self) -> int:
         raise NotImplementedError("Override this method")
 
     @cached_property
     @abc.abstractmethod
-    def action_num(self):
+    def action_num(self) -> int:
         raise NotImplementedError("Override this method")
 
     @abc.abstractmethod
@@ -45,7 +46,7 @@ class GymEnvironment(metaclass=abc.ABCMeta):
         raise NotImplementedError("Override this method")
 
     @abc.abstractmethod
-    def set_seed(self, seed):
+    def set_seed(self, seed: int) -> None:
         raise NotImplementedError("Override this method")
 
     @abc.abstractmethod
@@ -57,5 +58,5 @@ class GymEnvironment(metaclass=abc.ABCMeta):
         raise NotImplementedError("Override this method")
 
     @abc.abstractmethod
-    def grab_frame(self, height=240, width=300):
+    def grab_frame(self, height: int = 240, width: int = 300) -> np.ndarray:
         raise NotImplementedError("Override this method")

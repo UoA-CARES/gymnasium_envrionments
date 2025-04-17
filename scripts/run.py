@@ -9,13 +9,24 @@ import os
 import sys
 from pathlib import Path
 
-import train_loops.policy_loop as pbe
-import train_loops.value_loop as vbe
+import train_loop as tl
 import yaml
+from cares_reinforcement_learning.algorithm.algorithm import Algorithm
 from cares_reinforcement_learning.memory.memory_factory import MemoryFactory
-from cares_reinforcement_learning.util import NetworkFactory, Record, RLParser
+from cares_reinforcement_learning.util import (
+    NetworkFactory,
+    Record,
+    RLParser,
+    RunConfig,
+)
 from cares_reinforcement_learning.util import helpers as hlp
+from cares_reinforcement_learning.util.configurations import (
+    AlgorithmConfig,
+    TrainingConfig,
+)
 from environments.environment_factory import EnvironmentFactory
+from environments.gym_environment import GymEnvironment
+from environments.image_wrapper import ImageWrapper
 from natsort import natsorted
 from util.configurations import GymEnvironmentConfig
 
@@ -23,7 +34,12 @@ logging.basicConfig(level=logging.INFO)
 
 
 def run_evaluation_loop(
-    number_eval_episodes: int, alg_config, env, agent, record, folders
+    number_eval_episodes: int,
+    alg_config: AlgorithmConfig,
+    env: GymEnvironment | ImageWrapper,
+    agent: Algorithm,
+    record: Record,
+    folders: list[Path],
 ):
     for folder in folders:
         agent.load_models(folder, f"{alg_config.algorithm}")
@@ -34,8 +50,8 @@ def run_evaluation_loop(
         except ValueError:
             total_steps = 0
 
-        if agent.type == "policy":
-            pbe.evaluate_policy_network(
+        if agent.policy_type == "policy":
+            tl.evaluate_agent(
                 env,
                 agent,
                 number_eval_episodes,
@@ -44,8 +60,8 @@ def run_evaluation_loop(
                 normalisation=True,
                 # display=env_config.display,
             )
-        elif agent.type == "discrete_policy":
-            pbe.evaluate_policy_network(
+        elif agent.policy_type == "discrete_policy":
+            tl.evaluate_agent(
                 env,
                 agent,
                 number_eval_episodes,
@@ -54,20 +70,28 @@ def run_evaluation_loop(
                 normalisation=False,
                 # display=env_config.display,
             )
-        elif agent.type == "value":
-            vbe.evaluate_value_network(
+        elif agent.policy_type == "value":
+            tl.evaluate_agent(
                 env,
                 agent,
                 number_eval_episodes,
                 record=record,
                 total_steps=total_steps,
+                normalisation=False,
                 # display=env_config.display,
             )
         else:
-            raise ValueError(f"Agent type is unknown: {agent.type}")
+            raise ValueError(f"Agent type is unknown: {agent.policy_type}")
 
 
-def test(data_path, number_eval_episodes, alg_config, env, agent, record):
+def test(
+    data_path: str,
+    number_eval_episodes: int,
+    alg_config: AlgorithmConfig,
+    env: GymEnvironment | ImageWrapper,
+    agent: Algorithm,
+    record: Record,
+):
     # Model Path is the seeds directory - remove files
     algorithm_directory = Path(f"{data_path}/")
     algorithm_data = list(algorithm_directory.glob("*"))
@@ -83,7 +107,15 @@ def test(data_path, number_eval_episodes, alg_config, env, agent, record):
         )
 
 
-def evaluate(data_path, training_config, seed, alg_config, env, agent, record):
+def evaluate(
+    data_path: str,
+    number_eval_episodes: int,
+    seed: int,
+    alg_config,
+    env: GymEnvironment | ImageWrapper,
+    agent: Algorithm,
+    record: Record,
+):
 
     model_path = Path(f"{data_path}/{seed}/models/")
     folders = list(model_path.glob("*"))
@@ -92,7 +124,7 @@ def evaluate(data_path, training_config, seed, alg_config, env, agent, record):
     folders = natsorted(folders)[:-2]
 
     run_evaluation_loop(
-        training_config.number_eval_episodes,
+        number_eval_episodes,
         alg_config,
         env,
         agent,
@@ -102,10 +134,17 @@ def evaluate(data_path, training_config, seed, alg_config, env, agent, record):
 
 
 def train(
-    env_config, training_config, alg_config, env, env_eval, agent, memory, record
+    env_config,
+    training_config,
+    alg_config,
+    env,
+    env_eval,
+    agent: Algorithm,
+    memory,
+    record,
 ):
-    if agent.type == "policy":
-        pbe.policy_based_train(
+    if agent.policy_type == "policy":
+        tl.train_agent(
             env,
             env_eval,
             agent,
@@ -116,8 +155,8 @@ def train(
             display=env_config.display,
             apply_action_normalisation=True,
         )
-    elif agent.type == "discrete_policy":
-        pbe.policy_based_train(
+    elif agent.policy_type == "discrete_policy" or agent.policy_type == "value":
+        tl.train_agent(
             env,
             env_eval,
             agent,
@@ -127,17 +166,6 @@ def train(
             alg_config,
             display=env_config.display,
             apply_action_normalisation=False,
-        )
-    elif agent.type == "value":
-        vbe.value_based_train(
-            env,
-            env_eval,
-            agent,
-            memory,
-            record,
-            training_config,
-            alg_config,
-            display=env_config.display,
         )
     else:
         raise ValueError(f"Agent type is unknown: {agent.type}")
@@ -150,10 +178,10 @@ def main():
     parser = RLParser(GymEnvironmentConfig)
 
     configurations = parser.parse_args()
-    run_config = configurations["run_config"]
-    env_config = configurations["env_config"]
-    training_config = configurations["train_config"]
-    alg_config = configurations["alg_config"]
+    run_config: RunConfig = configurations["run_config"]  # type: ignore
+    env_config: GymEnvironmentConfig = configurations["env_config"]  # type: ignore
+    training_config: TrainingConfig = configurations["train_config"]  # type: ignore
+    alg_config: AlgorithmConfig = configurations["alg_config"]  # type: ignore
 
     env_factory = EnvironmentFactory()
     network_factory = NetworkFactory()
@@ -288,7 +316,7 @@ def main():
             # Evaluate the policy or value based approach
             evaluate(
                 run_config.data_path,
-                training_config,
+                training_config.number_eval_episodes,
                 seed,
                 alg_config,
                 env_eval,

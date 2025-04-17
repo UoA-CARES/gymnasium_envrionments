@@ -1,5 +1,3 @@
-import logging
-
 from environments.gym_environment import GymEnvironment
 from environments.image_wrapper import ImageWrapper
 from util.configurations import GymEnvironmentConfig
