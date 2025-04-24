@@ -2,11 +2,9 @@
 We have created a standardised general purpose gym that wraps the most common simulated environments used in reinforcement learning into a single easy to use place. This package serves as an example of how to develop and setup new environments - perticularly for the robotic environments. This package utilises the algorithms implemented in the repository https://github.com/UoA-CARES/cares_reinforcement_learning/ - consult that repository for algorithm implementations. 
 
 ## Installation Instructions
-If you want to utilise the GPU with Pytorch install CUDA first - https://developer.nvidia.com/cuda-toolkit
+![Python](https://img.shields.io/badge/python-3.10--3.12-blue.svg)
 
-Install Pytorch following the instructions here - https://pytorch.org/get-started/locally/
-
-Follow the instructions at https://github.com/UoA-CARES/cares_reinforcement_learning/ to first install the CARES RL dependency.
+Follow the instructions at https://github.com/UoA-CARES/cares_reinforcement_learning/ to first install the CARES RL dependency first.
 
 `git clone` this repository into your desired directory on your local machine
 
