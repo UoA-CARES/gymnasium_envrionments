@@ -53,7 +53,7 @@ class OpenAIEnvironment(GymEnvironment):
         state, reward, done, truncated, _ = self.env.step(action)
         return state, reward, done, truncated
 
-    def grab_frame(self, height=240, width=300) -> np.ndarray:
+    def grab_frame(self, height: int = 240, width: int = 300) -> np.ndarray:
         frame = self.env.render()
         frame = cv2.resize(frame, (width, height))
         # Convert to BGR for use with OpenCV

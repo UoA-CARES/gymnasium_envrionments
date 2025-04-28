@@ -1,25 +1,33 @@
 import logging
 import time
 
+from cares_reinforcement_learning.algorithm.algorithm import Algorithm
+from cares_reinforcement_learning.memory import MemoryBuffer
 from cares_reinforcement_learning.util import helpers as hlp
 from cares_reinforcement_learning.util.configurations import (
     AlgorithmConfig,
     TrainingConfig,
 )
+from cares_reinforcement_learning.util.record import Record
+from environments.gym_environment import GymEnvironment
+from environments.image_wrapper import ImageWrapper
 from util.overlay import overlay_info
 from util.log_in_place import InPlaceLogger
 
 
-def evaluate_policy_network(
-    env, agent, config: TrainingConfig, record=None, total_steps=0, normalisation=True
+def evaluate_agent(
+    env: GymEnvironment | ImageWrapper,
+    agent: Algorithm,
+    number_eval_episodes: int,
+    record: Record | None = None,
+    total_steps: int = 0,
+    normalisation: bool = True,
 ):
     state = env.reset()
 
     if record is not None:
         frame = env.grab_frame()
         record.start_video(total_steps + 1, frame)
-
-    number_eval_episodes = int(config.number_eval_episodes)
 
     for eval_episode_counter in range(number_eval_episodes):
         episode_timesteps = 0
@@ -30,7 +38,9 @@ def evaluate_policy_network(
 
         while not done and not truncated:
             episode_timesteps += 1
+
             normalised_action = agent.select_action_from_policy(state, evaluation=True)
+
             denormalised_action = (
                 hlp.denormalize(
                     normalised_action, env.max_action_value, env.min_action_value
@@ -67,16 +77,16 @@ def evaluate_policy_network(
     record.stop_video()
 
 
-def policy_based_train(
-    env,
-    env_eval,
-    agent,
-    memory,
-    record,
+def train_agent(
+    env: GymEnvironment | ImageWrapper,
+    env_eval: GymEnvironment | ImageWrapper,
+    agent: Algorithm,
+    memory: MemoryBuffer,
+    record: Record,
     train_config: TrainingConfig,
     alg_config: AlgorithmConfig,
-    display=False,
-    normalisation=True,
+    display: bool = False,
+    apply_action_normalisation: bool = True,
 ):
     logging.setLoggerClass(InPlaceLogger)
     exploration_logger = logging.getLogger("exploration")
@@ -88,20 +98,13 @@ def policy_based_train(
     number_steps_per_evaluation = train_config.number_steps_per_evaluation
     number_steps_per_train_policy = alg_config.number_steps_per_train_policy
 
-    # Algorthm specific attributes - e.g. NaSA-TD3 dd
-    intrinsic_on = (
-        bool(alg_config.intrinsic_on) if hasattr(alg_config, "intrinsic_on") else False
-    )
-
-    min_noise = alg_config.min_noise if hasattr(alg_config, "min_noise") else 0
-    noise_decay = alg_config.noise_decay if hasattr(alg_config, "noise_decay") else 1.0
-    noise_scale = alg_config.noise_scale if hasattr(alg_config, "noise_scale") else 0.1
-
     logging.info(
         f"Training {max_steps_training} Exploration {max_steps_exploration} Evaluation {number_steps_per_evaluation}"
     )
 
+    # TODO potentially push these into the algorithm itself
     batch_size = alg_config.batch_size
+    # pylint: disable-next=invalid-name
     G = alg_config.G
 
     episode_timesteps = 0
@@ -111,45 +114,40 @@ def policy_based_train(
     state = env.reset()
 
     episode_start = time.time()
-    for total_step_counter in range(int(max_steps_training)):
+    for train_step_counter in range(int(max_steps_training)):
         episode_timesteps += 1
 
-        if total_step_counter < max_steps_exploration:
+        if train_step_counter < max_steps_exploration:
             exploration_logger.info(
-                f"Running Exploration Steps {total_step_counter + 1}/{max_steps_exploration}"
+                f"Running Exploration Steps {train_step_counter + 1}/{max_steps_exploration}"
             )
 
             denormalised_action = env.sample_action()
 
             # algorithm range [-1, 1] - note for DMCS this is redudenant but required for openai
-            if normalisation:
+            normalised_action = denormalised_action
+            if apply_action_normalisation:
                 normalised_action = hlp.normalize(
                     denormalised_action, env.max_action_value, env.min_action_value
                 )
-            else:
-                normalised_action = denormalised_action
         else:
-            noise_scale *= noise_decay
-            noise_scale = max(min_noise, noise_scale)
+            # algorithm range [-1, 1])
+            normalised_action = agent.select_action_from_policy(state)
 
-            # algorithm range [-1, 1]
-            normalised_action = agent.select_action_from_policy(
-                state, noise_scale=noise_scale
-            )
             # mapping to env range [e.g. -2 , 2 for pendulum] - note for DMCS this is redudenant but required for openai
-            if normalisation:
+            denormalised_action = normalised_action
+            if apply_action_normalisation:
                 denormalised_action = hlp.denormalize(
                     normalised_action, env.max_action_value, env.min_action_value
                 )
-            else:
-                denormalised_action = normalised_action
 
         next_state, reward_extrinsic, done, truncated = env.step(denormalised_action)
+
         if display:
             env.render()
 
         intrinsic_reward = 0
-        if intrinsic_on and total_step_counter > max_steps_exploration:
+        if train_step_counter > max_steps_exploration:
             intrinsic_reward = agent.get_intrinsic_reward(
                 state, normalised_action, next_state
             )
@@ -165,35 +163,36 @@ def policy_based_train(
         )
 
         state = next_state
-        episode_reward += reward_extrinsic  # Note we only track the extrinsic reward for the episode for proper comparison
+
+        # Note we only track the extrinsic reward for the episode for proper comparison
+        episode_reward += reward_extrinsic
 
         info = {}
         if (
-            total_step_counter >= max_steps_exploration
-            and total_step_counter % number_steps_per_train_policy == 0
+            train_step_counter >= max_steps_exploration
+            and (train_step_counter + 1) % number_steps_per_train_policy == 0
         ):
             for _ in range(G):
-                info = agent.train_policy(memory, batch_size)
+                info = agent.train_policy(memory, batch_size, train_step_counter)
 
-        if intrinsic_on:
-            info["intrinsic_reward"] = intrinsic_reward
+        info["intrinsic_reward"] = intrinsic_reward
 
-        if (total_step_counter + 1) % number_steps_per_evaluation == 0:
+        if (train_step_counter + 1) % number_steps_per_evaluation == 0:
             logging.info("*************--Evaluation Loop--*************")
-            evaluate_policy_network(
+            evaluate_agent(
                 env_eval,
                 agent,
-                train_config,
+                number_eval_episodes=train_config.number_eval_episodes,
                 record=record,
-                total_steps=total_step_counter,
-                normalisation=normalisation,
+                total_steps=train_step_counter,
+                normalisation=apply_action_normalisation,
             )
             logging.info("--------------------------------------------")
 
         if done or truncated:
             episode_time = time.time() - episode_start
             record.log_train(
-                total_steps=total_step_counter + 1,
+                total_steps=train_step_counter + 1,
                 episode=episode_num + 1,
                 episode_steps=episode_timesteps,
                 episode_reward=episode_reward,
