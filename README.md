@@ -2,11 +2,9 @@
 We have created a standardised general purpose gym that wraps the most common simulated environments used in reinforcement learning into a single easy to use place. This package serves as an example of how to develop and setup new environments - perticularly for the robotic environments. This package utilises the algorithms implemented in the repository https://github.com/UoA-CARES/cares_reinforcement_learning/ - consult that repository for algorithm implementations. 
 
 ## Installation Instructions
-If you want to utilise the GPU with Pytorch install CUDA first - https://developer.nvidia.com/cuda-toolkit
+![Python](https://img.shields.io/badge/python-3.10--3.12-blue.svg)
 
-Install Pytorch following the instructions here - https://pytorch.org/get-started/locally/
-
-Follow the instructions at https://github.com/UoA-CARES/cares_reinforcement_learning/ to first install the CARES RL dependency.
+Follow the instructions at https://github.com/UoA-CARES/cares_reinforcement_learning/ to first install the CARES RL dependency first.
 
 `git clone` this repository into your desired directory on your local machine
 
@@ -25,7 +23,7 @@ Use `python3 run.py -h` for help on what parameters are available for customisat
 ### Train
 The train command in the run.py script is used to initiate the training process for reinforcement learning models within specified gym environments. This command can be customized using various hyperparameters to tailor the training environment and the RL algorithm. You can use python "run.py train cli -h" to view all available options for customization and start a run directly through the terminal. This flexibility enables users to experiment with different settings and optimize their models effectively.
 
-Specific and larger configuration changes can be loaded using python "run.py train config --data_path <PATH_TO_TRAINING_CONFIGS>", allowing for a more structured and repeatable training setup through configuration files. 
+Specific and larger configuration changes can be loaded using python "run.py train config --data_path <PATH_TO_TRAINING_CONFIGS>", allowing for a more structured and repeatable training setup through configuration files.
 
 ```
 python run.py train cli -h
@@ -33,11 +31,19 @@ python run.py train config --data_path <PATH_TO_TRAINING_CONFIGS>
 ```
 
 ### Evaluate
-The evaluate command is used to re-run the evaluation loops on a trained reinforcement learning model within a specified gym environment. By running python run.py evaluate --data_path <PATH_TO_TRAINING_DATA>, users can load the trained model and the corresponding training data to evaluate how well the model performs on the given task. 
+The evaluate command is used to re-run the evaluation loops from a prior training run - this will reproduce the evaluation graphs and data from a given training experiment. 
 
 ```
 python run.py evaluate --data_path <PATH_TO_TRAINING_DATA>
 ```
+
+### Test
+The test command is used to run evaluation loops on a trained reinforcement learning model on the envrionment, users can load the trained model to evaluate how well the model performs on the given task with different seeds and over any number of episodes. 
+
+```
+python run.py test --data_path <PATH_TO_TRAINING_DATA> --seeds <LIST_OF_SEEDS> --episodes <NUM_EPISODES>
+```
+
 
 ## Gym Environments
 This package contains wrappers for the following gym environments:
