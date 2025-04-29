@@ -45,7 +45,7 @@ class OpenAIEnvironment(GymEnvironment):
         # Note issues: https://github.com/rail-berkeley/softlearning/issues/75
         self.env.action_space.seed(seed)
 
-    def reset(self) -> np.ndarray:
+    def reset(self, training: bool = True) -> np.ndarray:
         state, _ = self.env.reset()
         return state
 
