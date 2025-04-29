@@ -50,7 +50,7 @@ class GymEnvironment(metaclass=abc.ABCMeta):
         raise NotImplementedError("Override this method")
 
     @abc.abstractmethod
-    def reset(self):
+    def reset(self, training: bool = True) -> np.ndarray:
         raise NotImplementedError("Override this method")
 
     @abc.abstractmethod

@@ -2,16 +2,17 @@ import logging
 import time
 
 from cares_reinforcement_learning.algorithm.algorithm import Algorithm
-from cares_reinforcement_learning.memory import MemoryBuffer
+from cares_reinforcement_learning.memory.memory_buffer import MemoryBuffer
 from cares_reinforcement_learning.util import helpers as hlp
+from cares_reinforcement_learning.util.record import Record
 from cares_reinforcement_learning.util.configurations import (
     AlgorithmConfig,
     TrainingConfig,
 )
-from cares_reinforcement_learning.util.record import Record
 from environments.gym_environment import GymEnvironment
 from environments.image_wrapper import ImageWrapper
 from util.overlay import overlay_info
+from util.log_in_place import InPlaceLogger
 
 
 def evaluate_agent(
@@ -22,7 +23,7 @@ def evaluate_agent(
     total_steps: int = 0,
     normalisation: bool = True,
 ):
-    state = env.reset()
+    state = env.reset(training=False)
 
     if record is not None:
         frame = env.grab_frame()
@@ -87,6 +88,9 @@ def train_agent(
     display: bool = False,
     apply_action_normalisation: bool = True,
 ):
+    logging.setLoggerClass(InPlaceLogger)
+    exploration_logger = logging.getLogger("exploration")
+
     start_time = time.time()
 
     max_steps_training = alg_config.max_steps_training
@@ -113,9 +117,8 @@ def train_agent(
     for train_step_counter in range(int(max_steps_training)):
         episode_timesteps += 1
 
-        # Exploration phase - policy based methods - DQN uses Epsilon greedy internally
         if train_step_counter < max_steps_exploration:
-            logging.info(
+            exploration_logger.info(
                 f"Running Exploration Steps {train_step_counter + 1}/{max_steps_exploration}"
             )
 
