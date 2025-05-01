@@ -13,17 +13,14 @@ import train_loop as tl
 import yaml
 from cares_reinforcement_learning.algorithm.algorithm import Algorithm
 from cares_reinforcement_learning.memory.memory_factory import MemoryFactory
-from cares_reinforcement_learning.util import (
-    NetworkFactory,
-    Record,
-    RLParser,
-    RunConfig,
-)
 from cares_reinforcement_learning.util import helpers as hlp
 from cares_reinforcement_learning.util.configurations import (
     AlgorithmConfig,
     TrainingConfig,
 )
+from cares_reinforcement_learning.util.network_factory import NetworkFactory
+from cares_reinforcement_learning.util.record import Record
+from cares_reinforcement_learning.util.rl_parser import RLParser, RunConfig
 from environments.environment_factory import EnvironmentFactory
 from environments.gym_environment import GymEnvironment
 from environments.image_wrapper import ImageWrapper
