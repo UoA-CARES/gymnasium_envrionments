@@ -36,6 +36,10 @@ def evaluate_agent(
         done = False
         truncated = False
 
+        episode_states = []
+        episode_actions = []
+        episode_rewards: list[float] = []
+
         while not done and not truncated:
             episode_timesteps += 1
 
@@ -52,6 +56,11 @@ def evaluate_agent(
             state, reward, done, truncated = env.step(denormalised_action)
             episode_reward += reward
 
+            # For Bias Calculation
+            episode_states.append(state)
+            episode_actions.append(normalised_action)
+            episode_rewards.append(reward)
+
             if eval_episode_counter == 0 and record is not None:
                 frame = env.grab_frame()
                 overlay = overlay_info(
@@ -60,12 +69,21 @@ def evaluate_agent(
                 record.log_video(overlay)
 
             if done or truncated:
+                # Calculate bias
+                info = agent.calculate_bias(
+                    episode_states,
+                    episode_actions,
+                    episode_rewards,
+                )
+
+                # Log evaluation information
                 if record is not None:
                     record.log_eval(
                         total_steps=total_steps + 1,
                         episode=eval_episode_counter + 1,
                         episode_reward=episode_reward,
                         display=True,
+                        **info,
                     )
 
                 # Reset environment

@@ -27,7 +27,6 @@ dmcs_tasks=(
   [cartpole]="swingup"
   [cheetah]="run"
   [finger]="turn_hard"
-  [swimmer]="swim"
   [hopper]="hop"
   [humanoid]="run"
   [reacher]="hard"
