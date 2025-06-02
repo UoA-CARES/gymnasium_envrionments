@@ -1,7 +1,7 @@
 dm_control==1.0.26
-gymnasium==0.29.0
-gymnasium[classic-control]==0.29.0
-gymnasium[mujoco]==0.29.0
+gymnasium==1.1.1
+gymnasium[classic-control]==1.1.1
+gymnasium[mujoco]==1.1.1
 mujoco==3.2.6
 
 mediapy==1.1.9

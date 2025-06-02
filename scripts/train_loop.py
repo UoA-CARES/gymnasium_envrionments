@@ -224,6 +224,9 @@ def train_agent(
             episode_timesteps = 0
             episode_reward = 0
             episode_num += 1
+
+            agent.epsiode_done()
+
             episode_start = time.time()
 
     end_time = time.time()
