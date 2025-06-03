@@ -15,7 +15,9 @@ input_name="$2"  # If $2 is empty, this will default to an empty string
 optional_arg=()
 if [ $# -ge 3 ]; then
   shift 2  # remove $1 and $2
-  optional_arg=("$@")  # grab everything else
+  # Join all remaining args into a single string, then split by space
+  joined="$*"
+  IFS=' ' read -r -a optional_arg <<< "$joined"
 fi
 
 # List of all domain/task pairs in DMC Suite
