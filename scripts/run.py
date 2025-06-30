@@ -267,8 +267,7 @@ def main():
         # Create the Environment
         # This line should be here for seed consistency issues
         logging.info(f"Loading Environment: {env_config.gym}")
-        env = env_factory.create_environment(env_config, alg_config.image_observation)
-        env_eval = env_factory.create_environment(
+        env, env_eval = env_factory.create_environment(
             env_config, alg_config.image_observation
         )
 
