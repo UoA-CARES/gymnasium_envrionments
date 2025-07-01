@@ -58,7 +58,7 @@ class DMCSEnvironment(GymEnvironment):
             time_step.last(),
         )
         # for consistency with open ai gym just add false for truncated
-        return state, reward, done, False
+        return state, reward, done, False, {}
 
     def grab_frame(self, height=240, width=300, camera_id=0) -> np.ndarray:
         frame = self.env.physics.render(camera_id=camera_id, height=height, width=width)

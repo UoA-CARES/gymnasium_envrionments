@@ -50,8 +50,8 @@ class OpenAIEnvironment(GymEnvironment):
         return state
 
     def step(self, action: int) -> tuple:
-        state, reward, done, truncated, _ = self.env.step(action)
-        return state, reward, done, truncated
+        state, reward, done, truncated, info = self.env.step(action)
+        return state, reward, done, truncated, info
 
     def grab_frame(self, height: int = 240, width: int = 300) -> np.ndarray:
         frame = self.env.render()
