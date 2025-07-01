@@ -16,6 +16,7 @@ dmcs_tasks = {
     "walker": "walk",
 }
 
+
 def run_with_args_and_stdin(args_list: List[str], stdin_str: str = ""):
     """Simulate CLI args and stdin, then call run.py's main()."""
     old_argv = sys.argv.copy()
@@ -27,6 +28,7 @@ def run_with_args_and_stdin(args_list: List[str], stdin_str: str = ""):
     finally:
         sys.argv = old_argv
         sys.stdin = old_stdin
+
 
 def main():
     # CLI argument parsing (simple mimic of the bash version)
@@ -41,15 +43,25 @@ def main():
     for domain, task in dmcs_tasks.items():
         print(f"Running: domain={domain}, task={task}")
         args = [
-            "train", "cli",
-            "--gym", "dmcs",
-            "--domain", domain,
-            "--task", task,
+            "train",
+            "cli",
+            "--gym",
+            "dmcs",
+            "--domain",
+            domain,
+            "--task",
+            task,
             required_arg,
-            "--seeds", "10", "20", "30", "40", "50",
-            *optional_args
+            "--seeds",
+            "10",
+            "20",
+            "30",
+            "40",
+            "50",
+            *optional_args,
         ]
         run_with_args_and_stdin(args, stdin_str=input_name)
+
 
 if __name__ == "__main__":
     main()
