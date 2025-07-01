@@ -29,6 +29,9 @@ def evaluate_agent(
         frame = env.grab_frame()
         record.start_video(total_steps + 1, frame)
 
+        log_path = record.current_sub_directory
+        env.set_log_path(log_path, total_steps + 1)
+
     for eval_episode_counter in range(number_eval_episodes):
         episode_timesteps = 0
         episode_reward = 0

@@ -32,10 +32,12 @@ class EnvironmentFactory:
             env = PyboyEnvironment(config)
             eval_env = PyboyEnvironment(config)
         elif config.gym == "pokeenv":
-            from environments.pokeenv.pokeenv_environment import PokeEnvEnvironment
+            from scripts.environments.showdown.showdown_environment import (
+                ShowdownEnvironment,
+            )
 
-            env = PokeEnvEnvironment(config, evaluation=False)
-            eval_env = PokeEnvEnvironment(config, evaluation=True)
+            env = ShowdownEnvironment(config, evaluation=False)
+            eval_env = ShowdownEnvironment(config, evaluation=True)
         else:
             raise ValueError(f"Unkown environment: {config.gym}")
 

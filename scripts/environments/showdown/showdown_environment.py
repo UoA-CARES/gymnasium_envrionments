@@ -1,31 +1,38 @@
+import os
 import time
 from functools import cached_property
 
 import cv2
 import numpy as np
+from environments.gym_environment import GymEnvironment
 from gymnasium import spaces
-from poke_env import SimpleHeuristicsPlayer
-from poke_env.player.single_agent_wrapper import SingleAgentWrapper
-from poke_env_gym.poke_environment import PokeEnvironment
+from poke_env_gym.poke_environment import PokeEnvWrapper
 from util.configurations import GymEnvironmentConfig
 
-from environments.gym_environment import GymEnvironment
 
-
-class PokeEnvEnvironment(GymEnvironment):
+class ShowdownEnvironment(GymEnvironment):
     def __init__(self, config: GymEnvironmentConfig, evaluation: bool = False) -> None:
         super().__init__(config)
 
-        account_name_one: str = "train_one" if not evaluation else "eval_one"
-        account_name_two: str = "train_two" if not evaluation else "eval_two"
+        # "gen9ubers", "gen9randombattle", or "gen9ubers"
+        battle_format: str = config.domain
 
-        self.primary_env = PokeEnvironment(
-            account_name_one=account_name_one, account_name_two=account_name_two
+        # "max", "simple" or "random"
+        opponent_type: str = config.task
+
+        self.env = PokeEnvWrapper(
+            battle_format=battle_format,
+            opponent_type=opponent_type,
+            evaluation=evaluation,
         )
 
-        self.env = SingleAgentWrapper(self.primary_env, SimpleHeuristicsPlayer())
-
         time.sleep(3)  # Allow the environment to initialize properly
+
+    def set_log_path(self, log_path: str, step_count: int) -> None:
+        path = f"{log_path}/replays/{step_count}"
+        if not os.path.exists(path):
+            os.makedirs(path)
+        self.env.env.agent1._save_replays = path
 
     @cached_property
     def max_action_value(self) -> float:
