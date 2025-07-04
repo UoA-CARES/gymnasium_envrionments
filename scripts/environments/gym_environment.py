@@ -17,6 +17,9 @@ class GymEnvironment(metaclass=abc.ABCMeta):
         cv2.imshow(f"{self.task}", frame)
         cv2.waitKey(10)
 
+    def set_log_path(self, log_path: str, step_count: int) -> None:
+        pass
+
     @abc.abstractmethod
     def get_overlay_info(self) -> dict:
         raise NotImplementedError("Override this method")
