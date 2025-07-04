@@ -6,7 +6,7 @@ import cv2
 import numpy as np
 from environments.gym_environment import GymEnvironment
 from gymnasium import spaces
-from poke_env_gym.poke_environment import PokeEnvWrapper
+from poke_env_gym.showdown_environment import SingleShowdownWrapper
 from util.configurations import GymEnvironmentConfig
 
 
@@ -14,14 +14,14 @@ class ShowdownEnvironment(GymEnvironment):
     def __init__(self, config: GymEnvironmentConfig, evaluation: bool = False) -> None:
         super().__init__(config)
 
-        # "gen9ubers", "gen9randombattle", or "gen9ubers"
-        battle_format: str = config.domain
+        # "random", "uber", "ou", "uu", "ru", "nu"
+        team_type: str = config.domain
 
         # "max", "simple" or "random"
         opponent_type: str = config.task
 
-        self.env = PokeEnvWrapper(
-            battle_format=battle_format,
+        self.env = SingleShowdownWrapper(
+            team_type=team_type,
             opponent_type=opponent_type,
             evaluation=evaluation,
         )

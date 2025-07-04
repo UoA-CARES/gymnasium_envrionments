@@ -32,7 +32,7 @@ class EnvironmentFactory:
             env = PyboyEnvironment(config)
             eval_env = PyboyEnvironment(config)
         elif config.gym == "pokeenv":
-            from scripts.environments.showdown.showdown_environment import (
+            from environments.showdown.showdown_environment import (
                 ShowdownEnvironment,
             )
 
