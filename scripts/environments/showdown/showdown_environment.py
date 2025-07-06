@@ -6,7 +6,7 @@ import cv2
 import numpy as np
 from environments.gym_environment import GymEnvironment
 from gymnasium import spaces
-from poke_env_gym.showdown_environment import SingleShowdownWrapper
+from showdown.showdown_environment import SingleShowdownWrapper
 from util.configurations import GymEnvironmentConfig
 
 
