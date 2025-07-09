@@ -29,6 +29,9 @@ def evaluate_agent(
         frame = env.grab_frame()
         record.start_video(total_steps + 1, frame)
 
+        log_path = record.current_sub_directory
+        env.set_log_path(log_path, total_steps + 1)
+
     for eval_episode_counter in range(number_eval_episodes):
         episode_timesteps = 0
         episode_reward = 0
@@ -53,7 +56,7 @@ def evaluate_agent(
                 else normalised_action
             )
 
-            state, reward, done, truncated = env.step(denormalised_action)
+            state, reward, done, truncated, env_info = env.step(denormalised_action)
             episode_reward += reward
 
             # For Bias Calculation
@@ -70,7 +73,7 @@ def evaluate_agent(
 
             if done or truncated:
                 # Calculate bias
-                info = agent.calculate_bias(
+                bias_data = agent.calculate_bias(
                     episode_states,
                     episode_actions,
                     episode_rewards,
@@ -83,7 +86,8 @@ def evaluate_agent(
                         episode=eval_episode_counter + 1,
                         episode_reward=episode_reward,
                         display=True,
-                        **info,
+                        **env_info,
+                        **bias_data,
                     )
 
                 # Reset environment
@@ -159,7 +163,9 @@ def train_agent(
                     normalised_action, env.max_action_value, env.min_action_value
                 )
 
-        next_state, reward_extrinsic, done, truncated = env.step(denormalised_action)
+        next_state, reward_extrinsic, done, truncated, env_info = env.step(
+            denormalised_action
+        )
 
         if display:
             env.render()
@@ -215,6 +221,7 @@ def train_agent(
                 episode_steps=episode_timesteps,
                 episode_reward=episode_reward,
                 episode_time=episode_time,
+                **env_info,
                 **info,
                 display=True,
             )
