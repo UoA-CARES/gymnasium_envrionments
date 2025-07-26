@@ -26,6 +26,9 @@ from environments.gym_environment import GymEnvironment
 from environments.image_wrapper import ImageWrapper
 from natsort import natsorted
 from util.configurations import GymEnvironmentConfig
+from environments.space.space_env_config import (
+    SpaceEnvironmentConfig,
+)
 
 logging.basicConfig(level=logging.INFO)
 
@@ -172,9 +175,10 @@ def main():
     """
     The main function that orchestrates the training process.
     """
-    parser = RLParser(GymEnvironmentConfig)
+    parser = RLParser(SpaceEnvironmentConfig)
 
     configurations = parser.parse_args()
+    # run config defined in command line
     run_config: RunConfig = configurations["run_config"]  # type: ignore
     env_config: GymEnvironmentConfig = configurations["env_config"]  # type: ignore
     training_config: TrainingConfig = configurations["train_config"]  # type: ignore
@@ -258,6 +262,7 @@ def main():
 
     record.save_configurations(configurations)
 
+    # rely on seeds in training config
     seeds = run_config.seeds if run_config.command == "test" else training_config.seeds
 
     # Split the evaluation and training loop setup
@@ -280,7 +285,7 @@ def main():
         # Create the algorithm
         logging.info(f"Algorithm: {alg_config.algorithm}")
         agent = network_factory.create_network(
-            env.observation_space, env.action_num, alg_config
+            env.observation_space_shape, env.action_num, alg_config
         )
 
         # legacy handler for other gyms - expcetion should in factory

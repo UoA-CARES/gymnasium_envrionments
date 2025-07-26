@@ -27,6 +27,12 @@ class EnvironmentFactory:
             from environments.pyboy.pyboy_environment import PyboyEnvironment
 
             env = PyboyEnvironment(config)
+        elif config.gym == "space":
+            from environments.space.corrective_transfer_env import (
+                CorrectiveTransferEnvironment,
+            )
+
+            env = CorrectiveTransferEnvironment(config)
         else:
             raise ValueError(f"Unkown environment: {config.gym}")
 
