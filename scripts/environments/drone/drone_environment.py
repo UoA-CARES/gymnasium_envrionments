@@ -8,6 +8,7 @@ from environments.gym_environment import GymEnvironment
 from drone_gym import move_to_position
 from util.configurations import GymEnvironmentConfig
 
+
 class DroneEnvironment(GymEnvironment):
     def __init__(self, config: GymEnvironmentConfig, evaluation: bool = False) -> None:
         super().__init__(config)
