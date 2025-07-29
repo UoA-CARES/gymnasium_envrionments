@@ -25,7 +25,7 @@ class GymEnvironmentConfig(EnvironmentConfig):
         headless (bool): Whether to run in headless mode (default: False)
     """
 
-    gym: str = Field(description="Gym Environment <openai, dmcs, pyboy>")
+    gym: str = Field(description="Gym Environment <openai, dmcs, pyboy, drone>")
     task: str
     domain: str = ""
     display: int = 0

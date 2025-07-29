@@ -4,7 +4,7 @@ from functools import cached_property
 import numpy as np
 import cv2
 
-from scripts.environments.gym_environment import GymEnvironment
+from environments.gym_environment import GymEnvironment
 from drone_gym import move_to_position
 from util.configurations import GymEnvironmentConfig
 
@@ -14,14 +14,14 @@ class DroneEnvironment(GymEnvironment):
 
         self.env = move_to_position.DroneNavigationTask()
 
-    def reset(self, training: bool = True) -> np.ndarray:
+    def reset(self, training: bool = True):
         return self.env.reset()
 
-    def sample_action(self) -> np.ndarray:
+    def sample_action(self):
         return self.env.sample_action()
 
     def set_seed(self, seed: int) -> None:
-        self.env.set_seed(seed)
+        self.env.set_seed()
 
     def get_overlay_info(self) -> dict:
         # TODO: Add overlay information for gyms as needed
@@ -40,12 +40,12 @@ class DroneEnvironment(GymEnvironment):
 
     @cached_property
     def observation_space(self) -> int:
-        return self.env.generate_state_dict
+        return self.env.observation_space
 
     @cached_property
     def action_num(self) -> int:
-        # Don't need discrete action num for drone control?
-        return 1
+
+        return self.env.action_num
 
     def grab_frame(self, height: int = 240, width: int = 300) -> np.ndarray:
         frame = self.env.render()
