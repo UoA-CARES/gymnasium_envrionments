@@ -140,7 +140,7 @@ def train(
     memory,
     record,
 ):
-    if agent.policy_type == "policy" or agent.policy_type == "hrl":
+    if agent.policy_type == "policy" or agent.policy_type == "usd":
         tl.train_agent(
             env,
             env_eval,
