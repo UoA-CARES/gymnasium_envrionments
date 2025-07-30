@@ -26,7 +26,7 @@ from environments.gym_environment import GymEnvironment
 from environments.image_wrapper import ImageWrapper
 from natsort import natsorted
 from util.configurations import GymEnvironmentConfig
-from environments.space.space_env_config import (
+from rl_corrective_gym.gym_env_setup.space_env_config import (
     SpaceEnvironmentConfig,
 )
 

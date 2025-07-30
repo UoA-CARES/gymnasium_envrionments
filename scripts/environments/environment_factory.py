@@ -28,7 +28,7 @@ class EnvironmentFactory:
 
             env = PyboyEnvironment(config)
         elif config.gym == "space":
-            from environments.space.corrective_transfer_env import (
+            from rl_corrective_gym.gym_env_setup.corrective_transfer_env import (
                 CorrectiveTransferEnvironment,
             )
 
