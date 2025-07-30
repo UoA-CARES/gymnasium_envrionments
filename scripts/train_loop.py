@@ -15,6 +15,76 @@ from util.overlay import overlay_info
 from util.log_in_place import InPlaceLogger
 
 
+def evaluate_usd(
+    env: GymEnvironment | ImageWrapper,
+    agent: Algorithm,
+    record: Record | None = None,
+    total_steps: int = 0,
+    normalisation: bool = True,
+):
+    state = env.reset(training=False)
+
+    for skill_counter, skill in enumerate(range(agent.num_skills)):
+        episode_timesteps = 0
+        episode_reward = 0
+        episode_num = 0
+        done = False
+        truncated = False
+
+        agent.set_skill(skill, evaluation=True)
+
+        if record is not None:
+            frame = env.grab_frame()
+            record.start_video(f"{total_steps+1}-{skill}", frame)
+
+            log_path = record.current_sub_directory
+            env.set_log_path(log_path, total_steps + 1)
+
+        while not done and not truncated:
+            episode_timesteps += 1
+
+            normalised_action = agent.select_action_from_policy(state, evaluation=True)
+
+            denormalised_action = (
+                hlp.denormalize(
+                    normalised_action, env.max_action_value, env.min_action_value
+                )
+                if normalisation
+                else normalised_action
+            )
+
+            state, reward, done, truncated, env_info = env.step(denormalised_action)
+            episode_reward += reward
+
+            if record is not None:
+                frame = env.grab_frame()
+                overlay = overlay_info(
+                    frame, reward=f"{episode_reward:.1f}", **env.get_overlay_info()
+                )
+                record.log_video(overlay)
+
+            if done or truncated:
+                # Log evaluation information
+                if record is not None:
+                    record.log_eval(
+                        total_steps=total_steps + 1,
+                        episode=skill_counter + 1,
+                        episode_reward=episode_reward,
+                        display=True,
+                        **env_info,
+                    )
+
+                    record.stop_video()
+
+                # Reset environment
+                state = env.reset()
+                episode_reward = 0
+                episode_timesteps = 0
+                episode_num += 1
+
+                agent.epsiode_done()
+
+
 def evaluate_agent(
     env: GymEnvironment | ImageWrapper,
     agent: Algorithm,
@@ -90,13 +160,15 @@ def evaluate_agent(
                         **bias_data,
                     )
 
+                    record.stop_video()
+
                 # Reset environment
                 state = env.reset()
                 episode_reward = 0
                 episode_timesteps = 0
                 episode_num += 1
 
-    record.stop_video()
+                agent.epsiode_done()
 
 
 def train_agent(
@@ -203,14 +275,23 @@ def train_agent(
 
         if (train_step_counter + 1) % number_steps_per_evaluation == 0:
             logging.info("*************--Evaluation Loop--*************")
-            evaluate_agent(
-                env_eval,
-                agent,
-                number_eval_episodes=train_config.number_eval_episodes,
-                record=record,
-                total_steps=train_step_counter,
-                normalisation=apply_action_normalisation,
-            )
+            if agent.policy_type == "usd":
+                evaluate_usd(
+                    env_eval,
+                    agent,
+                    record=record,
+                    total_steps=train_step_counter,
+                    normalisation=apply_action_normalisation,
+                )
+            else:
+                evaluate_agent(
+                    env_eval,
+                    agent,
+                    number_eval_episodes=train_config.number_eval_episodes,
+                    record=record,
+                    total_steps=train_step_counter,
+                    normalisation=apply_action_normalisation,
+                )
             logging.info("--------------------------------------------")
 
         if done or truncated:

@@ -140,7 +140,7 @@ def train(
     memory,
     record,
 ):
-    if agent.policy_type == "policy":
+    if agent.policy_type == "policy" or agent.policy_type == "hrl":
         tl.train_agent(
             env,
             env_eval,
@@ -165,7 +165,7 @@ def train(
             apply_action_normalisation=False,
         )
     else:
-        raise ValueError(f"Agent type is unknown: {agent.type}")
+        raise ValueError(f"Agent type is unknown: {agent.policy_type}")
 
 
 def main():
