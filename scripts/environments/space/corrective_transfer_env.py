@@ -36,13 +36,13 @@ class CorrectiveTransferEnvironment(gym.Env):
 
         # define required information from SCP data
         self.nominal_traj: np.ndarray = pd.read_csv(
-            f"../../nominal_trajectory/{traj_filename}"
+            f"../../rl-corrective-gym/nominal_trajectory/{traj_filename}"
         ).to_numpy()
 
         self.num_timesteps: int = len(self.nominal_traj) - 1
         self.max_m: float = self.nominal_traj[0, -1]
         self.nominal_imp: np.ndarray = pd.read_csv(
-            f"../../nominal_trajectory/{impulse_filename}"
+            f"../../rl-corrective-gym/nominal_trajectory/{impulse_filename}"
         ).to_numpy()
 
         # task config (doi: 10.1016/j.actaastro.2023.10.018)
