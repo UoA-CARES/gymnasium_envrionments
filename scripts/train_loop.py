@@ -53,7 +53,7 @@ def evaluate_agent(
                 else normalised_action
             )
 
-            state, reward, done, truncated = env.step(denormalised_action)
+            state, reward, done, truncated, step_info = env.step(denormalised_action)
             episode_reward += reward
 
             # For Bias Calculation
@@ -75,6 +75,9 @@ def evaluate_agent(
                     episode_actions,
                     episode_rewards,
                 )
+
+                # incorporate custom data
+                info |= step_info
 
                 # Log evaluation information
                 if record is not None:
@@ -159,7 +162,9 @@ def train_agent(
                     normalised_action, env.max_action_value, env.min_action_value
                 )
 
-        next_state, reward_extrinsic, done, truncated = env.step(denormalised_action)
+        next_state, reward_extrinsic, done, truncated, step_info = env.step(
+            denormalised_action
+        )
 
         if display:
             env.render()
@@ -194,6 +199,7 @@ def train_agent(
                 info = agent.train_policy(memory, batch_size, train_step_counter)
 
         info["intrinsic_reward"] = intrinsic_reward
+        info |= step_info
 
         if (train_step_counter + 1) % number_steps_per_evaluation == 0:
             logging.info("*************--Evaluation Loop--*************")
