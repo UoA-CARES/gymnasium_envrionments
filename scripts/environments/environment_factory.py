@@ -1,6 +1,7 @@
 from environments.gym_environment import GymEnvironment
 from environments.image_wrapper import ImageWrapper
 from util.configurations import GymEnvironmentConfig
+import util.configurations as cfg
 
 # Disable these as this is a deliberate use of dynamic imports
 # pylint: disable=import-outside-toplevel
@@ -16,22 +17,22 @@ class EnvironmentFactory:
 
         env: GymEnvironment | ImageWrapper
         eval_env: GymEnvironment | ImageWrapper
-        if config.gym == "dmcs":
+        if isinstance(config, cfg.DMCSConfig):
             from environments.dmcs.dmcs_environment import DMCSEnvironment
 
             env = DMCSEnvironment(config)
             eval_env = DMCSEnvironment(config)
-        elif config.gym == "openai":
+        elif isinstance(config, cfg.OpenAIConfig):
             from environments.openai.openai_environment import OpenAIEnvironment
 
             env = OpenAIEnvironment(config)
             eval_env = OpenAIEnvironment(config)
-        elif config.gym == "pyboy":
+        elif isinstance(config, cfg.PyBoyConfig):
             from environments.pyboy.pyboy_environment import PyboyEnvironment
 
             env = PyboyEnvironment(config)
             eval_env = PyboyEnvironment(config)
-        elif config.gym == "pokeenv":
+        elif isinstance(config, cfg.ShowdownConfig):
             from environments.showdown.showdown_environment import (
                 ShowdownEnvironment,
             )
@@ -39,7 +40,7 @@ class EnvironmentFactory:
             env = ShowdownEnvironment(config, evaluation=False)
             eval_env = ShowdownEnvironment(config, evaluation=True)
         else:
-            raise ValueError(f"Unkown environment: {config.gym}")
+            raise ValueError(f"Unkown environment: {type(config)}")
 
         env = ImageWrapper(config, env) if bool(image_observation) else env
         eval_env = (
