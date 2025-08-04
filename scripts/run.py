@@ -57,6 +57,15 @@ def run_evaluation_loop(
                 normalisation=True,
                 # display=env_config.display,
             )
+        elif agent.policy_type == "usd":
+            tl.evaluate_usd(
+                env,
+                agent,
+                record=record,
+                total_steps=total_steps,
+                normalisation=True,
+                # display=env_config.display,
+            )
         elif agent.policy_type == "discrete_policy":
             tl.evaluate_agent(
                 env,
