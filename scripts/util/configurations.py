@@ -32,7 +32,7 @@ class GymEnvironmentConfig(SubscriptableClass):
     """
 
     gym: ClassVar[str]
-    domain: str
+    domain: str = ""
     task: str
 
     display: int = 0
