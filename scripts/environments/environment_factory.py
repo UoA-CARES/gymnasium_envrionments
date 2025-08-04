@@ -38,6 +38,12 @@ class EnvironmentFactory:
 
             env = ShowdownEnvironment(config, evaluation=False)
             eval_env = ShowdownEnvironment(config, evaluation=True)
+        elif config.gym == "drone":
+            from environments.drone.drone_environment import DroneEnvironment
+
+            drone_env = DroneEnvironment(config)
+            env = drone_env
+            eval_env = drone_env
         else:
             raise ValueError(f"Unkown environment: {config.gym}")
 
