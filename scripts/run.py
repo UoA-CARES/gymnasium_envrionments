@@ -223,20 +223,20 @@ def main():
     device = hlp.get_device()
     logging.info(f"Device: {device}")
 
-    run_name = input(
-        "Double check your experiment configurations :) Press ENTER to continue. (Optional - Enter a name for this run)\n"
-    )
+    # run_name = input(
+    #     "Double check your experiment configurations :) Press ENTER to continue. (Optional - Enter a name for this run)\n"
+    # )
 
-    if device.type == "cpu":
-        no_gpu_answer = input(
-            "Device being set as CPU - No cuda or mps detected. Do you still want to continue? Note: Training will be slower on cpu only. [y/n]"
-        )
+    # if device.type == "cpu":
+    #     no_gpu_answer = input(
+    #         "Device being set as CPU - No cuda or mps detected. Do you still want to continue? Note: Training will be slower on cpu only. [y/n]"
+    #     )
 
-        if no_gpu_answer not in ["y", "Y"]:
-            logging.info(
-                "Terminating Experiment - check CUDA or mps is installed correctly."
-            )
-            sys.exit()
+    #     if no_gpu_answer not in ["y", "Y"]:
+    #         logging.info(
+    #             "Terminating Experiment - check CUDA or mps is installed correctly."
+    #         )
+    #         sys.exit()
 
     logging.info(f"Command: {run_config.command}")
 
@@ -247,7 +247,6 @@ def main():
         task=env_config.task,
         gym=env_config.gym,
         algorithm=alg_config.algorithm,
-        run_name=run_name,
     )
 
     logging.info(f"Base Log Directory: {base_log_dir}")
