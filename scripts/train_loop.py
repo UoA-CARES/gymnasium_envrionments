@@ -23,7 +23,7 @@ def evaluate_agent(
     total_steps: int = 0,
     normalisation: bool = True,
 ):
-    state = env.reset(training=False)
+    state = env.reset()
 
     if record is not None:
         frame = env.grab_frame()
