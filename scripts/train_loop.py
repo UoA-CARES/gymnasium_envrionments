@@ -313,7 +313,7 @@ def train_agent(
             episode_reward = 0
             episode_num += 1
 
-            agent.epsiode_done()
+            agent.episode_done()
 
             episode_start = time.time()
 
