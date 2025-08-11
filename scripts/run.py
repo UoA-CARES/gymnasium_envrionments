@@ -57,6 +57,15 @@ def run_evaluation_loop(
                 normalisation=True,
                 # display=env_config.display,
             )
+        elif agent.policy_type == "usd":
+            tl.evaluate_usd(
+                env,
+                agent,
+                record=record,
+                total_steps=total_steps,
+                normalisation=True,
+                # display=env_config.display,
+            )
         elif agent.policy_type == "discrete_policy":
             tl.evaluate_agent(
                 env,
@@ -140,7 +149,7 @@ def train(
     memory,
     record,
 ):
-    if agent.policy_type == "policy":
+    if agent.policy_type == "policy" or agent.policy_type == "usd":
         tl.train_agent(
             env,
             env_eval,
@@ -165,7 +174,7 @@ def train(
             apply_action_normalisation=False,
         )
     else:
-        raise ValueError(f"Agent type is unknown: {agent.type}")
+        raise ValueError(f"Agent type is unknown: {agent.policy_type}")
 
 
 def main():
