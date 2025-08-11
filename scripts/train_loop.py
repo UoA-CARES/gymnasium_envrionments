@@ -82,7 +82,7 @@ def evaluate_usd(
                 episode_timesteps = 0
                 episode_num += 1
 
-                agent.epsiode_done()
+                agent.episode_done()
 
 
 def evaluate_agent(
@@ -168,7 +168,7 @@ def evaluate_agent(
                 episode_timesteps = 0
                 episode_num += 1
 
-                agent.epsiode_done()
+                agent.episode_done()
 
 
 def train_agent(
