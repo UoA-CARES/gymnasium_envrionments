@@ -22,6 +22,9 @@ class ImageWrapper:
         self.frame_height = config.frame_height
         logging.info("Image Observation is on")
 
+    def set_log_path(self, log_path: str, step_count: int) -> None:
+        self.gym.set_log_path(log_path, step_count)
+
     def get_overlay_info(self):
         return self.gym.get_overlay_info()
 
@@ -78,7 +81,7 @@ class ImageWrapper:
         return state
 
     def step(self, action):
-        vector_state, reward, done, truncated = self.gym.step(action)
+        vector_state, reward, done, truncated, info = self.gym.step(action)
         frame = self.grab_frame(
             height=self.frame_height, width=self.frame_width, grey_scale=self.grey_scale
         )
@@ -88,4 +91,4 @@ class ImageWrapper:
 
         state = {"image": stacked_frames, "vector": vector_state}
 
-        return state, reward, done, truncated
+        return state, reward, done, truncated, info
