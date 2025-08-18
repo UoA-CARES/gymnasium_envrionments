@@ -275,7 +275,6 @@ def train_agent(
                 info = agent.train_policy(memory, batch_size, train_step_counter)
 
         info["intrinsic_reward"] = intrinsic_reward
-        info |= step_info
 
         if (train_step_counter + 1) % number_steps_per_evaluation == 0:
             logging.info("*************--Evaluation Loop--*************")
