@@ -70,17 +70,18 @@ class PyBoyConfig(GymEnvironmentConfig):
 class ShowdownConfig(GymEnvironmentConfig):
     gym: ClassVar[str] = "showdown"
 
+
 class GripperConfig(GymEnvironmentConfig):
     gym: ClassVar[str] = "gripper"
 
-    camera_id: int =0
+    camera_id: int = 0
     blindable: bool = False
     observation_type: int = 1
     episode_horizon: int = 50
 
     goal_selection_method: int = 0
     reference_marker_id: int = 7
-    cube_ids: list[int] = [1,2,3,4,5,6]
+    cube_ids: list[int] = [1, 2, 3, 4, 5, 6]
 
     marker_size: int = 40
     noise_tolerance: int = 15
@@ -88,10 +89,12 @@ class GripperConfig(GymEnvironmentConfig):
     elevator_device_name: str = "/dev/ttyUSB0"
     elevator_baudrate: int = 1000000
     elevator_servo_id: int = 13
-    elevator_limits: list[int] = [6000,1500]
+    elevator_limits: list[int] = [6000, 1500]
 
     is_inverted: bool = False
     camera_matrix: str = f"{Path.home()}/cares_rl_configs/12DOF_ID2/env_config.json"
     camera_distortion: str = f"{Path.home()}/cares_rl_configs/12DOF_ID2/env_config.json"
 
-    gripper_config: str = f"{Path.home()}/cares_rl_configs/12DOF_ID2/gripper_config.json"  # Path to the gripper configuration file
+    gripper_config: str = (
+        f"{Path.home()}/cares_rl_configs/12DOF_ID2/gripper_config.json"  # Path to the gripper configuration file
+    )

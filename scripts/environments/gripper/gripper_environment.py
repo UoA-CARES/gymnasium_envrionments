@@ -8,7 +8,9 @@ import cv2
 from environments.gym_environment import GymEnvironment
 from gripper_gym.environments.environment_factory import EnvironmentFactory
 from util.configurations import GripperConfig
-from cares_lib.dynamixel.gripper_configuration import GripperConfig as GripperHardwareConfig # Gripper_Gym and gymnasium_envrionments use different GripperConfig classes
+from cares_lib.dynamixel.gripper_configuration import (
+    GripperConfig as GripperHardwareConfig,
+)  # Gripper_Gym and gymnasium_envrionments use different GripperConfig classes
 import pydantic
 
 
@@ -56,7 +58,7 @@ class GripperEnvironment(GymEnvironment):
         return self.env.sample_action()
 
     def set_seed(self, seed: int) -> None:
-        if hasattr(self.env, 'set_seed'):
+        if hasattr(self.env, "set_seed"):
             self.env.set_seed(seed)
 
     def reset(self, training: bool = True):
@@ -66,13 +68,13 @@ class GripperEnvironment(GymEnvironment):
         return self.env.step(action)
 
     def grab_frame(self, height: int = 240, width: int = 300) -> np.ndarray:
-        if hasattr(self.env, 'render'):
+        if hasattr(self.env, "render"):
             frame = self.env.render()
-        elif hasattr(self.env, 'grab_frame'):
+        elif hasattr(self.env, "grab_frame"):
             frame = self.env.grab_frame()
         else:
             return np.zeros((height, width, 3), dtype=np.uint8)
-            
+
         if frame is not None:
             frame = cv2.resize(frame, (width, height))
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -80,6 +82,6 @@ class GripperEnvironment(GymEnvironment):
         return np.zeros((height, width, 3), dtype=np.uint8)
 
     def get_overlay_info(self) -> dict:
-        if hasattr(self.env, 'get_overlay_info'):
+        if hasattr(self.env, "get_overlay_info"):
             return self.env.get_overlay_info()
         return {}
