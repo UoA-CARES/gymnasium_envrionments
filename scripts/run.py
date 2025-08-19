@@ -43,7 +43,6 @@ def run_evaluation_loop(
 ):
     for folder in folders:
         agent.load_models(folder, f"{alg_config.algorithm}")
-
         # ewww this is bad - fix this at some point
         try:
             total_steps = int(folder.name.split("_")[-1]) - 1
@@ -130,7 +129,7 @@ def evaluate(
     folders = list(model_path.glob("*"))
 
     # sort folders and remove the final and best model folders
-    folders = natsorted(folders)[:-2]
+    # folders = natsorted(folders)[:-2]
 
     run_evaluation_loop(
         number_eval_episodes,
