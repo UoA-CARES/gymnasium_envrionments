@@ -42,7 +42,7 @@ class EnvironmentFactory:
         elif isinstance(config, cfg.GripperConfig):
             from environments.gripper.gripper_environment import GripperEnvironment
 
-            env = GripperEnvironment(config, evaluation=False)
+            env = GripperEnvironment(config)
             eval_env = env
         else:
             raise ValueError(f"Unkown environment: {type(config)}")
