@@ -2,13 +2,13 @@ from functools import cached_property
 
 import numpy as np
 from environments.gym_environment import GymEnvironment
-from util.configurations import GymEnvironmentConfig
+from util.configurations import PyBoyConfig
 
 from pyboy_environment import suite
 
 
 class PyboyEnvironment(GymEnvironment):
-    def __init__(self, config: GymEnvironmentConfig) -> None:
+    def __init__(self, config: PyBoyConfig) -> None:
         super().__init__(config)
 
         self.env = suite.make(

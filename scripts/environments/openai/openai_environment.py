@@ -5,11 +5,11 @@ import gymnasium as gym
 import numpy as np
 from environments.gym_environment import GymEnvironment
 from gymnasium import spaces
-from util.configurations import GymEnvironmentConfig
+from util.configurations import OpenAIConfig
 
 
 class OpenAIEnvironment(GymEnvironment):
-    def __init__(self, config: GymEnvironmentConfig) -> None:
+    def __init__(self, config: OpenAIConfig) -> None:
         super().__init__(config)
         self.env = gym.make(config.task, render_mode="rgb_array")
 

@@ -5,11 +5,11 @@ import cv2
 import numpy as np
 from dm_control import suite
 from environments.gym_environment import GymEnvironment
-from util.configurations import GymEnvironmentConfig
+from util.configurations import DMCSConfig
 
 
 class DMCSEnvironment(GymEnvironment):
-    def __init__(self, config: GymEnvironmentConfig) -> None:
+    def __init__(self, config: DMCSConfig) -> None:
         super().__init__(config)
         logging.info(f"Training on Domain {config.domain}")
 
