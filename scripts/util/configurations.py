@@ -74,6 +74,8 @@ class ShowdownConfig(GymEnvironmentConfig):
 class GripperConfig(GymEnvironmentConfig):
     gym: ClassVar[str] = "gripper"
 
+    gripper_id: int
+
     # camera_id: int = 0
     # blindable: bool = False
     # observation_type: int = 1

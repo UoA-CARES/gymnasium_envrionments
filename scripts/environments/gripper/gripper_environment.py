@@ -14,8 +14,9 @@ class GripperEnvironment(GymEnvironment):
         factory = EnvironmentFactory()
         self.domain = config.domain
         self.task = config.task
+        self.gripper_id = config.gripper_id
 
-        self.env = factory.create_environment(self.domain, self.task, 1)
+        self.env = factory.create_environment(self.domain, self.task, self.gripper_id)
 
     @cached_property
     def min_action_value(self) -> float:
