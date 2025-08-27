@@ -38,35 +38,39 @@ class CorrectiveTransferEnvironment(gym.Env, GymEnvironment):
         impulse_filename: str = config.impulse_filename
 
         # define universal parameters
-        self.sun_mu: float = 1.32712440018e11
+        self.sun_mu: float = 1.32712440018e11  # km^3/s^2
         self.au: float = 1.49597870691e8  # km
-        self.ve: float = np.sqrt(self.sun_mu / self.au)  # orbital velocity of earth
+        self.ve: float = np.sqrt(
+            self.sun_mu / self.au
+        )  # orbital velocity of earth; km/s
 
         # define required information from SCP data
+        # [pos (km), vel (km/s), m (kg)]
         self.nominal_traj: np.ndarray = pd.read_csv(
             os.path.join(file_dir, traj_filename)
         ).to_numpy()
 
-        self.num_timesteps: int = len(self.nominal_traj) - 1
-        self.max_m: float = self.nominal_traj[0, -1]
+        self.num_timesteps: int = len(self.nominal_traj) - 1  # no-dim
+        self.max_m: float = self.nominal_traj[0, -1]  # kg
         self.nominal_imp: np.ndarray = pd.read_csv(
             os.path.join(file_dir, impulse_filename)
-        ).to_numpy()
+        ).to_numpy()  # [vel (km/s)]
 
         # task config (doi: 10.1016/j.actaastro.2023.10.018)
         self.tof: float = config.tof  # in days
         self.timestep: float = (
             (self.tof / self.num_timesteps) * 24 * 60 * 60
         )  # in seconds
-        # dynamics uncertainties config (in km)
+
+        # dynamics uncertainties config (in km, km/s)
         self.dyn_pos_sd: float = config.dyn_pos_sd
         self.dyn_vel_sd: float = config.dyn_vel_sd
 
         # thruster config
-        self.max_thrust: float = config.max_thrust
-        self.exhaust_vel: float = config.exhaust_vel
+        self.max_thrust: float = config.max_thrust  # N, kgm/s^2
+        self.exhaust_vel: float = config.exhaust_vel  # km/s
 
-        # reward
+        # reward (no-dim)
         self.penalty_scale_control: float = 100.0
         self.penalty_scale_dynamics: float = 10.0
         self.penalty_scale_effort: float = 10.0
@@ -202,7 +206,7 @@ class CorrectiveTransferEnvironment(gym.Env, GymEnvironment):
 
     def step(self, action) -> tuple:
         # compute the vmax based on the mass before impulse
-        vmax: float = self.max_thrust * self.timestep / self.state[-1]
+        vmax: float = (self.max_thrust * self.timestep / self.state[-1]) / 1000  # km/s
         corrective_impulse: np.ndarray = self._get_control_input(vmax, action)
 
         # propagate to the final timestamp
@@ -232,8 +236,8 @@ class CorrectiveTransferEnvironment(gym.Env, GymEnvironment):
         Implements the Tsiolkovsky Rocket Equation for the mass update.
 
         Arguments:
-        - m0: the current mass at t before impulse
-        - impulse: the total impulse vector at t
+        - m0: the current mass at t before impulse (kg)
+        - impulse: the total impulse vector at t (km/s)
         """
         return m0 * np.exp(-np.linalg.norm(impulse) / self.exhaust_vel)
 
@@ -297,7 +301,8 @@ class CorrectiveTransferEnvironment(gym.Env, GymEnvironment):
         B: float = np.power(np.linalg.norm(nominal_imp), 2) - np.power(vmax, 2)
         roots: np.ndarray = np.roots([1, A, B])
 
-        corrective_mag = np.max(roots)
+        # control max is 10 m/s
+        corrective_mag = min(np.max(roots), 0.01)
         return corrective_mag * (1 + action[0]) / 2 * action_unit
 
     def _law_of_cosine(self, theta: float, a: float, c: float):
@@ -327,10 +332,10 @@ class CorrectiveTransferEnvironment(gym.Env, GymEnvironment):
     ) -> np.ndarray:
         total_impulse: np.ndarray = copy.deepcopy(
             self.nominal_imp[self.chosen_timestamp]
-        )
-        pos: np.ndarray = copy.deepcopy(self.state[0:3])
-        vel: np.ndarray = copy.deepcopy(self.state[3:6])
-        m: float = copy.deepcopy(self.state[-1])
+        )  # km/s
+        pos: np.ndarray = copy.deepcopy(self.state[0:3])  # km
+        vel: np.ndarray = copy.deepcopy(self.state[3:6])  # km/s
+        m: float = copy.deepcopy(self.state[-1])  # kg
 
         if is_guid:
             vel += corrective_impulse
