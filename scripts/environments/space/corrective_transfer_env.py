@@ -205,9 +205,16 @@ class CorrectiveTransferEnvironment(gym.Env, GymEnvironment):
 
     def step(self, action) -> tuple:
         # compute the vmax based on the mass before impulse
-        exhaust_vel_m: float = self.exhaust_vel * 1000 # m/s
-        m0: float = self.state[-1] # kg
-        vmax: float = exhaust_vel_m * np.log((m0*exhaust_vel_m)/(m0*exhaust_vel_m - self.max_thrust*self.timestep))/1000 # km/s
+        exhaust_vel_m: float = self.exhaust_vel * 1000  # m/s
+        m0: float = self.state[-1]  # kg
+        vmax: float = (
+            exhaust_vel_m
+            * np.log(
+                (m0 * exhaust_vel_m)
+                / (m0 * exhaust_vel_m - self.max_thrust * self.timestep)
+            )
+            / 1000
+        )  # km/s
         corrective_impulse: np.ndarray = self._get_control_input(vmax, action)
 
         # propagate to the final timestamp
