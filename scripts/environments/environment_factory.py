@@ -31,6 +31,13 @@ class EnvironmentFactory:
 
             env = PyboyEnvironment(config)
             eval_env = PyboyEnvironment(config)
+        elif config.gym == "space":
+            from environments.space.corrective_transfer_env import (
+                CorrectiveTransferEnvironment,
+            )
+
+            env = CorrectiveTransferEnvironment(config)
+            eval_env = CorrectiveTransferEnvironment(config)
         elif config.gym == "pokeenv":
             from environments.showdown.showdown_environment import (
                 ShowdownEnvironment,
