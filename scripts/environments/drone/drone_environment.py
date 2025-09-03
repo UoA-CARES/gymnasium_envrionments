@@ -48,9 +48,8 @@ class DroneEnvironment(GymEnvironment):
 
         return self.env.action_num
 
+    # returning an empty white frame
     def grab_frame(self, height: int = 240, width: int = 300) -> np.ndarray:
-        frame = self.env.render()
-        frame = cv2.resize(frame, (width, height))
-        # Convert to BGR for use with OpenCV
-        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        return frame
+        # 255 is the value for white
+        white_frame = np.full((height, width, 3), 255, dtype=np.uint8)
+        return white_frame
