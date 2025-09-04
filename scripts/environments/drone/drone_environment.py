@@ -48,8 +48,13 @@ class DroneEnvironment(GymEnvironment):
 
         return self.env.action_num
 
+    def grab_frame(self,height: int = 240, width: int = 300) -> np.ndarray:
+
+        return self.env.grab_frame(height, width)
+
+
     # returning an empty white frame
-    def grab_frame(self, height: int = 240, width: int = 300) -> np.ndarray:
-        # 255 is the value for white
-        white_frame = np.full((height, width, 3), 255, dtype=np.uint8)
-        return white_frame
+    # def grab_frame(self, height: int = 240, width: int = 300) -> np.ndarray:
+    #     # 255 is the value for white
+    #     white_frame = np.full((height, width, 3), 255, dtype=np.uint8)
+    #     return white_frame
