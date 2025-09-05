@@ -13,7 +13,7 @@ class DroneEnvironment(GymEnvironment):
     def __init__(self, config: GymEnvironmentConfig, evaluation: bool = False) -> None:
         super().__init__(config)
 
-        self.env = move_to_position.DroneNavigationTask()
+        self.env = move_to_position.MoveToPosition()
 
     def reset(self, training: bool = True):
         return self.env.reset()
