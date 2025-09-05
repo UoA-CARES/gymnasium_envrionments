@@ -16,7 +16,7 @@ class DroneEnvironment(GymEnvironment):
         self.env = move_to_position.MoveToPosition()
 
     def reset(self, training: bool = True):
-        return self.env.reset()
+        return self.env.reset(training)
 
     def sample_action(self):
         return self.env.sample_action()
