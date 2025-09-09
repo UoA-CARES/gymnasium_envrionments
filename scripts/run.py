@@ -20,12 +20,12 @@ from cares_reinforcement_learning.util.configurations import (
 )
 from cares_reinforcement_learning.util.network_factory import NetworkFactory
 from cares_reinforcement_learning.util.record import Record
-from cares_reinforcement_learning.util.rl_parser import RLParser, RunConfig
 from environments.environment_factory import EnvironmentFactory
 from environments.gym_environment import GymEnvironment
 from environments.image_wrapper import ImageWrapper
 from natsort import natsorted
 from util.configurations import GymEnvironmentConfig
+from util.rl_parser import RLParser, RunConfig
 
 logging.basicConfig(level=logging.INFO)
 
@@ -181,7 +181,7 @@ def main():
     """
     The main function that orchestrates the training process.
     """
-    parser = RLParser(GymEnvironmentConfig)
+    parser = RLParser()
 
     configurations = parser.parse_args()
     run_config: RunConfig = configurations["run_config"]  # type: ignore
