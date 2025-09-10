@@ -35,6 +35,7 @@ class CorrectiveTransferEnvironment(gym.Env, GymEnvironment):
 
         traj_filename: str = config.traj_filename
         impulse_filename: str = config.impulse_filename
+        self.single_run: bool = config.single_run
 
         # define universal parameters
         self.sun_mu: float = 1.32712440018e11  # km^3/s^2
@@ -106,6 +107,10 @@ class CorrectiveTransferEnvironment(gym.Env, GymEnvironment):
         self.nogui_log_vel: np.ndarray = np.array([])
         self.nogui_log_m: np.ndarray = np.array([])
 
+        # initialise state here since reset will just init logs
+        if self.single_run:
+            self._init_state()
+
     @cached_property
     def max_action_value(self) -> float:
         return self.action_space.high[0]
@@ -135,6 +140,8 @@ class CorrectiveTransferEnvironment(gym.Env, GymEnvironment):
         super().reset(seed=seed)
         # Note issues: https://github.com/rail-berkeley/softlearning/issues/75
         self.action_space.seed(seed)
+        # important for timestep replicability
+        random.seed(seed)
 
     def grab_frame(self, height: int = 240, width: int = 300) -> np.ndarray:
         """
@@ -178,29 +185,11 @@ class CorrectiveTransferEnvironment(gym.Env, GymEnvironment):
 
     def reset(self, *, training: bool = True) -> np.ndarray:
         super().reset()
-
-        # for now, randomly choose the perturbed state with uniform probability
-        self.chosen_timestamp = random.randint(0, self.num_timesteps - 1)
-        chosen_state: np.ndarray = self.nominal_traj[self.chosen_timestamp, :]
-
-        # reset logging
         self._init_logs()
 
-        # covariance matrix set up
-        pos_var: float = np.power(self.dyn_pos_sd, 2)
-        vel_var: float = np.power(self.dyn_vel_sd, 2)
-        cov: np.ndarray = np.diag(
-            [pos_var, pos_var, pos_var, vel_var, vel_var, vel_var]
-        )
-        mean: np.ndarray = np.array([0] * 6)
+        if not self.single_run:
+            self._init_state()
 
-        # choose the gaussian noise for the chosen state
-        self.noise = np.concatenate(
-            (np.random.multivariate_normal(mean, cov), np.array([0]))
-        )
-        self.state = chosen_state + self.noise
-
-        # obs
         return self.state
 
     def step(self, action) -> tuple:
@@ -381,7 +370,7 @@ class CorrectiveTransferEnvironment(gym.Env, GymEnvironment):
                 )
             )
 
-        # return a dictionary of terminal state and optional info
+        # return a dictionary of terminal state
         return np.concatenate((pos, vel, [m]))
 
     def _update_logs(self, is_guid: bool, pos: np.ndarray, vel: np.ndarray, m: float):
@@ -403,3 +392,22 @@ class CorrectiveTransferEnvironment(gym.Env, GymEnvironment):
         self.nogui_log_pos = self.nominal_traj[0 : self.chosen_timestamp, 0:3]
         self.nogui_log_vel = self.nominal_traj[0 : self.chosen_timestamp, 3:6]
         self.nogui_log_m = self.nominal_traj[0 : self.chosen_timestamp, -1]
+
+    def _init_state(self):
+        # for now, randomly choose the perturbed state with uniform probability
+        self.chosen_timestamp = random.randint(0, self.num_timesteps - 1)
+        chosen_state: np.ndarray = self.nominal_traj[self.chosen_timestamp, :]
+
+        # covariance matrix set up
+        pos_var: float = np.power(self.dyn_pos_sd, 2)
+        vel_var: float = np.power(self.dyn_vel_sd, 2)
+        cov: np.ndarray = np.diag(
+            [pos_var, pos_var, pos_var, vel_var, vel_var, vel_var]
+        )
+        mean: np.ndarray = np.array([0] * 6)
+
+        # choose the gaussian noise for the chosen state
+        self.noise = np.concatenate(
+            (np.random.multivariate_normal(mean, cov), np.array([0]))
+        )
+        self.state = chosen_state + self.noise
