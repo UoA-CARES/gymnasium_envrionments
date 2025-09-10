@@ -66,8 +66,8 @@ class GripperEnvironment(GymEnvironment):
         return self.env.step(action)
 
     def grab_frame(self, height: int = 240, width: int = 300) -> np.ndarray:
-        if hasattr(self.env, 'render'):
-            frame = self.env.render()
+        if hasattr(self.env, 'grab_rendered_frame'):
+            frame = self.env.grab_rendered_frame()
         elif hasattr(self.env, 'grab_frame'):
             frame = self.env.grab_frame()
         else:
