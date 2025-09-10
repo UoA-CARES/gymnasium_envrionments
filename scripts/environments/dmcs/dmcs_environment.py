@@ -5,11 +5,11 @@ import cv2
 import numpy as np
 from dm_control import suite
 from environments.gym_environment import GymEnvironment
-from util.configurations import GymEnvironmentConfig
+from util.configurations import DMCSConfig
 
 
 class DMCSEnvironment(GymEnvironment):
-    def __init__(self, config: GymEnvironmentConfig) -> None:
+    def __init__(self, config: DMCSConfig) -> None:
         super().__init__(config)
         logging.info(f"Training on Domain {config.domain}")
 
@@ -58,7 +58,7 @@ class DMCSEnvironment(GymEnvironment):
             time_step.last(),
         )
         # for consistency with open ai gym just add false for truncated
-        return state, reward, done, False
+        return state, reward, done, False, {}
 
     def grab_frame(self, height=240, width=300, camera_id=0) -> np.ndarray:
         frame = self.env.physics.render(camera_id=camera_id, height=height, width=width)

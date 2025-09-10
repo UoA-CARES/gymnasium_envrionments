@@ -20,12 +20,12 @@ from cares_reinforcement_learning.util.configurations import (
 )
 from cares_reinforcement_learning.util.network_factory import NetworkFactory
 from cares_reinforcement_learning.util.record import Record
-from cares_reinforcement_learning.util.rl_parser import RLParser, RunConfig
 from environments.environment_factory import EnvironmentFactory
 from environments.gym_environment import GymEnvironment
 from environments.image_wrapper import ImageWrapper
 from natsort import natsorted
 from util.configurations import GymEnvironmentConfig
+from util.rl_parser import RLParser, RunConfig
 
 logging.basicConfig(level=logging.INFO)
 
@@ -52,6 +52,15 @@ def run_evaluation_loop(
                 env,
                 agent,
                 number_eval_episodes,
+                record=record,
+                total_steps=total_steps,
+                normalisation=True,
+                # display=env_config.display,
+            )
+        elif agent.policy_type == "usd":
+            tl.evaluate_usd(
+                env,
+                agent,
                 record=record,
                 total_steps=total_steps,
                 normalisation=True,
@@ -140,7 +149,7 @@ def train(
     memory,
     record,
 ):
-    if agent.policy_type == "policy":
+    if agent.policy_type == "policy" or agent.policy_type == "usd":
         tl.train_agent(
             env,
             env_eval,
@@ -165,14 +174,14 @@ def train(
             apply_action_normalisation=False,
         )
     else:
-        raise ValueError(f"Agent type is unknown: {agent.type}")
+        raise ValueError(f"Agent type is unknown: {agent.policy_type}")
 
 
 def main():
     """
     The main function that orchestrates the training process.
     """
-    parser = RLParser(GymEnvironmentConfig)
+    parser = RLParser()
 
     configurations = parser.parse_args()
     run_config: RunConfig = configurations["run_config"]  # type: ignore
@@ -267,8 +276,7 @@ def main():
         # Create the Environment
         # This line should be here for seed consistency issues
         logging.info(f"Loading Environment: {env_config.gym}")
-        env = env_factory.create_environment(env_config, alg_config.image_observation)
-        env_eval = env_factory.create_environment(
+        env, env_eval = env_factory.create_environment(
             env_config, alg_config.image_observation
         )
 

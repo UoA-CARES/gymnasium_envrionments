@@ -1,17 +1,38 @@
+import os
+import time
 from functools import cached_property
 
 import cv2
-import gymnasium as gym
 import numpy as np
 from environments.gym_environment import GymEnvironment
 from gymnasium import spaces
-from util.configurations import OpenAIConfig
+from showdown_gym.showdown_environment import SingleShowdownWrapper
+from util.configurations import ShowdownConfig
 
 
-class OpenAIEnvironment(GymEnvironment):
-    def __init__(self, config: OpenAIConfig) -> None:
+class ShowdownEnvironment(GymEnvironment):
+    def __init__(self, config: ShowdownConfig, evaluation: bool = False) -> None:
         super().__init__(config)
-        self.env = gym.make(config.task, render_mode="rgb_array")
+
+        # "random", "uber", "ou", "uu", "ru", "nu"
+        team_type: str = config.domain
+
+        # "max", "simple" or "random"
+        opponent_type: str = config.task
+
+        self.env = SingleShowdownWrapper(
+            team_type=team_type,
+            opponent_type=opponent_type,
+            evaluation=evaluation,
+        )
+
+        time.sleep(3)  # Allow the environment to initialize properly
+
+    def set_log_path(self, log_path: str, step_count: int) -> None:
+        path = f"{log_path}/replays/{step_count}"
+        if not os.path.exists(path):
+            os.makedirs(path)
+        self.env.env.agent1._save_replays = path
 
     @cached_property
     def max_action_value(self) -> float:
@@ -50,7 +71,7 @@ class OpenAIEnvironment(GymEnvironment):
         return state
 
     def step(self, action: int) -> tuple:
-        state, reward, done, truncated, info = self.env.step(action)
+        state, reward, done, truncated, info = self.env.step(np.int64(action))
         return state, reward, done, truncated, info
 
     def grab_frame(self, height: int = 240, width: int = 300) -> np.ndarray:
