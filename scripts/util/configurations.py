@@ -101,9 +101,10 @@ class GripperConfig(GymEnvironmentConfig):
     #     f"{Path.home()}/cares_rl_configs/12DOF_ID2/gripper_config.json"  # Path to the gripper configuration file
     # )
 
+
 class SpaceEnvironmentConfig(GymEnvironmentConfig):
     gym: ClassVar[str] = "space"
-    
+
     traj_filename: str
     impulse_filename: str
     single_run: bool
