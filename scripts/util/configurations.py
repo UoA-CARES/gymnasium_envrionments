@@ -100,3 +100,18 @@ class GripperConfig(GymEnvironmentConfig):
     # gripper_config: str = (
     #     f"{Path.home()}/cares_rl_configs/12DOF_ID2/gripper_config.json"  # Path to the gripper configuration file
     # )
+
+class SpaceEnvironmentConfig(GymEnvironmentConfig):
+    gym: ClassVar[str] = "space"
+    
+    traj_filename: str
+    impulse_filename: str
+    single_run: bool
+
+    tof: float
+    max_thrust: float
+    exhaust_vel: float
+
+    dyn_pos_sd: float = 1.0
+    dyn_vel_sd: float = 0.05
+    dyn_m_sd: float = 1.0
