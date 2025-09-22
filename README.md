@@ -30,6 +30,15 @@ python run.py train cli -h
 python run.py train config --data_path <PATH_TO_TRAINING_CONFIGS>
 ```
 
+### Resume (Experimental)
+The resume command allows you to continue training from a previously saved checkpoint. This is useful if training was interrupted or if you want to further improve a model. You can specify the path to the checkpoint and resume training with your desired settings.
+
+Note: to enable a training to be resumable you need to enable the "--save_train_checkpoints 1" when using the train command. Checkpoint saving does not default to true, this is because saving a checkpoint of the memory, and training parameters increases data storage on the HD - especially for image based learning. This is also an experimental feature and the "resume" does not set all parameters/evnrioments to the same state as before - this will change the training outcomes, it is not a true resume command. 
+
+```
+python run.py resume --data_path <PATH_TO_TRAINING_DATA> --seed <SEED_TO_RESUME>
+```
+
 ### Evaluate
 The evaluate command is used to re-run the evaluation loops from a prior training run - this will reproduce the evaluation graphs and data from a given training experiment. 
 
