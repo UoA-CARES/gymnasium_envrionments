@@ -137,7 +137,7 @@ class RLParser:
         # Add an argument
         parser.add_argument(
             "command",
-            choices=["train", "evaluate", "test"],
+            choices=["train", "evaluate", "test", "resume"],
             help="Commands to run this package",
         )
 
@@ -291,6 +291,29 @@ class RLParser:
             run_args = {"data_path": data_path}
 
         return run_args, args
+
+    def _resume(self) -> tuple[dict, dict]:
+        parser = argparse.ArgumentParser()
+
+        parser.add_argument(
+            "--data_path",
+            type=str,
+            required=True,
+            help="Path to training files - e.g. alg_config.json, env_config.json, train_config.json",
+        )
+
+        parser.add_argument(
+            "--seed",
+            type=int,
+            required=True,
+            help="Seed to continue training from",
+        )
+
+        run_args = parser.parse_args(sys.argv[2:])
+
+        model_args = self._load_args_from_configs(run_args.data_path)
+
+        return vars(run_args), model_args
 
 
 ## Example of how to use the RLParser for custom environments -

@@ -181,6 +181,7 @@ def train_agent(
     alg_config: AlgorithmConfig,
     display: bool = False,
     apply_action_normalisation: bool = True,
+    start_training_step: int = 0,
 ):
     logging.setLoggerClass(InPlaceLogger)
     exploration_logger = logging.getLogger("exploration")
@@ -208,7 +209,8 @@ def train_agent(
     state = env.reset()
 
     episode_start = time.time()
-    for train_step_counter in range(int(max_steps_training)):
+
+    for train_step_counter in range(start_training_step, int(max_steps_training)):
         episode_timesteps += 1
 
         if train_step_counter < max_steps_exploration:
@@ -275,6 +277,7 @@ def train_agent(
 
         if (train_step_counter + 1) % number_steps_per_evaluation == 0:
             logging.info("*************--Evaluation Loop--*************")
+
             if agent.policy_type == "usd":
                 evaluate_usd(
                     env_eval,
