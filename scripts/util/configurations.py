@@ -29,6 +29,7 @@ class GymEnvironmentConfig(SubscriptableClass):
         frame_height (int): Height of the image frames (default: 84)
         grey_scale (bool): Whether to convert frames to grayscale (default: False)
         display (int): Display mode for the environment (default: 0)
+        save_train_checkpoints (int): Whether to save training checkpoints (default: 0)
     """
 
     gym: ClassVar[str]
@@ -36,6 +37,7 @@ class GymEnvironmentConfig(SubscriptableClass):
     task: str
 
     display: int = 0
+    save_train_checkpoints: int = 0
 
     # image observation configurations
     frames_to_stack: int = 3
