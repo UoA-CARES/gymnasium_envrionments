@@ -36,9 +36,7 @@ class PyboyEnvironment(GymEnvironment):
         return self.env.action_num
 
     def sample_action(self):
-        return np.random.uniform(
-            self.min_action_value, self.max_action_value, size=self.action_num
-        )
+        return self.env.sample_action()
 
     def set_seed(self, seed: int) -> None:
         self.env.set_seed(seed)
