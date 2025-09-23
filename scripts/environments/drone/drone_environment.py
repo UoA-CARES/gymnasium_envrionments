@@ -48,7 +48,7 @@ class DroneEnvironment(GymEnvironment):
 
         return self.env.action_num
 
-    def grab_frame(self, height: int = 240, width: int = 300) -> np.ndarray:
+    def grab_frame(self, height = 720, width = 1280 ) -> np.ndarray:
 
         return self.env.grab_frame(height, width)
 

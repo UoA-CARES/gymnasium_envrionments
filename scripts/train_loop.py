@@ -33,6 +33,7 @@ def evaluate_agent(
         env.set_log_path(log_path, total_steps + 1)
 
     for eval_episode_counter in range(number_eval_episodes):
+        print(f" TOTAL NUMBER EVAL EPISODES {number_eval_episodes}")
         episode_timesteps = 0
         episode_reward = 0
         episode_num = 0
@@ -44,6 +45,9 @@ def evaluate_agent(
         episode_rewards: list[float] = []
 
         while not done and not truncated:
+
+            print(f"eval_episode_counter {eval_episode_counter}")
+
             episode_timesteps += 1
 
             normalised_action = agent.select_action_from_policy(state, evaluation=True)
@@ -66,6 +70,7 @@ def evaluate_agent(
 
             if eval_episode_counter == 0 and record is not None:
                 frame = env.grab_frame()
+                print("Grab Frame is called")
                 overlay = overlay_info(
                     frame, reward=f"{episode_reward:.1f}", **env.get_overlay_info()
                 )
@@ -167,6 +172,8 @@ def train_agent(
             denormalised_action
         )
 
+        print(f" Reward Extrinsic {reward_extrinsic}")
+
         if display:
             env.render()
 
@@ -177,6 +184,7 @@ def train_agent(
             )
 
         total_reward = reward_extrinsic + intrinsic_reward
+        print(f"  Total_reward {total_reward}")
 
         memory.add(
             state,
