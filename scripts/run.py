@@ -345,7 +345,7 @@ def main():
             )
         elif run_config.command == "resume":
             # Steps to restart training
-            # Set the seeds for training
+            # Set the seeds for training - tick
             # Load the agent - tick
             # Load the memory buffer - tick
             # Load the training and evaluation data into Record - tick
