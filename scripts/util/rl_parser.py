@@ -18,10 +18,12 @@ from pydantic import Field
 from . import configurations as cfg
 
 
+# TODO command specific args
 class RunConfig(SubscriptableClass):
     command: str
     data_path: str | None
 
+    seed: int | None = None
     seeds: list[int] | None = None
     episodes: int | None = None
 
