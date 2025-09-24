@@ -7,11 +7,11 @@ import numpy as np
 from environments.gym_environment import GymEnvironment
 from gymnasium import spaces
 from showdown_gym.showdown_environment import SingleShowdownWrapper
-from util.configurations import GymEnvironmentConfig
+from util.configurations import ShowdownConfig
 
 
 class ShowdownEnvironment(GymEnvironment):
-    def __init__(self, config: GymEnvironmentConfig, evaluation: bool = False) -> None:
+    def __init__(self, config: ShowdownConfig, evaluation: bool = False) -> None:
         super().__init__(config)
 
         # "random", "uber", "ou", "uu", "ru", "nu"

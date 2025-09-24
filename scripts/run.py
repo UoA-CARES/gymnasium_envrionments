@@ -12,6 +12,7 @@ from pathlib import Path
 import train_loop as tl
 import yaml
 from cares_reinforcement_learning.algorithm.algorithm import Algorithm
+from cares_reinforcement_learning.memory.memory_buffer import MemoryBuffer
 from cares_reinforcement_learning.memory.memory_factory import MemoryFactory
 from cares_reinforcement_learning.util import helpers as hlp
 from cares_reinforcement_learning.util.configurations import (
@@ -20,12 +21,12 @@ from cares_reinforcement_learning.util.configurations import (
 )
 from cares_reinforcement_learning.util.network_factory import NetworkFactory
 from cares_reinforcement_learning.util.record import Record
-from cares_reinforcement_learning.util.rl_parser import RLParser, RunConfig
 from environments.environment_factory import EnvironmentFactory
 from environments.gym_environment import GymEnvironment
 from environments.image_wrapper import ImageWrapper
 from natsort import natsorted
 from util.configurations import GymEnvironmentConfig
+from util.rl_parser import RLParser, RunConfig
 
 logging.basicConfig(level=logging.INFO)
 
@@ -52,6 +53,15 @@ def run_evaluation_loop(
                 env,
                 agent,
                 number_eval_episodes,
+                record=record,
+                total_steps=total_steps,
+                normalisation=True,
+                # display=env_config.display,
+            )
+        elif agent.policy_type == "usd":
+            tl.evaluate_usd(
+                env,
+                agent,
                 record=record,
                 total_steps=total_steps,
                 normalisation=True,
@@ -139,8 +149,10 @@ def train(
     agent: Algorithm,
     memory,
     record,
+    start_training_step: int = 0,
 ):
-    if agent.policy_type == "policy":
+    # TODO you can collapse this...apply normalisation in the agent class is the only difference
+    if agent.policy_type == "policy" or agent.policy_type == "usd":
         tl.train_agent(
             env,
             env_eval,
@@ -151,6 +163,7 @@ def train(
             alg_config,
             display=env_config.display,
             apply_action_normalisation=True,
+            start_training_step=start_training_step,
         )
     elif agent.policy_type == "discrete_policy" or agent.policy_type == "value":
         tl.train_agent(
@@ -163,16 +176,17 @@ def train(
             alg_config,
             display=env_config.display,
             apply_action_normalisation=False,
+            start_training_step=start_training_step,
         )
     else:
-        raise ValueError(f"Agent type is unknown: {agent.type}")
+        raise ValueError(f"Agent type is unknown: {agent.policy_type}")
 
 
 def main():
     """
     The main function that orchestrates the training process.
     """
-    parser = RLParser(GymEnvironmentConfig)
+    parser = RLParser()
 
     configurations = parser.parse_args()
     run_config: RunConfig = configurations["run_config"]  # type: ignore
@@ -225,7 +239,7 @@ def main():
 
     if device.type == "cpu":
         no_gpu_answer = input(
-            "Device being set as CPU - No cuda or mps detected. Do you still want to continue? Note: Training will be slower on cpu only. [y/n]"
+            "Device being set as CPU - No cuda or mps detected. Do you want to continue? Note: Training will be slower on cpu only. [y/n]"
         )
 
         if no_gpu_answer not in ["y", "Y"]:
@@ -233,6 +247,19 @@ def main():
                 "Terminating Experiment - check CUDA or mps is installed correctly."
             )
             sys.exit()
+
+    if env_config.save_train_checkpoints:
+        logging.warning(
+            "Training checkpoints will be saved - be aware this will increase disk usage (memory buffer)."
+        )
+        if alg_config.image_observation:
+            no_gpu_answer = input(
+                "Image observations are being used with checkpoints - this will take up a lot of disk space: Do you want to disable this? [y/n]"
+            )
+
+            if no_gpu_answer in ["y", "Y"]:
+                logging.info("Disabling training checkpoint saving.")
+                env_config.save_train_checkpoints = False
 
     logging.info(f"Command: {run_config.command}")
 
@@ -254,9 +281,15 @@ def main():
         task=env_config.task,
         agent=None,
         record_video=training_config.record_eval_video,
+        record_checkpoints=env_config.save_train_checkpoints,
     )
 
     record.save_configurations(configurations)
+
+    # # update to have only the remaining seeds in the list for restarting training
+    # if run_config.seed in training_config.seeds:
+    #     idx = training_config.seeds.index(run_config.seed)
+    #     training_config.seeds = training_config.seeds[idx:]
 
     seeds = run_config.seeds if run_config.command == "test" else training_config.seeds
 
@@ -278,7 +311,7 @@ def main():
 
         # Create the algorithm
         logging.info(f"Algorithm: {alg_config.algorithm}")
-        agent = network_factory.create_network(
+        agent: Algorithm = network_factory.create_network(
             env.observation_space, env.action_num, alg_config
         )
 
@@ -297,6 +330,7 @@ def main():
 
             # Create the memory - only required for training
             memory = memory_factory.create_memory(alg_config)
+            record.set_memory_buffer(memory)
 
             train(
                 env_config,
@@ -308,6 +342,44 @@ def main():
                 memory,
                 record,
             )
+        elif run_config.command == "resume":
+            # Steps to restart training
+            # Set the seeds for training
+            # Load the agent - tick
+            # Load the memory buffer - tick
+            # Load the training and evaluation data into Record - tick
+            # Set the steps to the correct number to restart training from - tick
+            # Set the episode to the correct number to restart training from
+
+            restart_path = f"{run_config.data_path}{seed}"
+            logging.info(f"Restarting from path: {restart_path}")
+
+            logging.info("Loading training and evaluation data")
+            record.load(restart_path)
+
+            logging.info("Loading memory buffer")
+            memory = MemoryBuffer.load(f"{restart_path}/memory", "memory")
+            record.set_memory_buffer(memory)
+
+            logging.info("Loading agent models")
+            agent.load_models(
+                Path(f"{restart_path}/models/checkpoint"), f"{alg_config.algorithm}"
+            )
+
+            start_training_step = record.get_last_logged_step()
+
+            train(
+                env_config,
+                training_config,
+                alg_config,
+                env,
+                env_eval,
+                agent,
+                memory,
+                record,
+                start_training_step,
+            )
+
         elif run_config.command == "evaluate":
             # Evaluate the policy or value based approach
             evaluate(
@@ -328,6 +400,8 @@ def main():
                 agent,
                 record,
             )
+        else:
+            raise ValueError(f"Unknown command {run_config.command}")
 
         record.save()
 
