@@ -287,9 +287,10 @@ def main():
     record.save_configurations(configurations)
 
     # # update to have only the remaining seeds in the list for restarting training
-    # if run_config.seed in training_config.seeds:
-    #     idx = training_config.seeds.index(run_config.seed)
-    #     training_config.seeds = training_config.seeds[idx:]
+    if run_config.command == "resume":
+        if run_config.seed in training_config.seeds:
+            idx = training_config.seeds.index(run_config.seed)
+            training_config.seeds = training_config.seeds[idx:]
 
     seeds = run_config.seeds if run_config.command == "test" else training_config.seeds
 
