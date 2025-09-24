@@ -352,19 +352,19 @@ def main():
             # Set the steps to the correct number to restart training from - tick
             # Set the episode to the correct number to restart training from
 
-            restart_path = f"{run_config.data_path}{seed}"
+            restart_path = Path(run_config.data_path) / str(seed)
             logging.info(f"Restarting from path: {restart_path}")
 
             logging.info("Loading training and evaluation data")
             record.load(restart_path)
 
             logging.info("Loading memory buffer")
-            memory = MemoryBuffer.load(f"{restart_path}/memory", "memory")
+            memory = MemoryBuffer.load(restart_path / "memory", "memory")
             record.set_memory_buffer(memory)
 
             logging.info("Loading agent models")
             agent.load_models(
-                Path(f"{restart_path}/models/checkpoint"), f"{alg_config.algorithm}"
+                restart_path / "models" / "checkpoint", f"{alg_config.algorithm}"
             )
 
             start_training_step = record.get_last_logged_step()
