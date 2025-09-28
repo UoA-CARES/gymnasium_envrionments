@@ -39,11 +39,12 @@ class EnvironmentFactory:
 
             env = ShowdownEnvironment(config, evaluation=False)
             eval_env = ShowdownEnvironment(config, evaluation=True)
-        elif isinstance(config, cfg.GripperConfig):
-            from environments.gripper.gripper_environment import GripperEnvironment
+        elif config.gym == "drone":
+            from environments.drone.drone_environment import DroneEnvironment
 
-            env = GripperEnvironment(config)
-            eval_env = env
+            drone_env = DroneEnvironment(config)
+            env = drone_env
+            eval_env = drone_env
         else:
             raise ValueError(f"Unkown environment: {type(config)}")
 
