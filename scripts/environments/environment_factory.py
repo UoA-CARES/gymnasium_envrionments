@@ -1,5 +1,5 @@
 from environments.gym_environment import GymEnvironment
-from environments.mutlimodal_wrapper import MultiModalWrapper
+from environments.multimodal_wrapper import MultiModalWrapper
 from util.configurations import GymEnvironmentConfig
 import util.configurations as cfg
 

@@ -10,7 +10,7 @@ from cares_reinforcement_learning.util.configurations import (
     TrainingConfig,
 )
 from environments.gym_environment import GymEnvironment
-from environments.mutlimodal_wrapper import MultiModalWrapper
+from environments.multimodal_wrapper import MultiModalWrapper
 from util.overlay import overlay_info
 from util.log_in_place import InPlaceLogger
 

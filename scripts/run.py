@@ -23,7 +23,7 @@ from cares_reinforcement_learning.util.network_factory import NetworkFactory
 from cares_reinforcement_learning.util.record import Record
 from environments.environment_factory import EnvironmentFactory
 from environments.gym_environment import GymEnvironment
-from environments.mutlimodal_wrapper import MultiModalWrapper
+from environments.multimodal_wrapper import MultiModalWrapper
 from natsort import natsorted
 from util.configurations import GymEnvironmentConfig
 from util.rl_parser import RLParser, RunConfig
