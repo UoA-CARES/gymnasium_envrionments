@@ -23,7 +23,6 @@ class GymEnvironmentConfig(SubscriptableClass):
     Configuration class for Gym Environment.
 
     Attributes:
-        image_observation (bool): Whether to use image observation (default: False)
         frames_to_stack (int): Number of frames to stack for image observation (default: 3)
         frame_width (int): Width of the image frames (default: 84)
         frame_height (int): Height of the image frames (default: 84)
