@@ -1,6 +1,7 @@
 """
 Author: Lee Violet Ong
-Date: 18/08/25
+Date: 22/09/25 (v1.1)
+- incorporation of single sample env context (init state does not change)
 """
 
 # Directory setup
@@ -21,9 +22,15 @@ import numpy as np
 import pykep as pk
 import matplotlib.pyplot as plt
 from PIL import Image
+from daceypy import DA, array
 
 from rl_corrective_gym.gym_env_setup.space_env_config import SpaceEnvironmentConfig
 from environments.gym_environment import GymEnvironment
+from rl_corrective_gym.RK78 import RK78
+
+# CONSTANTS
+AU = 1.49597870691e8  # km
+DAY = 86400
 
 
 class CorrectiveTransferEnvironment(gym.Env, GymEnvironment):
@@ -38,11 +45,8 @@ class CorrectiveTransferEnvironment(gym.Env, GymEnvironment):
         self.single_run: bool = config.single_run
 
         # define universal parameters
-        self.sun_mu: float = 1.32712440018e11  # km^3/s^2
-        self.au: float = 1.49597870691e8  # km
-        self.ve: float = np.sqrt(
-            self.sun_mu / self.au
-        )  # orbital velocity of earth; km/s
+        self.sun_mu: float = 1.32712440018e11
+        self.ve: float = np.sqrt(self.sun_mu / AU)  # orbital velocity of earth
 
         # define required information from SCP data
         # [pos (km), vel (km/s), m (kg)]
@@ -52,23 +56,28 @@ class CorrectiveTransferEnvironment(gym.Env, GymEnvironment):
 
         self.num_timesteps: int = len(self.nominal_traj) - 1  # no-dim
         self.max_m: float = self.nominal_traj[0, -1]  # kg
+
+        # applied impulse [vel (km/s)]
         self.nominal_imp: np.ndarray = pd.read_csv(
             os.path.join(file_dir, impulse_filename)
-        ).to_numpy()  # [vel (km/s)]
+        ).to_numpy()
 
         # task config (doi: 10.1016/j.actaastro.2023.10.018)
         self.tof: float = config.tof  # in days
-        self.timestep: float = (
-            (self.tof / self.num_timesteps) * 24 * 60 * 60
-        )  # in seconds
+        self.timestep: float = self.tof / self.num_timesteps * DAY  # in seconds
 
         # dynamics uncertainties config (in km, km/s)
         self.dyn_pos_sd: float = config.dyn_pos_sd
         self.dyn_vel_sd: float = config.dyn_vel_sd
 
         # thruster config
-        self.max_thrust: float = config.max_thrust  # N, kgm/s^2
+        self.max_thrust: float = config.max_thrust  # N, kg km/s^2
         self.exhaust_vel: float = config.exhaust_vel  # km/s
+        self.max_corr: float = config.max_corr  # km/s
+
+        # reward function config
+        self.dyn_rew: int = config.dyn_rew
+        self.effort_rew: int = config.effort_rew
 
         # reward (no-dim)
         self.penalty_scale_control: float = 100.0
@@ -78,7 +87,7 @@ class CorrectiveTransferEnvironment(gym.Env, GymEnvironment):
         # define the spaces ie. all possible range of obs and action
         # [rx, ry, rz, vx, vy, vz, m]
         earth_constraints: np.ndarray = np.array(
-            [self.au, self.au, self.au, self.ve, self.ve, self.ve]
+            [AU, AU, AU, self.ve, self.ve, self.ve]
         )
         self.observation_space: spaces.Box = spaces.Box(
             low=np.concatenate((-2 * earth_constraints, [0.0])),
@@ -96,7 +105,7 @@ class CorrectiveTransferEnvironment(gym.Env, GymEnvironment):
         # init state is the first state by default (no noise)
         self.state: np.ndarray = self.nominal_traj[0, :]
         self.chosen_timestamp: int = 0
-        self.noise: np.ndarray = np.array([0] * 4)
+        self.noise: np.ndarray = np.array([0] * 7)
 
         # logging purposes
         self.gui_log_pos: np.ndarray = np.array([])
@@ -142,6 +151,7 @@ class CorrectiveTransferEnvironment(gym.Env, GymEnvironment):
         self.action_space.seed(seed)
         # important for timestep replicability
         random.seed(seed)
+        np.random.seed(seed)
 
     def grab_frame(self, height: int = 240, width: int = 300) -> np.ndarray:
         """
@@ -194,39 +204,139 @@ class CorrectiveTransferEnvironment(gym.Env, GymEnvironment):
 
     def step(self, action) -> tuple:
         # compute the vmax based on the mass before impulse
-        exhaust_vel_m: float = self.exhaust_vel * 1000  # m/s
-        m0: float = self.state[-1]  # kg
-        vmax: float = (
-            exhaust_vel_m
-            * np.log(
-                (m0 * exhaust_vel_m)
-                / (m0 * exhaust_vel_m - self.max_thrust * self.timestep)
-            )
-            / 1000
-        )  # km/s
+        vmax: float = self._get_vmax()
         corrective_impulse: np.ndarray = self._get_control_input(vmax, action)
 
         # propagate to the final timestamp
         # NOTE: could use pykep propagate_lagrangian function (ref: https://esa.github.io/pykep/documentation/core.html#pykep.propagate_lagrangian)
-        no_gui_xf: np.ndarray = self._propagate(False)
         gui_xf: np.ndarray = self._propagate(True, corrective_impulse)
-        total_reward, reward_control_penalty, reward_dyn = self._reward_function(
-            vmax, corrective_impulse, gui_xf, no_gui_xf
+        ngui_xf: np.ndarray = self._propagate(False)
+
+        xf: np.ndarray = self.nominal_traj[-1, :]
+        gui_err: np.ndarray = gui_xf - xf
+        ngui_err: np.ndarray = ngui_xf - xf
+
+        rewards = self._reward_function(
+            vmax, corrective_impulse, gui_err[0:6], ngui_err[0:6]
         )
 
         # terminal state, reward, done, truncated, info
         info: dict = {
-            "reward_control_penalty": reward_control_penalty,
-            "reward_dyn": reward_dyn,
+            "reward_dyn": rewards["dynamics"],
+            "reward_effort": rewards["effort"],
+            "reward_misc": rewards["misc"],
             "timestep": self.chosen_timestamp,
             "noise": self.noise,
             "vmax": vmax,
             "action": action,
             "corrective_impulse": corrective_impulse,
             "gui_terminal_state": gui_xf,
-            "no_gui_terminal_state": no_gui_xf,
+            "no_gui_terminal_state": ngui_xf,
         }
-        return gui_xf, total_reward, True, False, info
+        return gui_xf, rewards["total"], True, False, info
+
+    def _reward_function(
+        self,
+        vmax: float,
+        control_imp: np.ndarray,
+        gui_err: np.ndarray,
+        ngui_err: np.ndarray,
+    ) -> dict:
+        reward_dyn: float = self._reward_dynamics(gui_err, ngui_err)
+        reward_effort: float = self._reward_effort(control_imp)
+        reward_misc: float = self._reward_misc(control_imp, vmax)
+
+        total_reward: float = reward_dyn + reward_effort + reward_misc
+
+        return {
+            "total": total_reward,
+            "dynamics": reward_dyn,
+            "effort": reward_effort,
+            "misc": reward_misc,
+        }
+
+    def _reward_dynamics(self, gui_err: np.ndarray, ngui_err: np.ndarray) -> float:
+        """
+        Computes the reward associated to the state deviation.
+
+        Arguments:
+        - guid_err: 6-dim deviation vector of guided xf (w/ corrective imp) from desired xf
+        - no_guid_err: 6-dim deviation vector of non-guided xf from desired xf
+        """
+
+        reward: float = 0.0
+
+        gui_norm: float = np.linalg.norm(gui_err)
+        ngui_norm: float = np.linalg.norm(ngui_err)
+
+        if self.dyn_rew == 0:
+            # corresponds to reward function 1
+            delta: float = ngui_norm - gui_norm
+            reward = np.sign(delta) * (1 - 1 / (1 + abs(delta)))
+
+        elif self.dyn_rew == 1:
+            # corresponds to reward function 2
+            reward = 1 / (1 + gui_norm) - 1
+
+        elif self.dyn_rew == 2:
+            # corresponds to reward function 3
+            prew: float = 1 / (1 + np.linalg.norm(gui_err[0:3]))
+            vrew: float = 1 / (1 + np.linalg.norm(gui_err[3:6]))
+
+            reward = 1 - 3 / (1 + prew + vrew)
+        else:
+            assert False, "No such dynamics reward function"
+
+        return reward
+
+    def _reward_effort(self, control_imp: np.ndarray) -> float:
+        """
+        Computes the control effort reward. (Optional i.e. can be NONE if config = 0)
+
+        Arguments:
+        - control_imp: the control impulse chosen
+        """
+
+        reward: float = 0.0
+
+        if self.effort_rew == 0:  # NONE
+            pass
+
+        elif self.effort_rew == 1:
+            # corresponds to reward function 6
+            total_imp: np.ndarray = (
+                self.nominal_imp[self.chosen_timestamp] + control_imp
+            )
+            unit_dir: np.ndarray = total_imp / np.linalg.norm(total_imp)
+
+            reward = -np.dot(control_imp, unit_dir) / self.max_corr
+
+        else:
+            assert False, "No such control effort reward function"
+
+        return reward
+
+    def _reward_misc(self, control_imp: np.ndarray, vmax: float) -> float:
+        """
+        Computes the miscs rewards i.e. must haves for constraints.
+        Current content: control penalty.
+        TODO: bitmask when content increases
+
+        Arguments:
+        - control_imp: the control impulse chosen
+        - vmax: norm of the total possible imp at the timestep
+        """
+
+        reward: float = 0.0
+
+        total_imp: np.ndarray = self.nominal_imp[self.chosen_timestamp] + control_imp
+        over_imp: float = np.linalg.norm(total_imp) - vmax
+        tol: float = 1e-3
+
+        if over_imp > 0:
+            reward = tol / (tol + over_imp) - 1
+
+        return reward
 
     def _mass_update(self, m0: float, impulse: np.ndarray) -> float:
         """
@@ -238,43 +348,15 @@ class CorrectiveTransferEnvironment(gym.Env, GymEnvironment):
         """
         return m0 * np.exp(-np.linalg.norm(impulse) / self.exhaust_vel)
 
-    def _reward_function(
-        self,
-        vmax: float,
-        control_imp: np.ndarray,
-        guid_xf: np.ndarray,
-        no_guid_xf: np.ndarray,
-    ):
-        nominal_imp: np.ndarray = self.nominal_imp[self.chosen_timestamp]
-        total_corrective_imp: np.ndarray = nominal_imp + control_imp
-
-        # reward/penalty for effort
-        # nominal_imp_mag: float = np.linalg.norm(nominal_imp)
-        # reward_effort: float = (
-        #     (nominal_imp_mag - np.linalg.norm(total_corrective_imp))
-        #     / nominal_imp_mag
-        #     * self.penalty_scale_effort
-        # )
-
-        # penalty for exceeding the control limits
-        # NOTE: with constraints, this should be zero
-        control_diff: float = vmax - np.linalg.norm(total_corrective_imp)
-        reward_control_penalty: float = 0
-        if control_diff < 0:
-            reward_control_penalty = (control_diff / vmax) * self.penalty_scale_control
-
-        # =============== DYNAMICS REWARD/PENALTY ==================
-        nom_rv_final: np.ndarray = self.nominal_traj[-1, :]
-        error_no_guid: np.ndarray = no_guid_xf - nom_rv_final
-        error_guid: np.ndarray = guid_xf - nom_rv_final
-
-        # NOTE: for now euclidean, can change into weighted norm
-        error_no_guid_mag: float = np.linalg.norm(error_no_guid[0:6])
-        error_guid_mag: float = np.linalg.norm(error_guid[0:6])
-        reward_dyn = -error_guid_mag / error_no_guid_mag * self.penalty_scale_dynamics
-
-        total_reward: float = reward_control_penalty + reward_dyn
-        return total_reward, reward_control_penalty, reward_dyn
+    def _get_vmax(self) -> float:
+        """
+        Computes the norm of the maximum impulse, using the Tsiolvosky equation.
+        """
+        m0: float = self.state[-1]  # kg
+        return self.exhaust_vel * np.log(
+            (m0 * self.exhaust_vel)
+            / (m0 * self.exhaust_vel - self.max_thrust * self.timestep)
+        )  # km/s
 
     def _get_control_input(self, vmax: float, action) -> np.ndarray:
         """
@@ -298,12 +380,12 @@ class CorrectiveTransferEnvironment(gym.Env, GymEnvironment):
         B: float = np.power(np.linalg.norm(nominal_imp), 2) - np.power(vmax, 2)
         roots: np.ndarray = np.roots([1, A, B])
 
-        # control max is 10 m/s
-        corrective_mag = min(np.max(roots), 0.01)
+        corrective_mag = min(np.max(roots), self.max_corr)
         return corrective_mag * (1 + action[0]) / 2 * action_unit
 
     def _law_of_cosine(self, theta: float, a: float, c: float):
         """
+        [ARCHIVED]
         law of cosine: c^2 = a^2 + b^2 - 2ab cos(theta')
 
         b^2 + Ab + B = 0
@@ -327,6 +409,11 @@ class CorrectiveTransferEnvironment(gym.Env, GymEnvironment):
     def _propagate(
         self, is_guid: bool, corrective_impulse: np.ndarray = [0.0, 0.0, 0.0]
     ) -> np.ndarray:
+        """
+        Propagates the chosen global state to the terminal timestep.
+        Returns the terminal state.
+        """
+
         total_impulse: np.ndarray = copy.deepcopy(
             self.nominal_imp[self.chosen_timestamp]
         )  # km/s
@@ -394,13 +481,17 @@ class CorrectiveTransferEnvironment(gym.Env, GymEnvironment):
         self.nogui_log_m = self.nominal_traj[0 : self.chosen_timestamp, -1]
 
     def _init_state(self):
+        """
+        Initialises the global state ie. choses the timestep and perturbation applied.
+        """
+
         # for now, randomly choose the perturbed state with uniform probability
         self.chosen_timestamp = random.randint(0, self.num_timesteps - 1)
         chosen_state: np.ndarray = self.nominal_traj[self.chosen_timestamp, :]
 
         # covariance matrix set up
-        pos_var: float = np.power(self.dyn_pos_sd, 2)
-        vel_var: float = np.power(self.dyn_vel_sd, 2)
+        pos_var: float = self.dyn_pos_sd**2
+        vel_var: float = self.dyn_vel_sd**2
         cov: np.ndarray = np.diag(
             [pos_var, pos_var, pos_var, vel_var, vel_var, vel_var]
         )
@@ -411,3 +502,46 @@ class CorrectiveTransferEnvironment(gym.Env, GymEnvironment):
             (np.random.multivariate_normal(mean, cov), np.array([0]))
         )
         self.state = chosen_state + self.noise
+
+    def _dynamics(self, t, x: array, params) -> array:
+        # Keplerian 2-body equations of motions
+        # Makes use of daceypy array struct
+        pos: array = x[0:3]
+        vel: array = x[3:6]
+
+        pos_norm: float = pos.vnorm()
+        v_dot: array = -(self.sun_mu / pos_norm**3) * pos
+
+        return vel.concat(v_dot)
+
+    def _stm_pert(self):
+        """
+        This function utilises DA to obtain the STM (first-order).
+        """
+        DA.init(1, 6)
+
+        tf: float = (self.num_timesteps - self.chosen_timestamp) * self.timestep
+        # define the DA variables - in this case, the variables
+        # are the EOM variables themselves
+        chosen_state: np.ndarray = self.nominal_traj[self.chosen_timestamp, :][0:6]
+        x0: array = array(chosen_state + [DA(1), DA(2), DA(3), DA(4), DA(5), DA(6)])
+
+        with DA.cache_manager():
+            xf_DA = RK78(x0, 0.0, tf, self._dynamics, None)
+
+        return xf_DA.linear()
+
+    def _optimal_control(self) -> np.ndarray:
+        """
+        Computes the least squares solution for the optimal control to reduce
+        the deviation:
+
+        delta(v) = -(A_T @ A)^(-1) @ A_T @ x
+        where x is the error to correct
+        """
+        full_phi: np.ndarray = self._stm_pert()
+        # A is the second half of the STM (6x3), impact of vel dev
+        A: np.ndarray = full_phi[:, 3:6]
+        A_T: np.ndarray = np.transpose(A)
+
+        return -(np.linalg.inv(A_T @ A) @ A_T) @ self.noise[0:6] - self.noise[0:6]
