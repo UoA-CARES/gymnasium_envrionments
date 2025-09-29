@@ -212,7 +212,6 @@ def train_agent(
 
     for train_step_counter in range(start_training_step, int(max_steps_training)):
         episode_timesteps += 1
-
         if train_step_counter < max_steps_exploration:
             exploration_logger.info(
                 f"Running Exploration Steps {train_step_counter + 1}/{max_steps_exploration}"
