@@ -23,7 +23,7 @@ from cares_reinforcement_learning.util.network_factory import NetworkFactory
 from cares_reinforcement_learning.util.record import Record
 from environments.environment_factory import EnvironmentFactory
 from environments.gym_environment import GymEnvironment
-from environments.image_wrapper import ImageWrapper
+from environments.multimodal_wrapper import MultiModalWrapper
 from natsort import natsorted
 from util.configurations import GymEnvironmentConfig
 from util.rl_parser import RLParser, RunConfig
@@ -34,7 +34,7 @@ logging.basicConfig(level=logging.INFO)
 def run_evaluation_loop(
     number_eval_episodes: int,
     alg_config: AlgorithmConfig,
-    env: GymEnvironment | ImageWrapper,
+    env: GymEnvironment | MultiModalWrapper,
     agent: Algorithm,
     record: Record,
     folders: list[Path],
@@ -95,7 +95,7 @@ def test(
     data_path: str,
     number_eval_episodes: int,
     alg_config: AlgorithmConfig,
-    env: GymEnvironment | ImageWrapper,
+    env: GymEnvironment | MultiModalWrapper,
     agent: Algorithm,
     record: Record,
 ):
@@ -119,7 +119,7 @@ def evaluate(
     number_eval_episodes: int,
     seed: int,
     alg_config,
-    env: GymEnvironment | ImageWrapper,
+    env: GymEnvironment | MultiModalWrapper,
     agent: Algorithm,
     record: Record,
 ):

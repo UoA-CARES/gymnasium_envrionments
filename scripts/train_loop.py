@@ -10,13 +10,13 @@ from cares_reinforcement_learning.util.configurations import (
     TrainingConfig,
 )
 from environments.gym_environment import GymEnvironment
-from environments.image_wrapper import ImageWrapper
+from environments.multimodal_wrapper import MultiModalWrapper
 from util.overlay import overlay_info
 from util.log_in_place import InPlaceLogger
 
 
 def evaluate_usd(
-    env: GymEnvironment | ImageWrapper,
+    env: GymEnvironment | MultiModalWrapper,
     agent: Algorithm,
     record: Record | None = None,
     total_steps: int = 0,
@@ -86,7 +86,7 @@ def evaluate_usd(
 
 
 def evaluate_agent(
-    env: GymEnvironment | ImageWrapper,
+    env: GymEnvironment | MultiModalWrapper,
     agent: Algorithm,
     number_eval_episodes: int,
     record: Record | None = None,
@@ -172,8 +172,8 @@ def evaluate_agent(
 
 
 def train_agent(
-    env: GymEnvironment | ImageWrapper,
-    env_eval: GymEnvironment | ImageWrapper,
+    env: GymEnvironment | MultiModalWrapper,
+    env_eval: GymEnvironment | MultiModalWrapper,
     agent: Algorithm,
     memory: MemoryBuffer,
     record: Record,
@@ -212,7 +212,6 @@ def train_agent(
 
     for train_step_counter in range(start_training_step, int(max_steps_training)):
         episode_timesteps += 1
-
         if train_step_counter < max_steps_exploration:
             exploration_logger.info(
                 f"Running Exploration Steps {train_step_counter + 1}/{max_steps_exploration}"

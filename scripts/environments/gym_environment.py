@@ -20,6 +20,10 @@ class GymEnvironment(metaclass=abc.ABCMeta):
     def set_log_path(self, log_path: str, step_count: int) -> None:
         pass
 
+    def get_multimodal_observation(self) -> dict:
+        # Default implementation, override if necessary
+        return {}
+
     @abc.abstractmethod
     def get_overlay_info(self) -> dict:
         raise NotImplementedError("Override this method")

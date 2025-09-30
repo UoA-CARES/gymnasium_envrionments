@@ -52,3 +52,8 @@ class PyboyEnvironment(GymEnvironment):
 
     def get_overlay_info(self) -> dict:
         return self.env.get_overlay_info()
+
+    def get_multimodal_observation(self) -> dict:
+        # Default implementation, override if necessary
+        # TODO Sam - create a get_multimodal_observation method in pyboy side and call here
+        return {}
