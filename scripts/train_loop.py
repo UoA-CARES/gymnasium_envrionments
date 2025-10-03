@@ -4,15 +4,16 @@ import time
 from cares_reinforcement_learning.algorithm.algorithm import Algorithm
 from cares_reinforcement_learning.memory.memory_buffer import MemoryBuffer
 from cares_reinforcement_learning.util import helpers as hlp
-from cares_reinforcement_learning.util.record import Record
 from cares_reinforcement_learning.util.configurations import (
     AlgorithmConfig,
     TrainingConfig,
 )
+from cares_reinforcement_learning.util.record import Record
+from cares_reinforcement_learning.util.training_context import TrainingContext
 from environments.gym_environment import GymEnvironment
 from environments.multimodal_wrapper import MultiModalWrapper
-from util.overlay import overlay_info
 from util.log_in_place import InPlaceLogger
+from util.overlay import overlay_info
 
 
 def evaluate_usd(
@@ -269,8 +270,18 @@ def train_agent(
             train_step_counter >= max_steps_exploration
             and (train_step_counter + 1) % number_steps_per_train_policy == 0
         ):
+
+            training_context = TrainingContext(
+                memory=memory,
+                batch_size=batch_size,
+                training_step=train_step_counter,
+                episode=episode_num + 1,
+                episode_steps=episode_timesteps,
+                episode_reward=episode_reward,
+                episode_done=done or truncated,
+            )
             for _ in range(G):
-                info = agent.train_policy(memory, batch_size, train_step_counter)
+                info = agent.train_policy(training_context)
 
         info["intrinsic_reward"] = intrinsic_reward
 
