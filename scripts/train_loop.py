@@ -212,7 +212,7 @@ def train_agent(
 
     episode_start = time.time()
 
-    use_episode_repetition = alg_config.use_episode_repetition
+    use_episode_repetition = alg_config.repetition_num_episodes > 0
     repetition_num_episodes = alg_config.repetition_num_episodes
 
     repeating = False
