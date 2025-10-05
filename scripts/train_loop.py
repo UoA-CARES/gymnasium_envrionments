@@ -9,6 +9,7 @@ from cares_reinforcement_learning.util.configurations import (
     TrainingConfig,
 )
 from cares_reinforcement_learning.util.record import Record
+from cares_reinforcement_learning.util.repetition import EpisodeReplay
 from cares_reinforcement_learning.util.training_context import TrainingContext
 from environments.gym_environment import GymEnvironment
 from environments.multimodal_wrapper import MultiModalWrapper
@@ -211,6 +212,15 @@ def train_agent(
 
     episode_start = time.time()
 
+    use_episode_repetition = alg_config.use_episode_repetition
+    repetition_num_episodes = alg_config.repetition_num_episodes
+
+    repeating = False
+    repetition_counter = 0
+
+    repetition_buffer = EpisodeReplay()
+    repeat = False
+
     for train_step_counter in range(start_training_step, int(max_steps_training)):
         episode_timesteps += 1
         if train_step_counter < max_steps_exploration:
@@ -226,6 +236,16 @@ def train_agent(
                 normalised_action = hlp.normalize(
                     denormalised_action, env.max_action_value, env.min_action_value
                 )
+        elif use_episode_repetition and repeat and repetition_buffer.has_best_episode():
+            exploration_logger.info(
+                f"Repeating Episode {episode_num} Step {episode_timesteps}/{len(repetition_buffer.best_actions)}"
+            )
+            denormalised_action = repetition_buffer.replay_best_episode(
+                episode_timesteps - 1
+            )
+
+            if episode_timesteps >= len(repetition_buffer.best_actions):
+                repeat = False
         else:
             # algorithm range [-1, 1])
             normalised_action = agent.select_action_from_policy(state)
@@ -236,6 +256,8 @@ def train_agent(
                 denormalised_action = hlp.denormalize(
                     normalised_action, env.max_action_value, env.min_action_value
                 )
+
+        repetition_buffer.record_action(denormalised_action)
 
         next_state, reward_extrinsic, done, truncated, env_info = env.step(
             denormalised_action
@@ -319,6 +341,17 @@ def train_agent(
                 **info,
                 display=True,
             )
+
+            if repeating:
+                repeat = True
+                repetition_counter += 1
+                if repetition_counter >= repetition_num_episodes:
+                    repeat = False
+                    repeating = False
+                    repetition_counter = 0
+            elif train_step_counter > max_steps_exploration:
+                repeat = repetition_buffer.finish_episode(episode_reward)
+                repeating = repeat
 
             # Reset environment
             state = env.reset()
