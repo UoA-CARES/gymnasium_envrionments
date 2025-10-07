@@ -38,7 +38,8 @@ class EnvironmentFactory:
             )
 
             env = ShowdownEnvironment(config, evaluation=False)
-            eval_env = ShowdownEnvironment(config, evaluation=True)
+            # eval_env = ShowdownEnvironment(config, evaluation=True)
+            eval_env = env  # temporary fix until showdown websocket fixed
         elif isinstance(config, cfg.GripperConfig):
             from environments.gripper.gripper_environment import GripperEnvironment
 
