@@ -282,6 +282,7 @@ def main():
         agent=None,
         record_video=training_config.record_eval_video,
         record_checkpoints=env_config.save_train_checkpoints,
+        checkpoint_interval=training_config.checkpoint_interval,
     )
 
     record.save_configurations(configurations)
