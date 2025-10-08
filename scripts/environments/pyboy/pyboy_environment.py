@@ -44,7 +44,7 @@ class PyboyEnvironment(GymEnvironment):
     def reset(self, training: bool = True) -> np.ndarray:
         return self.env.reset(training=training)
 
-    def step(self, action: int) -> tuple:
+    def _step(self, action: int) -> tuple:
         return self.env.step(action)
 
     def grab_frame(self, height=240, width=300) -> np.ndarray:

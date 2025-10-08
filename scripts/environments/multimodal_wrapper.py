@@ -85,7 +85,7 @@ class MultiModalWrapper:
         return state
 
     def step(self, action):
-        vector_state, reward, done, truncated, info = self.gym.step(action)
+        vector_state, reward, done, truncated, info = self.gym._step(action)
         frame = self.grab_frame(
             height=self.frame_height, width=self.frame_width, grey_scale=self.grey_scale
         )

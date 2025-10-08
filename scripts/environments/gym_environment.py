@@ -10,7 +10,11 @@ from util.configurations import GymEnvironmentConfig
 class GymEnvironment(metaclass=abc.ABCMeta):
     def __init__(self, config: GymEnvironmentConfig) -> None:
         logging.info(f"Training with Task {config.task}")
+
         self.task = config.task
+
+        self.state_std = config.state_std
+        self.action_std = config.action_std
 
     def render(self):
         frame = self.grab_frame()
@@ -61,8 +65,27 @@ class GymEnvironment(metaclass=abc.ABCMeta):
         raise NotImplementedError("Override this method")
 
     @abc.abstractmethod
-    def step(self, action):
+    def _step(self, action):
         raise NotImplementedError("Override this method")
+
+    def step(self, action):
+        # Apply action noise
+        if self.action_std > 0:
+            print(f"Applying action noise {action}")
+            action = action + np.random.normal(0, self.action_std, size=action.shape)
+            action = np.clip(action, self.min_action_value, self.max_action_value)
+            print(f"Applied action noise {action}")
+
+        # Execute environment step (existing logic)
+        state, reward, done, truncated, info = self._step(action)
+
+        # Apply observation noise
+        if self.state_std > 0:
+            print(f"Applying state noise {state}")
+            state = state + np.random.normal(0, self.state_std, size=state.shape)
+            print(f"Applied state noise {state}")
+
+        return state, reward, done, truncated, info
 
     @abc.abstractmethod
     def grab_frame(self, height: int = 240, width: int = 300) -> np.ndarray:

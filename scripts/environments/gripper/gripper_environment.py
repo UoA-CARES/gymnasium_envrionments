@@ -46,7 +46,7 @@ class GripperEnvironment(GymEnvironment):
     def reset(self, training: bool = True):
         return self.env.reset()
 
-    def step(self, action):
+    def _step(self, action):
         return self.env.step(action)
 
     def grab_frame(self, height: int = 240, width: int = 300) -> np.ndarray:
