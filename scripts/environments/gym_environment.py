@@ -68,22 +68,33 @@ class GymEnvironment(metaclass=abc.ABCMeta):
     def _step(self, action):
         raise NotImplementedError("Override this method")
 
+    def _add_relative_noise(
+        self, data: np.ndarray, rel_std: float, min_std: float = 1e-3
+    ) -> np.ndarray:
+        """
+        Adds Gaussian noise proportional to the absolute value of each element.
+        rel_std = fraction of magnitude to perturb (e.g., 0.02 = 2%)
+        min_std = lower bound to prevent zero noise for small values
+        """
+        # Per-element scale (avoid zeros)
+        sigma = np.maximum(np.abs(data) * rel_std, min_std)
+
+        # Gaussian noise with proportional std
+        noise = np.random.normal(0, sigma, size=data.shape)
+        return data + noise
+
     def step(self, action):
         # Apply action noise
         if self.action_std > 0:
-            print(f"Applying action noise {action}")
-            action = action + np.random.normal(0, self.action_std, size=action.shape)
+            action = self._add_relative_noise(action, self.action_std)
             action = np.clip(action, self.min_action_value, self.max_action_value)
-            print(f"Applied action noise {action}")
 
         # Execute environment step (existing logic)
         state, reward, done, truncated, info = self._step(action)
 
         # Apply observation noise
         if self.state_std > 0:
-            print(f"Applying state noise {state}")
-            state = state + np.random.normal(0, self.state_std, size=state.shape)
-            print(f"Applied state noise {state}")
+            state = self._add_relative_noise(state, self.state_std)
 
         return state, reward, done, truncated, info
 
