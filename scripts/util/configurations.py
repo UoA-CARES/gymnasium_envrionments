@@ -38,6 +38,10 @@ class GymEnvironmentConfig(SubscriptableClass):
     display: int = 0
     save_train_checkpoints: int = 0
 
+    # stochastic noise configuration
+    state_std: float = 0.0
+    action_std: float = 0.0
+
     # image observation configurations
     frames_to_stack: int = 3
     frame_width: int = 84
