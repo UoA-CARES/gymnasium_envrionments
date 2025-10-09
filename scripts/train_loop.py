@@ -221,8 +221,15 @@ def train_agent(
     repetition_buffer = EpisodeReplay()
     repeat = False
 
+    episode_repetitions = 0
+
+    # Add in metrics to track how often it has repeated episodes
+
     for train_step_counter in range(start_training_step, int(max_steps_training)):
         episode_timesteps += 1
+
+        info: dict = {}
+
         if train_step_counter < max_steps_exploration:
             exploration_logger.info(
                 f"Running Exploration Steps {train_step_counter + 1}/{max_steps_exploration}"
@@ -258,6 +265,7 @@ def train_agent(
                 )
 
         repetition_buffer.record_action(denormalised_action)
+        info["repeated"] = episode_repetitions
 
         next_state, reward_extrinsic, done, truncated, env_info = env.step(
             denormalised_action
@@ -287,7 +295,6 @@ def train_agent(
         # Note we only track the extrinsic reward for the episode for proper comparison
         episode_reward += reward_extrinsic
 
-        info = {}
         if (
             train_step_counter >= max_steps_exploration
             and (train_step_counter + 1) % number_steps_per_train_policy == 0
@@ -302,8 +309,10 @@ def train_agent(
                 episode_reward=episode_reward,
                 episode_done=done or truncated,
             )
+            train_info = {}
             for _ in range(G):
-                info = agent.train_policy(training_context)
+                train_info = agent.train_policy(training_context)
+            info |= train_info
 
         info["intrinsic_reward"] = intrinsic_reward
 
@@ -352,6 +361,9 @@ def train_agent(
             elif train_step_counter > max_steps_exploration:
                 repeat = repetition_buffer.finish_episode(episode_reward)
                 repeating = repeat
+                episode_repetitions = (
+                    episode_repetitions + 1 if repeat else episode_repetitions
+                )
 
             # Reset environment
             state = env.reset()
