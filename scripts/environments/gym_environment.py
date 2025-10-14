@@ -28,6 +28,9 @@ class GymEnvironment(metaclass=abc.ABCMeta):
         # Default implementation, override if necessary
         return {}
 
+    def get_available_actions(self) -> dict:
+        return {}
+
     @abc.abstractmethod
     def get_overlay_info(self) -> dict:
         raise NotImplementedError("Override this method")

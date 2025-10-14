@@ -28,6 +28,9 @@ class MultiModalWrapper:
     def get_overlay_info(self):
         return self.gym.get_overlay_info()
 
+    def get_available_actions(self) -> dict:
+        return self.gym.get_available_actions()
+
     @cached_property
     def observation_space(self):
         channels = 1 if self.grey_scale else 3
