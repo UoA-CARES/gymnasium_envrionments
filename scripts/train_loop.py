@@ -268,7 +268,7 @@ def train_agent(
             # algorithm range [-1, 1])
             available_actions = env.get_available_actions()
             action_context = ActionContext(
-                state=state, evaluation=True, available_actions=available_actions
+                state=state, evaluation=False, available_actions=available_actions
             )
             normalised_action = agent.select_action_from_policy(action_context)
 
