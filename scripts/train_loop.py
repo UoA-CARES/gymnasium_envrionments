@@ -10,15 +10,18 @@ from cares_reinforcement_learning.util.configurations import (
 )
 from cares_reinforcement_learning.util.record import Record
 from cares_reinforcement_learning.util.repetition import EpisodeReplay
-from cares_reinforcement_learning.util.training_context import TrainingContext
-from environments.gym_environment import GymEnvironment
+from cares_reinforcement_learning.util.training_context import (
+    ActionContext,
+    TrainingContext,
+)
+from environments.base_environment import BaseEnvironment
 from environments.multimodal_wrapper import MultiModalWrapper
 from util.log_in_place import InPlaceLogger
 from util.overlay import overlay_info
 
 
 def evaluate_usd(
-    env: GymEnvironment | MultiModalWrapper,
+    env: BaseEnvironment | MultiModalWrapper,
     agent: Algorithm,
     record: Record | None = None,
     total_steps: int = 0,
@@ -45,7 +48,11 @@ def evaluate_usd(
         while not done and not truncated:
             episode_timesteps += 1
 
-            normalised_action = agent.select_action_from_policy(state, evaluation=True)
+            available_actions = env.get_available_actions()
+            action_context = ActionContext(
+                state=state, evaluation=True, available_actions=available_actions
+            )
+            normalised_action = agent.select_action_from_policy(action_context)
 
             denormalised_action = (
                 hlp.denormalize(
@@ -88,7 +95,7 @@ def evaluate_usd(
 
 
 def evaluate_agent(
-    env: GymEnvironment | MultiModalWrapper,
+    env: BaseEnvironment | MultiModalWrapper,
     agent: Algorithm,
     number_eval_episodes: int,
     record: Record | None = None,
@@ -118,7 +125,11 @@ def evaluate_agent(
         while not done and not truncated:
             episode_timesteps += 1
 
-            normalised_action = agent.select_action_from_policy(state, evaluation=True)
+            available_actions = env.get_available_actions()
+            action_context = ActionContext(
+                state=state, evaluation=True, available_actions=available_actions
+            )
+            normalised_action = agent.select_action_from_policy(action_context)
 
             denormalised_action = (
                 hlp.denormalize(
@@ -174,8 +185,8 @@ def evaluate_agent(
 
 
 def train_agent(
-    env: GymEnvironment | MultiModalWrapper,
-    env_eval: GymEnvironment | MultiModalWrapper,
+    env: BaseEnvironment | MultiModalWrapper,
+    env_eval: BaseEnvironment | MultiModalWrapper,
     agent: Algorithm,
     memory: MemoryBuffer,
     record: Record,
@@ -255,7 +266,11 @@ def train_agent(
                 repeat = False
         else:
             # algorithm range [-1, 1])
-            normalised_action = agent.select_action_from_policy(state)
+            available_actions = env.get_available_actions()
+            action_context = ActionContext(
+                state=state, evaluation=True, available_actions=available_actions
+            )
+            normalised_action = agent.select_action_from_policy(action_context)
 
             # mapping to env range [e.g. -2 , 2 for pendulum] - note for DMCS this is redudenant but required for openai
             denormalised_action = normalised_action

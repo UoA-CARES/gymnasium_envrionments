@@ -1,19 +1,16 @@
 from functools import cached_property
+from typing import Any
 
 import cv2
 import numpy as np
-from environments.gym_environment import GymEnvironment
+from environments.marl_environment import MARLEnvironment
 from smacv2.env.starcraft2.wrapper import StarCraftCapabilityEnvWrapper
 from util.configurations import SMACConfig
 
 
-class SMACEnvironment(GymEnvironment):
+class SMACEnvironment(MARLEnvironment):
     def __init__(self, config: SMACConfig, evaluation: bool = False) -> None:
         super().__init__(config)
-
-        team_type: str = config.domain
-
-        opponent_type: str = config.task
 
         distribution_config = {
             "n_units": 5,
@@ -58,10 +55,10 @@ class SMACEnvironment(GymEnvironment):
     def observation_space(self) -> dict[str, int]:
         observation_space: dict[str, int] = {}
 
-        observation_space["obs_shape"] = self.env_info["obs_shape"]
+        observation_space["obs"] = self.env_info["obs_shape"]
 
-        observation_space["state_shape"] = self.env_info["state_shape"]
-        observation_space["n_agents"] = self.env_info["n_agents"]
+        observation_space["state"] = self.env_info["state_shape"]
+        observation_space["num_agents"] = self.env_info["n_agents"]
 
         return observation_space
 
@@ -81,13 +78,25 @@ class SMACEnvironment(GymEnvironment):
     def set_seed(self, seed: int) -> None:
         pass
 
-    def reset(self, training: bool = True) -> np.ndarray:
-        state, _ = self.env.reset()
-        return state
+    def reset(self, training: bool = True) -> dict[str, Any]:
+        marl_state = {}
+        state, obs = self.env.reset()
 
-    def _step(self, action: int) -> tuple:
-        state, reward, done, truncated, info = self.env.step(np.int64(action))
-        return state, reward, done, truncated, info
+        marl_state["state"] = state
+        marl_state["obs"] = obs
+        marl_state["avail_actions"] = self.env.get_avail_actions()
+
+        return marl_state
+
+    def _step(self, actions: list[int]) -> tuple:
+        marl_state = {}
+        reward, done, info = self.env.step(actions)
+
+        marl_state["state"] = self.env.get_state()
+        marl_state["obs"] = self.env.get_obs()
+        marl_state["avail_actions"] = self.env.get_avail_actions()
+
+        return marl_state, reward, done, done, info
 
     def grab_frame(self, height: int = 240, width: int = 300) -> np.ndarray:
         frame = self.env.render()
