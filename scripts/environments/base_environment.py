@@ -36,8 +36,8 @@ class BaseEnvironment(metaclass=abc.ABCMeta):
         # Default implementation, override if necessary
         return {}
 
-    def get_available_actions(self) -> dict:
-        return {}
+    def get_available_actions(self) -> np.ndarray:
+        return np.array([])
 
     @abc.abstractmethod
     def get_overlay_info(self) -> dict:

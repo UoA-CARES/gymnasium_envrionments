@@ -29,7 +29,7 @@ class MultiModalWrapper:
     def get_overlay_info(self):
         return self.gym.get_overlay_info()
 
-    def get_available_actions(self) -> dict:
+    def get_available_actions(self) -> np.ndarray:
         return self.gym.get_available_actions()
 
     @cached_property

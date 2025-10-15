@@ -66,6 +66,13 @@ class SMACEnvironment(MARLEnvironment):
     def action_num(self) -> int:
         return self.env_info["n_actions"]
 
+    def get_available_actions(self) -> np.ndarray:
+        actions = []
+        for agent_id in range(self.env_info["n_agents"]):
+            avail_actions = self.env.get_avail_agent_actions(agent_id)
+            actions.append(avail_actions)
+        return np.array(actions)
+
     def sample_action(self) -> list[int]:
         actions = []
         for agent_id in range(self.env_info["n_agents"]):
@@ -80,7 +87,7 @@ class SMACEnvironment(MARLEnvironment):
 
     def reset(self, training: bool = True) -> dict[str, Any]:
         marl_state = {}
-        state, obs = self.env.reset()
+        obs, state = self.env.reset()
 
         marl_state["state"] = state
         marl_state["obs"] = obs
@@ -99,7 +106,7 @@ class SMACEnvironment(MARLEnvironment):
         return marl_state, reward, done, done, info
 
     def grab_frame(self, height: int = 240, width: int = 300) -> np.ndarray:
-        frame = self.env.render()
+        frame = self.env.render(mode="rgb_array")
         frame = cv2.resize(frame, (width, height))
         # Convert to BGR for use with OpenCV
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
