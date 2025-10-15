@@ -377,7 +377,9 @@ def train_agent(
                 repeat = repetition_buffer.finish_episode(episode_reward)
                 repeating = repeat
                 episode_repetitions = (
-                    episode_repetitions + 1 if repeat else episode_repetitions
+                    episode_repetitions + 1
+                    if repeat and use_episode_repetition
+                    else episode_repetitions
                 )
 
             # Reset environment
