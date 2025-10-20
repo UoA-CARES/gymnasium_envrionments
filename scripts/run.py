@@ -4,9 +4,12 @@ The main function parses command-line arguments, creates the environment, networ
 and memory instances, and then trains the agent using the specified algorithm.
 """
 
+import concurrent.futures
 import logging
+import multiprocessing
 import os
 import sys
+from functools import partial
 from pathlib import Path
 
 import train_loop as tl
@@ -182,6 +185,133 @@ def train(
         raise ValueError(f"Agent type is unknown: {agent.policy_type}")
 
 
+def run_seed_instance(
+    configurations: dict,
+    run_config: RunConfig,
+    env_config: GymEnvironmentConfig,
+    training_config: TrainingConfig,
+    alg_config: AlgorithmConfig,
+    base_log_dir: str,
+    iteration: int,
+    seed: int,
+):
+    print(f"Iteration {iteration+1} with Seed: {seed}")
+
+    env_factory = EnvironmentFactory()
+    network_factory = NetworkFactory()
+    memory_factory = MemoryFactory()
+
+    record = Record(
+        base_directory=f"{base_log_dir}",
+        algorithm=alg_config.algorithm,
+        task=env_config.task,
+        agent=None,
+        record_video=training_config.record_eval_video,
+        record_checkpoints=env_config.save_train_checkpoints,
+        checkpoint_interval=training_config.checkpoint_interval,
+    )
+
+    if iteration == 0:
+        record.save_configurations(configurations)
+
+        # Create the Environment
+        # This line should be here for seed consistency issues
+    logging.info(f"Loading Environment: {env_config.gym}")
+    env, env_eval = env_factory.create_environment(
+        env_config, alg_config.image_observation
+    )
+
+    # Set the seed for everything
+    hlp.set_seed(seed)
+    env.set_seed(seed)
+    env_eval.set_seed(seed)
+
+    # Create the algorithm
+    logging.info(f"Algorithm: {alg_config.algorithm}")
+    agent: Algorithm = network_factory.create_network(
+        env.observation_space, env.action_num, alg_config
+    )
+
+    # legacy handler for other gyms - expcetion should in factory
+    if agent is None:
+        raise ValueError(f"Unknown agent for default algorithms {alg_config.algorithm}")
+
+        # create the record class - standardised results tracking
+    record.set_agent(agent)
+    record.set_sub_directory(f"{seed}")
+
+    if run_config.command == "train":
+        # Train the policy or value based approach
+        # Create the memory - only required for training
+        memory = memory_factory.create_memory(alg_config)
+        record.set_memory_buffer(memory)
+
+        train(
+            env_config,
+            training_config,
+            alg_config,
+            env,
+            env_eval,
+            agent,
+            memory,
+            record,
+        )
+    elif run_config.command == "resume":
+        restart_path = Path(run_config.data_path) / str(seed)
+        logging.info(f"Restarting from path: {restart_path}")
+
+        logging.info("Loading training and evaluation data")
+        record.load(restart_path)
+
+        logging.info("Loading memory buffer")
+        memory = MemoryBuffer.load(restart_path / "memory", "memory")
+        record.set_memory_buffer(memory)
+
+        logging.info("Loading agent models")
+        agent.load_models(
+            restart_path / "models" / "checkpoint", f"{alg_config.algorithm}"
+        )
+
+        start_training_step = record.get_last_logged_step()
+
+        train(
+            env_config,
+            training_config,
+            alg_config,
+            env,
+            env_eval,
+            agent,
+            memory,
+            record,
+            start_training_step,
+        )
+
+    elif run_config.command == "evaluate":
+        # Evaluate the policy or value based approach
+        evaluate(
+            run_config.data_path,
+            training_config.number_eval_episodes,
+            seed,
+            alg_config,
+            env_eval,
+            agent,
+            record,
+        )
+    elif run_config.command == "test":
+        test(
+            run_config.data_path,
+            run_config.episodes,
+            alg_config,
+            env_eval,
+            agent,
+            record,
+        )
+    else:
+        raise ValueError(f"Unknown command {run_config.command}")
+
+    record.save()
+
+
 def main():
     """
     The main function that orchestrates the training process.
@@ -193,10 +323,6 @@ def main():
     env_config: GymEnvironmentConfig = configurations["env_config"]  # type: ignore
     training_config: TrainingConfig = configurations["train_config"]  # type: ignore
     alg_config: AlgorithmConfig = configurations["alg_config"]  # type: ignore
-
-    env_factory = EnvironmentFactory()
-    network_factory = NetworkFactory()
-    memory_factory = MemoryFactory()
 
     logging.info(
         "\n---------------------------------------------------\n"
@@ -275,18 +401,6 @@ def main():
 
     logging.info(f"Base Log Directory: {base_log_dir}")
 
-    record = Record(
-        base_directory=f"{base_log_dir}",
-        algorithm=alg_config.algorithm,
-        task=env_config.task,
-        agent=None,
-        record_video=training_config.record_eval_video,
-        record_checkpoints=env_config.save_train_checkpoints,
-        checkpoint_interval=training_config.checkpoint_interval,
-    )
-
-    record.save_configurations(configurations)
-
     # # update to have only the remaining seeds in the list for restarting training
     if run_config.command == "resume":
         if run_config.seed in training_config.seeds:
@@ -296,117 +410,25 @@ def main():
     seeds = run_config.seeds if run_config.command == "test" else training_config.seeds
 
     # Split the evaluation and training loop setup
-    for iteration, seed in enumerate(seeds):
-        logging.info(f"Iteration {iteration+1}/{len(seeds)} with Seed: {seed}")
+    run_task_partial = partial(
+        run_seed_instance,
+        configurations,
+        run_config,
+        env_config,
+        training_config,
+        alg_config,
+        base_log_dir,
+    )
 
-        # Create the Environment
-        # This line should be here for seed consistency issues
-        logging.info(f"Loading Environment: {env_config.gym}")
-        env, env_eval = env_factory.create_environment(
-            env_config, alg_config.image_observation
-        )
+    max_parallel = min(5, len(seeds))
 
-        # Set the seed for everything
-        hlp.set_seed(seed)
-        env.set_seed(seed)
-        env_eval.set_seed(seed)
-
-        # Create the algorithm
-        logging.info(f"Algorithm: {alg_config.algorithm}")
-        agent: Algorithm = network_factory.create_network(
-            env.observation_space, env.action_num, alg_config
-        )
-
-        # legacy handler for other gyms - expcetion should in factory
-        if agent is None:
-            raise ValueError(
-                f"Unknown agent for default algorithms {alg_config.algorithm}"
-            )
-
-        # create the record class - standardised results tracking
-        record.set_agent(agent)
-        record.set_sub_directory(f"{seed}")
-
-        if run_config.command == "train":
-            # Train the policy or value based approach
-
-            # Create the memory - only required for training
-            memory = memory_factory.create_memory(alg_config)
-            record.set_memory_buffer(memory)
-
-            train(
-                env_config,
-                training_config,
-                alg_config,
-                env,
-                env_eval,
-                agent,
-                memory,
-                record,
-            )
-        elif run_config.command == "resume":
-            # Steps to restart training
-            # Set the seeds for training - tick
-            # Load the agent - tick
-            # Load the memory buffer - tick
-            # Load the training and evaluation data into Record - tick
-            # Set the steps to the correct number to restart training from - tick
-            # Set the episode to the correct number to restart training from
-
-            restart_path = Path(run_config.data_path) / str(seed)
-            logging.info(f"Restarting from path: {restart_path}")
-
-            logging.info("Loading training and evaluation data")
-            record.load(restart_path)
-
-            logging.info("Loading memory buffer")
-            memory = MemoryBuffer.load(restart_path / "memory", "memory")
-            record.set_memory_buffer(memory)
-
-            logging.info("Loading agent models")
-            agent.load_models(
-                restart_path / "models" / "checkpoint", f"{alg_config.algorithm}"
-            )
-
-            start_training_step = record.get_last_logged_step()
-
-            train(
-                env_config,
-                training_config,
-                alg_config,
-                env,
-                env_eval,
-                agent,
-                memory,
-                record,
-                start_training_step,
-            )
-
-        elif run_config.command == "evaluate":
-            # Evaluate the policy or value based approach
-            evaluate(
-                run_config.data_path,
-                training_config.number_eval_episodes,
-                seed,
-                alg_config,
-                env_eval,
-                agent,
-                record,
-            )
-        elif run_config.command == "test":
-            test(
-                run_config.data_path,
-                run_config.episodes,
-                alg_config,
-                env_eval,
-                agent,
-                record,
-            )
-        else:
-            raise ValueError(f"Unknown command {run_config.command}")
-
-        record.save()
+    # Use ProcessPoolExecutor with limited workers
+    with concurrent.futures.ProcessPoolExecutor(max_workers=max_parallel) as executor:
+        # executor.map will automatically run N at a time
+        for _ in executor.map(run_task_partial, range(len(seeds)), seeds):
+            pass
 
 
 if __name__ == "__main__":
+    multiprocessing.set_start_method("spawn", force=True)
     main()
