@@ -14,14 +14,14 @@ from cares_reinforcement_learning.util.training_context import (
     ActionContext,
     TrainingContext,
 )
-from environments.gym_environment import GymEnvironment
+from environments.base_environment import BaseEnvironment
 from environments.multimodal_wrapper import MultiModalWrapper
 from util.log_in_place import InPlaceLogger
 from util.overlay import overlay_info
 
 
 def evaluate_usd(
-    env: GymEnvironment | MultiModalWrapper,
+    env: BaseEnvironment | MultiModalWrapper,
     agent: Algorithm,
     record: Record | None = None,
     total_steps: int = 0,
@@ -95,7 +95,7 @@ def evaluate_usd(
 
 
 def evaluate_agent(
-    env: GymEnvironment | MultiModalWrapper,
+    env: BaseEnvironment | MultiModalWrapper,
     agent: Algorithm,
     number_eval_episodes: int,
     record: Record | None = None,
@@ -185,8 +185,8 @@ def evaluate_agent(
 
 
 def train_agent(
-    env: GymEnvironment | MultiModalWrapper,
-    env_eval: GymEnvironment | MultiModalWrapper,
+    env: BaseEnvironment | MultiModalWrapper,
+    env_eval: BaseEnvironment | MultiModalWrapper,
     agent: Algorithm,
     memory: MemoryBuffer,
     record: Record,

@@ -105,3 +105,7 @@ class GripperConfig(GymEnvironmentConfig):
     # gripper_config: str = (
     #     f"{Path.home()}/cares_rl_configs/12DOF_ID2/gripper_config.json"  # Path to the gripper configuration file
     # )
+
+
+class SMACConfig(GymEnvironmentConfig):
+    gym: ClassVar[str] = "smac2"
