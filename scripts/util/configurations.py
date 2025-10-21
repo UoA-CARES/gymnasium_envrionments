@@ -14,8 +14,6 @@ class RunConfig(SubscriptableClass):
     command: str
     data_path: str | None
 
-    max_workers: int = 1
-
     seeds: list[int] | None = None
     episodes: int | None = None
 

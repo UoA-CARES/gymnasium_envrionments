@@ -476,7 +476,13 @@ def main():
     bars = []
     if max_parallel > 1:
         bars = [
-            tqdm(total=alg_config.max_steps_training, desc=f"Seed {seed}", position=i)
+            tqdm(
+                total=alg_config.max_steps_training,
+                desc=f"Seed {seed}",
+                position=i,
+                dynamic_ncols=True,
+                leave=True,
+            )
             for i, seed in enumerate(seeds)
         ]
 

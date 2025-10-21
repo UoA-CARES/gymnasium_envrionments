@@ -2,6 +2,7 @@ import logging
 import time
 from multiprocessing.managers import DictProxy
 
+import training_logger as logs
 from cares_reinforcement_learning.algorithm.algorithm import Algorithm
 from cares_reinforcement_learning.memory.memory_buffer import MemoryBuffer
 from cares_reinforcement_learning.util import helpers as hlp
