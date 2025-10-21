@@ -1,5 +1,6 @@
 import logging
 import time
+from multiprocessing.managers import DictProxy
 
 from cares_reinforcement_learning.algorithm.algorithm import Algorithm
 from cares_reinforcement_learning.memory.memory_buffer import MemoryBuffer
@@ -192,6 +193,8 @@ def train_agent(
     record: Record,
     train_config: TrainingConfig,
     alg_config: AlgorithmConfig,
+    progress_dict: DictProxy,
+    seed: int,
     display: bool = False,
     apply_action_normalisation: bool = True,
     start_training_step: int = 0,
@@ -238,6 +241,7 @@ def train_agent(
 
     for train_step_counter in range(start_training_step, int(max_steps_training)):
         episode_timesteps += 1
+        progress_dict[seed] = train_step_counter + 1
 
         info: dict = {}
 

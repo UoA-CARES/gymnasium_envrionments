@@ -9,7 +9,10 @@ import logging
 import multiprocessing
 import os
 import sys
+import time
 from functools import partial
+from multiprocessing import Manager
+from multiprocessing.managers import DictProxy
 from pathlib import Path
 
 import train_loop as tl
@@ -28,6 +31,7 @@ from environments.environment_factory import EnvironmentFactory
 from environments.gym_environment import GymEnvironment
 from environments.multimodal_wrapper import MultiModalWrapper
 from natsort import natsorted
+from tqdm import tqdm
 from util.configurations import GymEnvironmentConfig
 from util.rl_parser import RLParser, RunConfig
 
@@ -152,6 +156,8 @@ def train(
     agent: Algorithm,
     memory,
     record,
+    progress_dict: DictProxy,
+    seed: int,
     start_training_step: int = 0,
 ):
     # TODO you can collapse this...apply normalisation in the agent class is the only difference
@@ -164,6 +170,8 @@ def train(
             record,
             training_config,
             alg_config,
+            progress_dict,
+            seed,
             display=env_config.display,
             apply_action_normalisation=True,
             start_training_step=start_training_step,
@@ -177,12 +185,43 @@ def train(
             record,
             training_config,
             alg_config,
+            progress_dict,
+            seed,
             display=env_config.display,
             apply_action_normalisation=False,
             start_training_step=start_training_step,
         )
     else:
         raise ValueError(f"Agent type is unknown: {agent.policy_type}")
+
+
+def setup_logging(silent: bool = False):
+    """
+    Configure logging depending on whether this is the main or worker process.
+    - Main process: normal INFO logging to stdout
+    - Worker process: logging disabled (no output)
+    """
+    process_name = multiprocessing.current_process().name
+
+    # Base configuration (only done once per process)
+    logging.basicConfig(
+        level=logging.INFO,
+        format="[%(asctime)s] [%(processName)s] %(levelname)s: %(message)s",
+        datefmt="%H:%M:%S",
+        stream=sys.stdout,
+        force=True,  # overwrite any previous basicConfig (important for spawn)
+    )
+
+    if silent:
+        # Silence all logging for worker processes
+        logging.getLogger().handlers.clear()
+        logging.getLogger().addHandler(logging.NullHandler())
+        logging.disable(logging.CRITICAL)  # disables all log messages <= CRITICAL
+    else:
+        # Re-enable logging for main process if it was disabled previously
+        logging.disable(logging.NOTSET)
+
+    logging.info(f"Logging setup complete for {process_name}")
 
 
 def run_seed_instance(
@@ -192,10 +231,13 @@ def run_seed_instance(
     training_config: TrainingConfig,
     alg_config: AlgorithmConfig,
     base_log_dir: str,
+    silent: bool,
+    progress_dict: DictProxy,
     iteration: int,
     seed: int,
 ):
-    print(f"Iteration {iteration+1} with Seed: {seed}")
+    setup_logging(silent)
+    logging.info(f"Iteration {iteration+1} with Seed: {seed}")
 
     env_factory = EnvironmentFactory()
     network_factory = NetworkFactory()
@@ -255,6 +297,8 @@ def run_seed_instance(
             agent,
             memory,
             record,
+            progress_dict,
+            iteration,
         )
     elif run_config.command == "resume":
         restart_path = Path(run_config.data_path) / str(seed)
@@ -283,6 +327,8 @@ def run_seed_instance(
             agent,
             memory,
             record,
+            progress_dict,
+            iteration,
             start_training_step,
         )
 
@@ -409,6 +455,12 @@ def main():
 
     seeds = run_config.seeds if run_config.command == "test" else training_config.seeds
 
+    manager = Manager()
+    progress_dict = manager.dict()  # shared dict to track each seed progress
+
+    max_parallel = min(training_config.max_workers, len(seeds))
+    max_parallel = max(1, max_parallel)
+
     # Split the evaluation and training loop setup
     run_task_partial = partial(
         run_seed_instance,
@@ -418,15 +470,39 @@ def main():
         training_config,
         alg_config,
         base_log_dir,
+        max_parallel > 1,  # silent if parallel
     )
 
-    max_parallel = min(5, len(seeds))
+    bars = []
+    if max_parallel > 1:
+        bars = [
+            tqdm(total=alg_config.max_steps_training, desc=f"Seed {seed}", position=i)
+            for i, seed in enumerate(seeds)
+        ]
 
     # Use ProcessPoolExecutor with limited workers
     with concurrent.futures.ProcessPoolExecutor(max_workers=max_parallel) as executor:
-        # executor.map will automatically run N at a time
-        for _ in executor.map(run_task_partial, range(len(seeds)), seeds):
-            pass
+        futures = [
+            executor.submit(
+                run_task_partial, progress_dict=progress_dict, iteration=i, seed=seed
+            )
+            for i, seed in enumerate(seeds)
+        ]
+
+        # Update bars while processes are running
+        while not all(f.done() for f in futures):
+            for i, bar in enumerate(bars):
+                bar.n = progress_dict.get(i, 0)
+                bar.refresh()
+            time.sleep(0.1)
+
+        # Final refresh
+        for i, bar in enumerate(bars):
+            bar.n = progress_dict.get(i, 0)
+            bar.refresh()
+
+    for bar in bars:
+        bar.close()
 
 
 if __name__ == "__main__":
