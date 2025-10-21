@@ -167,7 +167,6 @@ def evaluate_agent(
                 episode_reward = 0
                 episode_timesteps = 0
                 episode_num += 1
-                total_steps += 1
 
                 agent.episode_done()
 
