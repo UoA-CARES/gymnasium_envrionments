@@ -288,7 +288,7 @@ def main():
         # Create the algorithm
         logging.info(f"Algorithm: {alg_config.algorithm}")
         agent = network_factory.create_network(
-            env.observation_space_shape, env.action_num, alg_config
+            env.observation_space, env.action_num, alg_config
         )
 
         # legacy handler for other gyms - expcetion should in factory

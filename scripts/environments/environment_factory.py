@@ -32,7 +32,7 @@ class EnvironmentFactory:
 
             env = PyboyEnvironment(config)
             eval_env = PyboyEnvironment(config)
-        elif isinstance(config, cfg.SpaceEnvironmentConfig):
+        elif isinstance(config, cfg.SpaceConfig):
             from environments.space.corrective_transfer_env import (
                 CorrectiveTransferEnvironment,
             )
