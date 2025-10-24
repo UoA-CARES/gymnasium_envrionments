@@ -35,7 +35,7 @@ def evaluate_usd(
 
         if record is not None:
             frame = env.grab_frame()
-            record.start_video(f"{total_steps+1}-{skill}", frame)
+            record.start_video(f"{total_steps + 1}-{skill}", frame)
 
             log_path = record.current_sub_directory
             env.set_log_path(log_path, total_steps + 1)
@@ -115,12 +115,13 @@ def evaluate_agent(
         episode_rewards: list[float] = []
 
         while not done and not truncated:
-
             print(f"eval_episode_counter {eval_episode_counter}")
 
             episode_timesteps += 1
 
             normalised_action = agent.select_action_from_policy(state, evaluation=True)
+
+            print(f"Normalised action from eval: {normalised_action}")
 
             denormalised_action = (
                 hlp.denormalize(
@@ -129,6 +130,8 @@ def evaluate_agent(
                 if normalisation
                 else normalised_action
             )
+
+            print(f"Denormalised action from eval: {denormalised_action}")
 
             state, reward, done, truncated, env_info = env.step(denormalised_action)
             episode_reward += reward
@@ -234,13 +237,15 @@ def train_agent(
         else:
             # algorithm range [-1, 1])
             normalised_action = agent.select_action_from_policy(state)
-
+            print(f"agent normalised action {normalised_action}")
             # mapping to env range [e.g. -2 , 2 for pendulum] - note for DMCS this is redudenant but required for openai
             denormalised_action = normalised_action
             if apply_action_normalisation:
                 denormalised_action = hlp.denormalize(
                     normalised_action, env.max_action_value, env.min_action_value
                 )
+
+        print(f"agent normalised action fed into step {denormalised_action}")
 
         next_state, reward_extrinsic, done, truncated, env_info = env.step(
             denormalised_action

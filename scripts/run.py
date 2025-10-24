@@ -123,7 +123,6 @@ def evaluate(
     agent: Algorithm,
     record: Record,
 ):
-
     model_path = Path(f"{data_path}/{seed}/models/")
     folders = list(model_path.glob("*"))
 
@@ -295,7 +294,7 @@ def main():
 
     # Split the evaluation and training loop setup
     for iteration, seed in enumerate(seeds):
-        logging.info(f"Iteration {iteration+1}/{len(seeds)} with Seed: {seed}")
+        logging.info(f"Iteration {iteration + 1}/{len(seeds)} with Seed: {seed}")
 
         # Create the Environment
         # This line should be here for seed consistency issues
@@ -351,7 +350,7 @@ def main():
             # Set the steps to the correct number to restart training from - tick
             # Set the episode to the correct number to restart training from
 
-            restart_path = f"{run_config.data_path}{seed}"
+            restart_path = f"{run_config.data_path}/{seed}"
             logging.info(f"Restarting from path: {restart_path}")
 
             logging.info("Loading training and evaluation data")
