@@ -6,10 +6,12 @@ of training runs for statistical validation.
 
 import concurrent.futures
 import logging
+import multiprocessing
 import os
-from functools import partial
-from multiprocessing import Manager
+import time
+from multiprocessing.queues import Queue
 from pathlib import Path
+from queue import Empty
 from typing import Any
 
 import train_loop as tl
@@ -24,12 +26,13 @@ from cares_reinforcement_learning.util.configurations import (
     TrainingConfig,
 )
 from cares_reinforcement_learning.util.network_factory import NetworkFactory
-from cares_reinforcement_learning.util.record import Record
 from environments.environment_factory import EnvironmentFactory
 from environments.gym_environment import GymEnvironment
 from environments.multimodal_wrapper import MultiModalWrapper
 from natsort import natsorted
+from rich.progress import BarColumn, Progress, TextColumn, TimeElapsedColumn
 from util.configurations import GymEnvironmentConfig
+from util.record import Record
 from util.rl_parser import RunConfig
 
 # Module-level loggers - created once when module loads
@@ -67,7 +70,7 @@ class TrainingRunner:
         # Log all configurations for debugging
         self.log_configurations()
 
-    def setup_logging_and_directories(self, run_name: str = "") -> str:
+    def setup_logging_and_directories(self, run_name: str = "") -> None:
         """
         Set up logging directories and validate configurations.
 
@@ -86,7 +89,6 @@ class TrainingRunner:
         )
 
         logger.info(f"Base Log Directory: {self.base_log_dir}")
-        return self.base_log_dir or ""
 
     def _validate_and_prepare_seeds(self) -> list[int]:
         """
@@ -144,6 +146,7 @@ class TrainingRunner:
         self,
         iteration: int,
         seed: int,
+        progress_queue: Queue | None = None,
     ) -> None:
         """
         Execute training/evaluation for a single seed.
@@ -153,7 +156,7 @@ class TrainingRunner:
             iteration: Current iteration number
             seed: Random seed for this run
         """
-        parallel_logger.info(f"Iteration {iteration+1} with Seed: {seed}")
+        parallel_logger.info(f"[SEED {seed}] Starting iteration {iteration+1}")
 
         # Create factory instances (each process needs its own)
         env_factory = EnvironmentFactory()
@@ -167,8 +170,9 @@ class TrainingRunner:
             task=self.env_config.task,
             agent=None,
             record_video=self.training_config.record_eval_video,
-            record_checkpoints=self.env_config.save_train_checkpoints,
+            record_checkpoints=bool(self.env_config.save_train_checkpoints),
             checkpoint_interval=self.training_config.checkpoint_interval,
+            logger=logs.get_seed_logger(),
         )
 
         # Save configurations only on first iteration to avoid conflicts
@@ -198,99 +202,62 @@ class TrainingRunner:
                 f"Unknown agent for default algorithms {self.alg_config.algorithm}"
             )
 
+        memory = memory_factory.create_memory(self.alg_config)
+
         # Set up record with agent and subdirectory
         record.set_agent(agent)
         record.set_sub_directory(f"{seed}")
+        record.set_memory_buffer(memory)
+
+        start_training_step = 0
+        if self.run_config.command == "resume":
+            if not self.run_config.data_path:
+                raise ValueError("Data path is required for resume command")
+
+            restart_path = Path(self.run_config.data_path) / str(seed)
+            parallel_logger.info(f"Restarting from path: {restart_path}")
+
+            parallel_logger.info("Loading training and evaluation data")
+            record.load(restart_path)
+
+            parallel_logger.info("Loading memory buffer")
+            memory = MemoryBuffer.load(restart_path / "memory", "memory")
+            record.set_memory_buffer(memory)
+
+            parallel_logger.info("Loading agent models")
+            agent.load_models(
+                restart_path / "models" / "checkpoint", f"{self.alg_config.algorithm}"
+            )
+
+            start_training_step = record.get_last_logged_step()
 
         # Execute based on command type
-        if self.run_config.command == "train":
-            self._handle_train_command(
-                env, env_eval, agent, memory_factory, record, seed
+        if self.run_config.command == "train" or self.run_config.command == "resume":
+            # Create and run the training loop using the new TrainingLoop class
+            training_loop = tl.TrainingLoop(
+                env=env,
+                env_eval=env_eval,
+                agent=agent,
+                memory=memory,
+                record=record,
+                train_config=self.training_config,
+                alg_config=self.alg_config,
+                seed=seed,
+                progress_queue=progress_queue,
+                logger=logs.get_seed_logger(),  # Use seed-specific logger
+                display=bool(self.env_config.display),
+                start_training_step=start_training_step,
             )
-        elif self.run_config.command == "resume":
-            self._handle_resume_command(env, env_eval, agent, record, seed)
-        elif self.run_config.command == "evaluate":
-            self._handle_evaluate_command(env_eval, agent, record, seed)
-        elif self.run_config.command == "test":
-            self._handle_test_command(env_eval, agent, record)
+
+            training_loop.run_training()
+        # elif self.run_config.command == "evaluate":
+        #     self._handle_evaluate_command(env_eval, agent, record, seed)
+        # elif self.run_config.command == "test":
+        #     self._handle_test_command(env_eval, agent, record)
         else:
             raise ValueError(f"Unknown command {self.run_config.command}")
 
         record.save()
-
-    def _handle_train_command(
-        self,
-        env: GymEnvironment | MultiModalWrapper,
-        env_eval: GymEnvironment | MultiModalWrapper,
-        agent: Algorithm,
-        memory_factory: MemoryFactory,
-        record: Record,
-        seed: int,
-    ) -> None:
-        """Handle the train command logic."""
-        memory = memory_factory.create_memory(self.alg_config)
-        record.set_memory_buffer(memory)
-
-        manager = Manager()
-        progress_dict = manager.dict()
-
-        tl.train_agent(
-            env,
-            env_eval,
-            agent,
-            memory,
-            record,
-            self.training_config,
-            self.alg_config,
-            progress_dict,
-            seed,
-            display=bool(self.env_config.display),
-        )
-
-    def _handle_resume_command(
-        self,
-        env: GymEnvironment | MultiModalWrapper,
-        env_eval: GymEnvironment | MultiModalWrapper,
-        agent: Algorithm,
-        record: Record,
-        seed: int,
-    ) -> None:
-        """Handle the resume command logic."""
-        if not self.run_config.data_path:
-            raise ValueError("Data path is required for resume command")
-        restart_path = Path(self.run_config.data_path) / str(seed)
-        parallel_logger.info(f"Restarting from path: {restart_path}")
-
-        parallel_logger.info("Loading training and evaluation data")
-        record.load(restart_path)
-
-        parallel_logger.info("Loading memory buffer")
-        memory = MemoryBuffer.load(restart_path / "memory", "memory")
-        record.set_memory_buffer(memory)
-
-        parallel_logger.info("Loading agent models")
-        agent.load_models(
-            restart_path / "models" / "checkpoint", f"{self.alg_config.algorithm}"
-        )
-
-        start_training_step = record.get_last_logged_step()
-
-        manager = Manager()
-        progress_dict = manager.dict()
-
-        tl.train_agent(
-            env,
-            env_eval,
-            agent,
-            memory,
-            record,
-            self.training_config,
-            self.alg_config,
-            progress_dict,
-            seed,
-            display=bool(self.env_config.display),
-            start_training_step=start_training_step,
-        )
 
     def _handle_evaluate_command(
         self,
@@ -304,7 +271,6 @@ class TrainingRunner:
             raise ValueError("Data path is required for evaluate command")
         self._evaluate_seed(
             self.run_config.data_path,
-            self.training_config.number_eval_episodes,
             seed,
             self.alg_config,
             env_eval,
@@ -325,7 +291,6 @@ class TrainingRunner:
             raise ValueError("Episodes count is required for test command")
         self._test_models(
             self.run_config.data_path,
-            self.run_config.episodes,
             self.alg_config,
             env_eval,
             agent,
@@ -335,7 +300,6 @@ class TrainingRunner:
     def _evaluate_seed(
         self,
         data_path: str,
-        number_eval_episodes: int,
         seed: int,
         alg_config: AlgorithmConfig,
         env: GymEnvironment | MultiModalWrapper,
@@ -350,7 +314,6 @@ class TrainingRunner:
         folders = natsorted(folders)[:-2]
 
         self._run_evaluation_loop(
-            number_eval_episodes,
             alg_config,
             env,
             agent,
@@ -361,7 +324,6 @@ class TrainingRunner:
     def _test_models(
         self,
         data_path: str,
-        number_eval_episodes: int,
         alg_config: AlgorithmConfig,
         env: GymEnvironment | MultiModalWrapper,
         agent: Algorithm,
@@ -376,20 +338,17 @@ class TrainingRunner:
 
         for folder in seed_folders:
             model_path = Path(f"{folder}/models/final")
-            self._run_evaluation_loop(
-                number_eval_episodes, alg_config, env, agent, record, [model_path]
-            )
+            self._run_evaluation_loop(alg_config, env, agent, record, [model_path])
 
     def _run_evaluation_loop(
         self,
-        number_eval_episodes: int,
         alg_config: AlgorithmConfig,
         env: GymEnvironment | MultiModalWrapper,
         agent: Algorithm,
         record: Record,
         folders: list[Path],
     ) -> None:
-        """Run evaluation loop for given model folders (copied from original)."""
+        """Run evaluation loop for given model folders (using TrainingLoop for evaluation)."""
         for folder in folders:
             agent.load_models(folder, f"{alg_config.algorithm}")
 
@@ -399,43 +358,76 @@ class TrainingRunner:
             except ValueError:
                 total_steps = 0
 
-            if agent.policy_type == "policy":
-                tl.evaluate_agent(
-                    env,
-                    agent,
-                    number_eval_episodes,
-                    record=record,
-                    total_steps=total_steps,
-                    normalisation=True,
-                )
-            elif agent.policy_type == "usd":
-                tl.evaluate_usd(
-                    env,
-                    agent,
-                    record=record,
-                    total_steps=total_steps,
-                    normalisation=True,
-                )
-            elif agent.policy_type == "discrete_policy":
-                tl.evaluate_agent(
-                    env,
-                    agent,
-                    number_eval_episodes,
-                    record=record,
-                    total_steps=total_steps,
-                    normalisation=False,
-                )
-            elif agent.policy_type == "value":
-                tl.evaluate_agent(
-                    env,
-                    agent,
-                    number_eval_episodes,
-                    record=record,
-                    total_steps=total_steps,
-                    normalisation=False,
-                )
+            # Create a minimal TrainingLoop instance for evaluation only
+            # We create dummy objects for required parameters that won't be used in evaluation
+            memory = MemoryFactory().create_memory(alg_config)
+
+            evaluator = tl.TrainingLoop(
+                env=env,  # Use evaluation environment for both env and env_eval
+                env_eval=env,
+                agent=agent,
+                memory=memory,
+                record=record,
+                train_config=self.training_config,
+                alg_config=alg_config,
+                seed=0,  # Seed is not relevant for evaluation here
+                logger=logs.get_main_logger(),
+                display=False,
+                start_training_step=0,
+            )
+
+            if agent.policy_type == "usd":
+                evaluator._evaluate_usd(total_steps)
             else:
-                raise ValueError(f"Agent type is unknown: {agent.policy_type}")
+                # Update the evaluator to not normalize actions
+                evaluator._evaluate_agent(total_steps)
+
+    def listen_for_progress(self, queue, futures):
+        progress = Progress(
+            TextColumn("[bold blue]{task.fields[seed]}"),
+            BarColumn(),
+            TextColumn("{task.percentage:>3.0f}%"),
+            TextColumn("{task.fields[status]}"),
+            TextColumn("[cyan]{task.completed}/{task.total}"),  # <-- added this
+            TimeElapsedColumn(),
+        )
+
+        tasks: dict[int, int] = {}
+        done_seeds: set[int] = set()
+
+        with progress:
+            while True:
+                try:
+                    msg = queue.get_nowait()
+                except Empty:
+                    msg = None
+
+                if msg:
+                    seed = msg["seed"]
+
+                    if seed not in tasks:
+                        total = msg.get("total", 1)
+                        tasks[seed] = progress.add_task(
+                            f"Seed {seed}",
+                            total=total,
+                            seed=f"Seed {seed}",
+                            status=msg.get("status", ""),
+                        )
+
+                    progress.update(
+                        tasks[seed],
+                        completed=msg.get("step", 0),
+                        status=msg.get("status", ""),
+                    )
+
+                    if msg.get("status") == "done":
+                        done_seeds.add(seed)
+                        progress.console.log(f"[green]Seed {seed} completed!")
+
+                if len(done_seeds) == len(futures):
+                    break
+
+                # time.sleep(0.1)
 
     def run_parallel_seeds(self) -> None:
         """
@@ -446,32 +438,24 @@ class TrainingRunner:
         """
         logger.info(f"Running with {self.max_workers} parallel workers")
 
-        # Split the evaluation and training loop setup
-        run_task_partial = partial(
-            self.run_single_seed,
-        )
+        with multiprocessing.Manager() as manager:
+            progress_queue = manager.Queue()
 
-        # Use ProcessPoolExecutor with limited workers
-        with concurrent.futures.ProcessPoolExecutor(
-            max_workers=self.max_workers
-        ) as executor:
-            futures = [
-                executor.submit(
-                    run_task_partial,
-                    iteration=i,
-                    seed=seed,
-                )
-                for i, seed in enumerate(self.seeds)
-            ]
+            # Use ProcessPoolExecutor with limited workers
+            with concurrent.futures.ProcessPoolExecutor(
+                max_workers=self.max_workers
+            ) as executor:
+                futures = [
+                    executor.submit(
+                        self.run_single_seed,
+                        iteration=i,
+                        seed=seed,
+                        progress_queue=progress_queue,  # type: ignore[arg-type]
+                    )
+                    for i, seed in enumerate(self.seeds)
+                ]
 
-            # Wait for all futures to complete and handle any exceptions
-            for future in concurrent.futures.as_completed(futures):
-                try:
-                    future.result()  # This will raise any exceptions that occurred
-                    logger.info("Seed completed successfully")
-                except Exception as e:
-                    logger.error(f"Error in seed execution: {e}")
-                    raise
+                self.listen_for_progress(progress_queue, futures)
 
         logger.info(f"Completed all {len(self.seeds)} seeds")
 
@@ -496,8 +480,16 @@ class TrainingRunner:
             max_workers: Maximum number of parallel workers
             use_parallel: Whether to use parallel execution
         """
+        start_time = time.time()
         if self.max_workers > 1 and len(self.seeds) > 1:
             self.run_parallel_seeds()
         else:
             logs.set_logger_level("parallel", logging.INFO)
+            logs.set_logger_level("seed", logging.INFO)
             self.run_sequential_seeds()
+
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+        logger.info(
+            f"Training completed. Time: {time.strftime('%H:%M:%S', time.gmtime(elapsed_time))}"
+        )

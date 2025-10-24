@@ -1,7 +1,6 @@
 import logging
 import time
-from multiprocessing.managers import DictProxy
-from typing import Optional
+from multiprocessing.queues import Queue
 
 import training_logger as logs
 from cares_reinforcement_learning.algorithm.algorithm import Algorithm
@@ -11,7 +10,6 @@ from cares_reinforcement_learning.util.configurations import (
     AlgorithmConfig,
     TrainingConfig,
 )
-from cares_reinforcement_learning.util.record import Record
 from cares_reinforcement_learning.util.repetition import EpisodeReplay
 from cares_reinforcement_learning.util.training_context import (
     ActionContext,
@@ -20,6 +18,7 @@ from cares_reinforcement_learning.util.training_context import (
 from environments.gym_environment import GymEnvironment
 from environments.multimodal_wrapper import MultiModalWrapper
 from util.overlay import overlay_info
+from util.record import Record
 
 
 class TrainingLoop:
@@ -39,11 +38,10 @@ class TrainingLoop:
         record: Record,
         train_config: TrainingConfig,
         alg_config: AlgorithmConfig,
-        progress_dict: DictProxy,
         seed: int,
-        logger: Optional[logging.Logger] = None,
+        progress_queue: Queue | None = None,
+        logger: logging.Logger | None = None,
         display: bool = False,
-        apply_action_normalisation: bool = True,
         start_training_step: int = 0,
     ):
         """
@@ -57,11 +55,10 @@ class TrainingLoop:
             record: Recording system for metrics/videos
             train_config: Training configuration (values extracted and cached)
             alg_config: Algorithm configuration (values extracted and cached)
-            progress_dict: Shared dictionary for progress tracking
-            seed: Random seed for this training run
+            seed: Random seed for this training loop
+            progress_queue: Queue for progress updates (if any)
             logger: Logger for this training loop (if None, uses seed logger)
             display: Whether to render environment
-            apply_action_normalisation: Whether to normalize actions
             start_training_step: Step to start training from (for resume)
         """
         # Core dependencies
@@ -70,25 +67,25 @@ class TrainingLoop:
 
         self.agent = agent
         self.memory = memory
-
-        # Progress tracking
         self.record = record
-        self.progress_dict = progress_dict
-        self.seed = seed
 
         # Runtime behavior
         self.display = display
-        self.apply_action_normalisation = apply_action_normalisation
         self.start_training_step = start_training_step
 
+        self.apply_action_normalisation = self.agent.policy_type in ["policy", "usd"]
+
         # Set up logging
+        self.seed = seed
+        self.progress_queue = progress_queue
+
         if logger is None:
             self.logger = logs.get_seed_logger()  # Use general seed logger for now
         else:
             self.logger = logger
 
         # Create exploration logger as child of main logger
-        self.exploration_logger = logging.getLogger(f"{self.logger.name}.exploration")
+        # self.exploration_logger = logging.getLogger(f"{self.logger.name}.exploration")
 
         # Algorithm Training parameters
         self.max_steps_training = alg_config.max_steps_training
@@ -106,6 +103,19 @@ class TrainingLoop:
         self.repetition_num_episodes = alg_config.repetition_num_episodes
         self.use_episode_repetition = self.repetition_num_episodes > 0
 
+    def _report_progress(self, episode: int, step: int, status: str) -> None:
+        """Report progress to the main thread if a queue is provided."""
+        if self.progress_queue is not None:
+            self.progress_queue.put(
+                {
+                    "seed": self.seed,
+                    "episode": episode,
+                    "step": step,
+                    "total": self.max_steps_training,
+                    "status": status,
+                }
+            )
+
     def run_training(self) -> None:
         """
         Execute the main training loop.
@@ -117,6 +127,8 @@ class TrainingLoop:
             f"Training {self.max_steps_training} Exploration {self.max_steps_exploration} "
             f"Evaluation {self.number_steps_per_evaluation}"
         )
+
+        self._report_progress(0, 0, "starting")
 
         start_time = time.time()
 
@@ -139,9 +151,15 @@ class TrainingLoop:
             self.start_training_step, int(self.max_steps_training)
         ):
             episode_timesteps += 1
-            self.progress_dict[self.seed] = train_step_counter + 1
 
             info: dict = {}
+
+            status = (
+                "training"
+                if train_step_counter >= self.max_steps_exploration
+                else "exploration"
+            )
+            self._report_progress(episode_num + 1, train_step_counter + 1, status)
 
             # Determine action based on training phase
             if train_step_counter < self.max_steps_exploration:
@@ -206,6 +224,9 @@ class TrainingLoop:
 
             # Evaluate agent periodically
             if (train_step_counter + 1) % self.number_steps_per_evaluation == 0:
+                self._report_progress(
+                    episode_num + 1, train_step_counter + 1, "evaluation"
+                )
                 self._run_evaluation(train_step_counter)
 
             # Handle episode completion
@@ -245,16 +266,17 @@ class TrainingLoop:
                 self.agent.episode_done()
                 episode_start = time.time()
 
-        # Log completion
         end_time = time.time()
         elapsed_time = end_time - start_time
         self.logger.info(
             f"Training completed. Time: {time.strftime('%H:%M:%S', time.gmtime(elapsed_time))}"
         )
 
+        self._report_progress(episode_num + 1, train_step_counter + 1, "complete")
+
     def _select_exploration_action(self, train_step_counter: int) -> tuple:
         """Handle exploration phase action selection."""
-        self.exploration_logger.info(
+        self.logger.info(
             f"Running Exploration Steps {train_step_counter + 1}/{self.max_steps_exploration}"
         )
 
@@ -274,7 +296,7 @@ class TrainingLoop:
         self, episode_num: int, episode_timesteps: int, repetition_buffer: EpisodeReplay
     ) -> tuple:
         """Handle episode repetition action selection."""
-        self.exploration_logger.info(
+        self.logger.info(
             f"Repeating Episode {episode_num} Step {episode_timesteps}/{len(repetition_buffer.best_actions)}"
         )
 
@@ -466,7 +488,7 @@ class TrainingLoop:
 
         if self.record is not None:
             frame = self.env_eval.grab_frame()
-            self.record.start_video(total_steps + 1, frame)
+            self.record.start_video(f"{total_steps + 1}", frame)
 
             log_path = self.record.current_sub_directory
             self.env_eval.set_log_path(log_path, total_steps + 1)
