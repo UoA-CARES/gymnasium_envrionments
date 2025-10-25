@@ -7,7 +7,7 @@ import multiprocessing
 import sys
 
 from cares_reinforcement_learning.util import helpers as hlp
-from training_runner import TrainingRunner
+from training_coordinator import TrainingCoordinator
 import training_logger as logs
 from util.rl_parser import RLParser
 
@@ -28,7 +28,7 @@ def main_with_runner():
     configurations = parser.parse_args()
 
     # Create the training runner
-    runner = TrainingRunner(configurations)
+    runner = TrainingCoordinator(configurations)
 
     # Device validation (same as before)
     device = hlp.get_device()

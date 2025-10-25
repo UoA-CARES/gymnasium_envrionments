@@ -1,495 +1,572 @@
-"""
-TrainingRunner class for orchestrating reinforcement learning training across multiple seeds.
-This class handles the parallel execution, configuration management, and coordination
-of training runs for statistical validation.
-"""
-
-import concurrent.futures
 import logging
-import multiprocessing
-import os
 import time
 from multiprocessing.queues import Queue
-from pathlib import Path
-from queue import Empty
-from typing import Any
 
-import train_loop as tl
 import training_logger as logs
-import yaml
 from cares_reinforcement_learning.algorithm.algorithm import Algorithm
 from cares_reinforcement_learning.memory.memory_buffer import MemoryBuffer
-from cares_reinforcement_learning.memory.memory_factory import MemoryFactory
 from cares_reinforcement_learning.util import helpers as hlp
 from cares_reinforcement_learning.util.configurations import (
     AlgorithmConfig,
     TrainingConfig,
 )
-from cares_reinforcement_learning.util.network_factory import NetworkFactory
-from environments.environment_factory import EnvironmentFactory
+from cares_reinforcement_learning.util.repetition import EpisodeReplay
+from cares_reinforcement_learning.util.training_context import (
+    ActionContext,
+    TrainingContext,
+)
 from environments.gym_environment import GymEnvironment
 from environments.multimodal_wrapper import MultiModalWrapper
-from natsort import natsorted
-from rich.progress import BarColumn, Progress, TextColumn, TimeElapsedColumn
-from util.configurations import GymEnvironmentConfig
+from util.overlay import overlay_info
 from util.record import Record
-from util.rl_parser import RunConfig
-
-# Module-level loggers - created once when module loads
-logger = logs.get_main_logger()
-parallel_logger = logs.get_parallel_logger()
 
 
 class TrainingRunner:
     """
-    Orchestrates reinforcement learning training across multiple seeds with support
-    for parallel execution, configuration management, and different run modes.
+    Handles the training loop for a single seed with integrated logging.
+
+    This class encapsulates all training logic for a single seed, providing
+    clean separation between orchestration (TrainingRunner) and execution (TrainingLoop).
     """
 
-    def __init__(self, configurations: dict[str, Any]):
-        """
-        Initialize the TrainingRunner with parsed configurations.
-
-        Args:
-            configurations: Dictionary containing all parsed configurations
-        """
-        self.configurations = configurations
-        self.run_config: RunConfig = configurations["run_config"]
-        self.env_config: GymEnvironmentConfig = configurations["env_config"]
-        self.training_config: TrainingConfig = configurations["train_config"]
-        self.alg_config: AlgorithmConfig = configurations["alg_config"]
-
-        self.seeds: list[int] = self._validate_and_prepare_seeds()
-
-        self.max_workers: int = self.training_config.max_workers
-        self.max_workers = min(len(self.seeds), self.max_workers)
-        self.max_workers = max(1, self.max_workers)
-
-        self.base_log_dir: str | None = None
-
-        # Log all configurations for debugging
-        self.log_configurations()
-
-    def setup_logging_and_directories(self, run_name: str = "") -> None:
-        """
-        Set up logging directories and validate configurations.
-
-        Args:
-            run_name: Optional name for the training run
-
-        Returns:
-            Base log directory path
-        """
-        self.base_log_dir = Record.create_base_directory(
-            domain=self.env_config.domain,
-            task=self.env_config.task,
-            gym=self.env_config.gym,
-            algorithm=self.alg_config.algorithm,
-            run_name=run_name,
-        )
-
-        logger.info(f"Base Log Directory: {self.base_log_dir}")
-
-    def _validate_and_prepare_seeds(self) -> list[int]:
-        """
-        Validate configurations and prepare seed list for execution.
-        """
-        # Handle resume command seed filtering
-        if self.run_config.command == "resume":
-            if self.run_config.seed in self.training_config.seeds:
-                idx = self.training_config.seeds.index(self.run_config.seed)
-                self.training_config.seeds = self.training_config.seeds[idx:]
-
-        # Set seeds based on command type
-        seeds = (
-            self.run_config.seeds
-            if self.run_config.command == "test"
-            else self.training_config.seeds
-        )
-
-        logger.info(f"Running with seeds: {seeds}")
-        return seeds
-
-    def log_configurations(self) -> None:
-        """Log all configurations for debugging and reproducibility."""
-        logger.info(
-            "\n---------------------------------------------------\n"
-            "RUN CONFIG\n"
-            "---------------------------------------------------"
-        )
-        logger.info(f"\n{yaml.dump(self.run_config.dict(), default_flow_style=False)}")
-
-        logger.info(
-            "\n---------------------------------------------------\n"
-            "ENVIRONMENT CONFIG\n"
-            "---------------------------------------------------"
-        )
-        logger.info(f"\n{yaml.dump(self.env_config.dict(), default_flow_style=False)}")
-
-        logger.info(
-            "\n---------------------------------------------------\n"
-            "ALGORITHM CONFIG\n"
-            "---------------------------------------------------"
-        )
-        logger.info(f"\n{yaml.dump(self.alg_config.dict(), default_flow_style=False)}")
-
-        logger.info(
-            "\n---------------------------------------------------\n"
-            "TRAINING CONFIG\n"
-            "---------------------------------------------------"
-        )
-        logger.info(
-            f"\n{yaml.dump(self.training_config.dict(), default_flow_style=False)}"
-        )
-
-    def run_single_seed(
+    def __init__(
         self,
-        iteration: int,
+        env: GymEnvironment | MultiModalWrapper,
+        env_eval: GymEnvironment | MultiModalWrapper,
+        agent: Algorithm,
+        memory: MemoryBuffer,
+        record: Record,
+        train_config: TrainingConfig,
+        alg_config: AlgorithmConfig,
         seed: int,
         progress_queue: Queue | None = None,
-    ) -> None:
+        logger: logging.Logger | None = None,
+        display: bool = False,
+        start_training_step: int = 0,
+    ):
         """
-        Execute training/evaluation for a single seed.
-        This is the core logic extracted from the original run_seed_instance function.
+        Initialize the training loop for a single seed.
 
         Args:
-            iteration: Current iteration number
-            seed: Random seed for this run
+            env: Training environment
+            env_eval: Evaluation environment
+            agent: RL algorithm/agent
+            memory: Memory buffer for experiences
+            record: Recording system for metrics/videos
+            train_config: Training configuration (values extracted and cached)
+            alg_config: Algorithm configuration (values extracted and cached)
+            seed: Random seed for this training loop
+            progress_queue: Queue for progress updates (if any)
+            logger: Logger for this training loop (if None, uses seed logger)
+            display: Whether to render environment
+            start_training_step: Step to start training from (for resume)
         """
-        parallel_logger.info(f"[SEED {seed}] Starting iteration {iteration+1}")
+        # Core dependencies
+        self.env = env
+        self.env_eval = env_eval
 
-        # Create factory instances (each process needs its own)
-        env_factory = EnvironmentFactory()
-        network_factory = NetworkFactory()
-        memory_factory = MemoryFactory()
+        self.agent = agent
+        self.memory = memory
+        self.record = record
 
-        # Create record for this seed
-        record = Record(
-            base_directory=f"{self.base_log_dir}",
-            algorithm=self.alg_config.algorithm,
-            task=self.env_config.task,
-            agent=None,
-            record_video=self.training_config.record_eval_video,
-            record_checkpoints=bool(self.env_config.save_train_checkpoints),
-            checkpoint_interval=self.training_config.checkpoint_interval,
-            logger=logs.get_seed_logger(),
-        )
+        # Runtime behavior
+        self.display = display
+        self.start_training_step = start_training_step
 
-        # Save configurations only on first iteration to avoid conflicts
-        if iteration == 0:
-            record.save_configurations(self.configurations)
+        self.apply_action_normalisation = self.agent.policy_type in ["policy", "usd"]
 
-        # Create the Environment
-        parallel_logger.info(f"Loading Environment: {self.env_config.gym}")
-        env, env_eval = env_factory.create_environment(
-            self.env_config, self.alg_config.image_observation
-        )
+        # Set up logging
+        self.seed = seed
+        self.progress_queue = progress_queue
 
-        # Set the seed for everything
-        hlp.set_seed(seed)
-        env.set_seed(seed)
-        env_eval.set_seed(seed)
-
-        # Create the algorithm
-        parallel_logger.info(f"Algorithm: {self.alg_config.algorithm}")
-        agent: Algorithm = network_factory.create_network(
-            env.observation_space, env.action_num, self.alg_config
-        )
-
-        # Validate agent creation
-        if agent is None:
-            raise ValueError(
-                f"Unknown agent for default algorithms {self.alg_config.algorithm}"
-            )
-
-        memory = memory_factory.create_memory(self.alg_config)
-
-        # Set up record with agent and subdirectory
-        record.set_agent(agent)
-        record.set_sub_directory(f"{seed}")
-        record.set_memory_buffer(memory)
-
-        start_training_step = 0
-        if self.run_config.command == "resume":
-            if not self.run_config.data_path:
-                raise ValueError("Data path is required for resume command")
-
-            restart_path = Path(self.run_config.data_path) / str(seed)
-            parallel_logger.info(f"Restarting from path: {restart_path}")
-
-            parallel_logger.info("Loading training and evaluation data")
-            record.load(restart_path)
-
-            parallel_logger.info("Loading memory buffer")
-            memory = MemoryBuffer.load(restart_path / "memory", "memory")
-            record.set_memory_buffer(memory)
-
-            parallel_logger.info("Loading agent models")
-            agent.load_models(
-                restart_path / "models" / "checkpoint", f"{self.alg_config.algorithm}"
-            )
-
-            start_training_step = record.get_last_logged_step()
-
-        # Execute based on command type
-        if self.run_config.command == "train" or self.run_config.command == "resume":
-            # Create and run the training loop using the new TrainingLoop class
-            training_loop = tl.TrainingLoop(
-                env=env,
-                env_eval=env_eval,
-                agent=agent,
-                memory=memory,
-                record=record,
-                train_config=self.training_config,
-                alg_config=self.alg_config,
-                seed=seed,
-                progress_queue=progress_queue,
-                logger=logs.get_seed_logger(),  # Use seed-specific logger
-                display=bool(self.env_config.display),
-                start_training_step=start_training_step,
-            )
-
-            training_loop.run_training()
-        # elif self.run_config.command == "evaluate":
-        #     self._handle_evaluate_command(env_eval, agent, record, seed)
-        # elif self.run_config.command == "test":
-        #     self._handle_test_command(env_eval, agent, record)
+        if logger is None:
+            self.logger = logs.get_seed_logger()  # Use general seed logger for now
         else:
-            raise ValueError(f"Unknown command {self.run_config.command}")
+            self.logger = logger
 
-        record.save()
+        # Create exploration logger as child of main logger
+        # self.exploration_logger = logging.getLogger(f"{self.logger.name}.exploration")
 
-    def _handle_evaluate_command(
-        self,
-        env_eval: GymEnvironment | MultiModalWrapper,
-        agent: Algorithm,
-        record: Record,
-        seed: int,
-    ) -> None:
-        """Handle the evaluate command logic."""
-        if not self.run_config.data_path:
-            raise ValueError("Data path is required for evaluate command")
-        self._evaluate_seed(
-            self.run_config.data_path,
-            seed,
-            self.alg_config,
-            env_eval,
-            agent,
-            record,
-        )
+        # Algorithm Training parameters
+        self.max_steps_training = alg_config.max_steps_training
+        self.max_steps_exploration = alg_config.max_steps_exploration
+        self.number_steps_per_train_policy = alg_config.number_steps_per_train_policy
 
-    def _handle_test_command(
-        self,
-        env_eval: GymEnvironment | MultiModalWrapper,
-        agent: Algorithm,
-        record: Record,
-    ) -> None:
-        """Handle the test command logic."""
-        if not self.run_config.data_path:
-            raise ValueError("Data path is required for test command")
-        if not self.run_config.episodes:
-            raise ValueError("Episodes count is required for test command")
-        self._test_models(
-            self.run_config.data_path,
-            self.alg_config,
-            env_eval,
-            agent,
-            record,
-        )
+        self.batch_size = alg_config.batch_size
+        self.G = alg_config.G  # pylint: disable=invalid-name
 
-    def _evaluate_seed(
-        self,
-        data_path: str,
-        seed: int,
-        alg_config: AlgorithmConfig,
-        env: GymEnvironment | MultiModalWrapper,
-        agent: Algorithm,
-        record: Record,
-    ) -> None:
-        """Evaluate a specific seed (copied from original evaluate function)."""
-        model_path = Path(f"{data_path}/{seed}/models/")
-        folders = list(model_path.glob("*"))
+        # Evaluation parameters
+        self.number_eval_episodes = train_config.number_eval_episodes
+        self.number_steps_per_evaluation = train_config.number_steps_per_evaluation
 
-        # Sort folders and remove the final and best model folders
-        folders = natsorted(folders)[:-2]
+        # Episode repetition parameters
+        self.repetition_num_episodes = alg_config.repetition_num_episodes
+        self.use_episode_repetition = self.repetition_num_episodes > 0
 
-        self._run_evaluation_loop(
-            alg_config,
-            env,
-            agent,
-            record,
-            folders,
-        )
-
-    def _test_models(
-        self,
-        data_path: str,
-        alg_config: AlgorithmConfig,
-        env: GymEnvironment | MultiModalWrapper,
-        agent: Algorithm,
-        record: Record,
-    ) -> None:
-        """Test models across all seeds (copied from original test function)."""
-        algorithm_directory = Path(f"{data_path}/")
-        algorithm_data = list(algorithm_directory.glob("*"))
-
-        seed_folders = [entry for entry in algorithm_data if os.path.isdir(entry)]
-        seed_folders = natsorted(seed_folders)
-
-        for folder in seed_folders:
-            model_path = Path(f"{folder}/models/final")
-            self._run_evaluation_loop(alg_config, env, agent, record, [model_path])
-
-    def _run_evaluation_loop(
-        self,
-        alg_config: AlgorithmConfig,
-        env: GymEnvironment | MultiModalWrapper,
-        agent: Algorithm,
-        record: Record,
-        folders: list[Path],
-    ) -> None:
-        """Run evaluation loop for given model folders (using TrainingLoop for evaluation)."""
-        for folder in folders:
-            agent.load_models(folder, f"{alg_config.algorithm}")
-
-            # Extract total steps from folder name
-            try:
-                total_steps = int(folder.name.split("_")[-1]) - 1
-            except ValueError:
-                total_steps = 0
-
-            # Create a minimal TrainingLoop instance for evaluation only
-            # We create dummy objects for required parameters that won't be used in evaluation
-            memory = MemoryFactory().create_memory(alg_config)
-
-            evaluator = tl.TrainingLoop(
-                env=env,  # Use evaluation environment for both env and env_eval
-                env_eval=env,
-                agent=agent,
-                memory=memory,
-                record=record,
-                train_config=self.training_config,
-                alg_config=alg_config,
-                seed=0,  # Seed is not relevant for evaluation here
-                logger=logs.get_main_logger(),
-                display=False,
-                start_training_step=0,
+    def _report_progress(self, episode: int, step: int, status: str) -> None:
+        """Report progress to the main thread if a queue is provided."""
+        if self.progress_queue is not None:
+            self.progress_queue.put(
+                {
+                    "seed": self.seed,
+                    "episode": episode,
+                    "step": step,
+                    "total": self.max_steps_training,
+                    "status": status,
+                }
             )
 
-            if agent.policy_type == "usd":
-                evaluator._evaluate_usd(total_steps)
-            else:
-                # Update the evaluator to not normalize actions
-                evaluator._evaluate_agent(total_steps)
+    def run_training(self) -> None:
+        """
+        Execute the main training loop.
 
-    def listen_for_progress(self, queue, futures):
-        progress = Progress(
-            TextColumn("[bold blue]{task.fields[seed]}"),
-            BarColumn(),
-            TextColumn("{task.percentage:>3.0f}%"),
-            TextColumn("{task.fields[status]}"),
-            TextColumn("[cyan]{task.completed}/{task.total}"),  # <-- added this
-            TimeElapsedColumn(),
+        This is the main entry point that orchestrates the entire training process
+        for this seed, including exploration, training, and evaluation phases.
+        """
+        self.logger.info(
+            f"Training {self.max_steps_training} Exploration {self.max_steps_exploration} "
+            f"Evaluation {self.number_steps_per_evaluation}"
         )
 
-        tasks: dict[int, int] = {}
-        done_seeds: set[int] = set()
+        self._report_progress(0, 0, "starting")
 
-        with progress:
-            while True:
-                try:
-                    msg = queue.get_nowait()
-                except Empty:
-                    msg = None
-
-                if msg:
-                    seed = msg["seed"]
-
-                    if seed not in tasks:
-                        total = msg.get("total", 1)
-                        tasks[seed] = progress.add_task(
-                            f"Seed {seed}",
-                            total=total,
-                            seed=f"Seed {seed}",
-                            status=msg.get("status", ""),
-                        )
-
-                    progress.update(
-                        tasks[seed],
-                        completed=msg.get("step", 0),
-                        status=msg.get("status", ""),
-                    )
-
-                    if msg.get("status") == "done":
-                        done_seeds.add(seed)
-                        progress.console.log(f"[green]Seed {seed} completed!")
-
-                if len(done_seeds) == len(futures):
-                    break
-
-                # time.sleep(0.1)
-
-    def run_parallel_seeds(self) -> None:
-        """
-        Execute training/evaluation across multiple seeds in parallel.
-
-        Args:
-            max_workers: Maximum number of parallel workers (default 1 for testing)
-        """
-        logger.info(f"Running with {self.max_workers} parallel workers")
-
-        with multiprocessing.Manager() as manager:
-            progress_queue = manager.Queue()
-
-            # Use ProcessPoolExecutor with limited workers
-            with concurrent.futures.ProcessPoolExecutor(
-                max_workers=self.max_workers
-            ) as executor:
-                futures = [
-                    executor.submit(
-                        self.run_single_seed,
-                        iteration=i,
-                        seed=seed,
-                        progress_queue=progress_queue,  # type: ignore[arg-type]
-                    )
-                    for i, seed in enumerate(self.seeds)
-                ]
-
-                self.listen_for_progress(progress_queue, futures)
-
-        logger.info(f"Completed all {len(self.seeds)} seeds")
-
-    def run_sequential_seeds(self) -> None:
-        """
-        Execute training/evaluation across multiple seeds sequentially.
-        Useful for debugging or when parallel execution is not desired.
-        """
-        for iteration, seed in enumerate(self.seeds):
-            logger.info(
-                f"Running iteration {iteration+1}/{len(self.seeds)} with Seed: {seed}"
-            )
-            self.run_single_seed(iteration, seed)
-
-        logger.info(f"Completed all {len(self.seeds)} seeds sequentially")
-
-    def run(self) -> None:
-        """
-        Main entry point to run the training process.
-
-        Args:
-            max_workers: Maximum number of parallel workers
-            use_parallel: Whether to use parallel execution
-        """
         start_time = time.time()
-        if self.max_workers > 1 and len(self.seeds) > 1:
-            self.run_parallel_seeds()
-        else:
-            logs.set_logger_level("parallel", logging.INFO)
-            logs.set_logger_level("seed", logging.INFO)
-            self.run_sequential_seeds()
+
+        # Initialize training state
+        episode_timesteps = 0
+        episode_reward = 0
+        episode_num = 0
+        state = self.env.reset()
+        episode_start = time.time()
+
+        # Episode repetition tracking
+        repeating = False
+        repetition_counter = 0
+        repetition_buffer = EpisodeReplay()
+        repeat = False
+        episode_repetitions = 0
+
+        # Main training loop
+        for train_step_counter in range(
+            self.start_training_step, int(self.max_steps_training)
+        ):
+            episode_timesteps += 1
+
+            info: dict = {}
+
+            status = (
+                "training"
+                if train_step_counter >= self.max_steps_exploration
+                else "exploration"
+            )
+            self._report_progress(episode_num + 1, train_step_counter + 1, status)
+
+            # Determine action based on training phase
+            if train_step_counter < self.max_steps_exploration:
+                normalised_action, denormalised_action = (
+                    self._select_exploration_action(train_step_counter)
+                )
+            elif (
+                self.use_episode_repetition
+                and repeat
+                and repetition_buffer.has_best_episode()
+            ):
+                normalised_action, denormalised_action = self._select_repitition_action(
+                    episode_num, episode_timesteps, repetition_buffer
+                )
+                if episode_timesteps >= len(repetition_buffer.best_actions):
+                    repeat = False
+            else:
+                normalised_action, denormalised_action = self._select_policy_action(
+                    state
+                )
+
+            # Record action and execute step
+            repetition_buffer.record_action(denormalised_action)
+            info["repeated"] = episode_repetitions
+
+            next_state, reward_extrinsic, done, truncated, env_info = self.env.step(
+                denormalised_action
+            )
+
+            if self.display:
+                self.env.render()
+
+            # Calculate total reward (extrinsic + intrinsic)
+            intrinsic_reward = 0
+            if train_step_counter > self.max_steps_exploration:
+                intrinsic_reward = self.agent.get_intrinsic_reward(
+                    state, normalised_action, next_state
+                )
+
+            total_reward = reward_extrinsic + intrinsic_reward
+
+            # Store experience in memory
+            self.memory.add(state, normalised_action, total_reward, next_state, done)
+
+            state = next_state
+            episode_reward += reward_extrinsic
+            info["intrinsic_reward"] = intrinsic_reward
+
+            # Train policy if conditions are met
+            if (
+                train_step_counter >= self.max_steps_exploration
+                and (train_step_counter + 1) % self.number_steps_per_train_policy == 0
+            ):
+                train_info = self._update_policy(
+                    train_step_counter,
+                    episode_num,
+                    episode_timesteps,
+                    episode_reward,
+                    done or truncated,
+                )
+                info |= train_info
+
+            # Evaluate agent periodically
+            if (train_step_counter + 1) % self.number_steps_per_evaluation == 0:
+                self._report_progress(
+                    episode_num + 1, train_step_counter + 1, "evaluation"
+                )
+                self._run_evaluation(train_step_counter)
+
+            # Handle episode completion
+            if done or truncated:
+                episode_time = time.time() - episode_start
+
+                # Log training data
+                self.record.log_train(
+                    total_steps=train_step_counter + 1,
+                    episode=episode_num + 1,
+                    episode_steps=episode_timesteps,
+                    episode_reward=episode_reward,
+                    episode_time=episode_time,
+                    **env_info,
+                    **info,
+                    display=True,
+                )
+
+                # Handle episode repetition logic
+                repeating, repeat, repetition_counter, episode_repetitions = (
+                    self._finalise_episode(
+                        train_step_counter,
+                        episode_reward,
+                        repetition_buffer,
+                        repeating,
+                        repeat,
+                        repetition_counter,
+                        episode_repetitions,
+                    )
+                )
+
+                # Reset for next episode
+                state = self.env.reset()
+                episode_timesteps = 0
+                episode_reward = 0
+                episode_num += 1
+                self.agent.episode_done()
+                episode_start = time.time()
 
         end_time = time.time()
         elapsed_time = end_time - start_time
-        logger.info(
+        self.logger.info(
             f"Training completed. Time: {time.strftime('%H:%M:%S', time.gmtime(elapsed_time))}"
         )
+
+        self._report_progress(episode_num + 1, train_step_counter + 1, "complete")
+
+    def _select_exploration_action(self, train_step_counter: int) -> tuple:
+        """Handle exploration phase action selection."""
+        self.logger.info(
+            f"Running Exploration Steps {train_step_counter + 1}/{self.max_steps_exploration}"
+        )
+
+        denormalised_action = self.env.sample_action()
+        normalised_action = denormalised_action
+
+        if self.apply_action_normalisation:
+            normalised_action = hlp.normalize(
+                denormalised_action,
+                self.env.max_action_value,
+                self.env.min_action_value,
+            )
+
+        return normalised_action, denormalised_action
+
+    def _select_repitition_action(
+        self, episode_num: int, episode_timesteps: int, repetition_buffer: EpisodeReplay
+    ) -> tuple:
+        """Handle episode repetition action selection."""
+        self.logger.info(
+            f"Repeating Episode {episode_num} Step {episode_timesteps}/{len(repetition_buffer.best_actions)}"
+        )
+
+        denormalised_action = repetition_buffer.replay_best_episode(
+            episode_timesteps - 1
+        )
+
+        # For repetition, assume we stored denormalized actions
+        normalised_action = denormalised_action
+        if self.apply_action_normalisation:
+            normalised_action = hlp.normalize(
+                denormalised_action,
+                self.env.max_action_value,
+                self.env.min_action_value,
+            )
+
+        return normalised_action, denormalised_action
+
+    def _select_policy_action(self, state) -> tuple:
+        """Handle policy-based action selection."""
+        available_actions = self.env.get_available_actions()
+        action_context = ActionContext(
+            state=state, evaluation=False, available_actions=available_actions
+        )
+        normalised_action = self.agent.select_action_from_policy(action_context)
+
+        denormalised_action = normalised_action
+        if self.apply_action_normalisation:
+            denormalised_action = hlp.denormalize(
+                normalised_action, self.env.max_action_value, self.env.min_action_value
+            )
+
+        return normalised_action, denormalised_action
+
+    def _update_policy(
+        self,
+        train_step_counter: int,
+        episode_num: int,
+        episode_timesteps: int,
+        episode_reward: float,
+        episode_done: bool,
+    ) -> dict:
+        """Execute policy training step."""
+        training_context = TrainingContext(
+            memory=self.memory,
+            batch_size=self.batch_size,
+            training_step=train_step_counter,
+            episode=episode_num + 1,
+            episode_steps=episode_timesteps,
+            episode_reward=episode_reward,
+            episode_done=episode_done,
+        )
+
+        train_info = {}
+        for _ in range(self.G):
+            train_info = self.agent.train_policy(training_context)
+
+        return train_info
+
+    def _run_evaluation(self, train_step_counter: int) -> None:
+        """Execute evaluation phase."""
+        self.logger.info("*************--Evaluation Loop--*************")
+
+        if self.agent.policy_type == "usd":
+            self._evaluate_usd(train_step_counter)
+        else:
+            self._evaluate_agent(train_step_counter)
+
+        self.logger.info("--------------------------------------------")
+
+    def _finalise_episode(
+        self,
+        train_step_counter: int,
+        episode_reward: float,
+        repetition_buffer: EpisodeReplay,
+        repeating: bool,
+        repeat: bool,
+        repetition_counter: int,
+        episode_repetitions: int,
+    ) -> tuple:
+        """Handle episode completion and repetition logic."""
+        if repeating:
+            repeat = True
+            repetition_counter += 1
+            if repetition_counter >= self.repetition_num_episodes:
+                repeat = False
+                repeating = False
+                repetition_counter = 0
+        elif train_step_counter > self.max_steps_exploration:
+            repeat = repetition_buffer.finish_episode(episode_reward)
+            repeating = repeat
+            episode_repetitions = (
+                episode_repetitions + 1
+                if repeat and self.use_episode_repetition
+                else episode_repetitions
+            )
+        else:
+            repetition_buffer.finish_episode(episode_reward)
+
+        return repeating, repeat, repetition_counter, episode_repetitions
+
+    def _evaluate_usd(self, total_steps: int) -> None:
+        """
+        Evaluate USD (Unsupervised Skill Discovery) agent.
+
+        Args:
+            total_steps: Current training step count
+        """
+        state = self.env_eval.reset(training=False)
+
+        for skill_counter, skill in enumerate(range(self.agent.num_skills)):
+            episode_timesteps = 0
+            episode_reward = 0
+            episode_num = 0
+            done = False
+            truncated = False
+
+            self.agent.set_skill(skill, evaluation=True)
+
+            if self.record is not None:
+                frame = self.env_eval.grab_frame()
+                self.record.start_video(f"{total_steps+1}-{skill}", frame)
+
+                log_path = self.record.current_sub_directory
+                self.env_eval.set_log_path(log_path, total_steps + 1)
+
+            while not done and not truncated:
+                episode_timesteps += 1
+
+                available_actions = self.env_eval.get_available_actions()
+                action_context = ActionContext(
+                    state=state, evaluation=True, available_actions=available_actions
+                )
+                normalised_action = self.agent.select_action_from_policy(action_context)
+
+                denormalised_action = (
+                    hlp.denormalize(
+                        normalised_action,
+                        self.env_eval.max_action_value,
+                        self.env_eval.min_action_value,
+                    )
+                    if self.apply_action_normalisation
+                    else normalised_action
+                )
+
+                state, reward, done, truncated, env_info = self.env_eval.step(
+                    denormalised_action
+                )
+                episode_reward += reward
+
+                if self.record is not None:
+                    frame = self.env_eval.grab_frame()
+                    overlay = overlay_info(
+                        frame,
+                        reward=f"{episode_reward:.1f}",
+                        **self.env_eval.get_overlay_info(),
+                    )
+                    self.record.log_video(overlay)
+
+                if done or truncated:
+                    # Log evaluation information
+                    if self.record is not None:
+                        self.record.log_eval(
+                            total_steps=total_steps + 1,
+                            episode=skill_counter + 1,
+                            episode_reward=episode_reward,
+                            display=True,
+                            **env_info,
+                        )
+
+                        self.record.stop_video()
+
+                    # Reset environment
+                    state = self.env_eval.reset()
+                    episode_reward = 0
+                    episode_timesteps = 0
+                    episode_num += 1
+
+                    self.agent.episode_done()
+
+    def _evaluate_agent(self, total_steps: int) -> None:
+        """
+        Evaluate standard RL agent.
+
+        Args:
+            total_steps: Current training step count
+        """
+        state = self.env_eval.reset(training=False)
+
+        if self.record is not None:
+            frame = self.env_eval.grab_frame()
+            self.record.start_video(f"{total_steps + 1}", frame)
+
+            log_path = self.record.current_sub_directory
+            self.env_eval.set_log_path(log_path, total_steps + 1)
+
+        for eval_episode_counter in range(self.number_eval_episodes):
+            episode_timesteps = 0
+            episode_reward = 0
+            episode_num = 0
+            done = False
+            truncated = False
+
+            episode_states = []
+            episode_actions = []
+            episode_rewards: list[float] = []
+
+            while not done and not truncated:
+                episode_timesteps += 1
+
+                available_actions = self.env_eval.get_available_actions()
+                action_context = ActionContext(
+                    state=state, evaluation=True, available_actions=available_actions
+                )
+                normalised_action = self.agent.select_action_from_policy(action_context)
+
+                denormalised_action = (
+                    hlp.denormalize(
+                        normalised_action,
+                        self.env_eval.max_action_value,
+                        self.env_eval.min_action_value,
+                    )
+                    if self.apply_action_normalisation
+                    else normalised_action
+                )
+
+                state, reward, done, truncated, env_info = self.env_eval.step(
+                    denormalised_action
+                )
+                episode_reward += reward
+
+                # For Bias Calculation
+                episode_states.append(state)
+                episode_actions.append(normalised_action)
+                episode_rewards.append(reward)
+
+                if eval_episode_counter == 0 and self.record is not None:
+                    frame = self.env_eval.grab_frame()
+                    overlay = overlay_info(
+                        frame,
+                        reward=f"{episode_reward:.1f}",
+                        **self.env_eval.get_overlay_info(),
+                    )
+                    self.record.log_video(overlay)
+
+                if done or truncated:
+                    # Calculate bias
+                    bias_data = self.agent.calculate_bias(
+                        episode_states,
+                        episode_actions,
+                        episode_rewards,
+                    )
+
+                    # Log evaluation information
+                    if self.record is not None:
+                        self.record.log_eval(
+                            total_steps=total_steps + 1,
+                            episode=eval_episode_counter + 1,
+                            episode_reward=episode_reward,
+                            display=True,
+                            **env_info,
+                            **bias_data,
+                        )
+
+                        self.record.stop_video()
+
+                    # Reset environment
+                    state = self.env_eval.reset()
+                    episode_reward = 0
+                    episode_timesteps = 0
+                    episode_num += 1
+
+                    self.agent.episode_done()
