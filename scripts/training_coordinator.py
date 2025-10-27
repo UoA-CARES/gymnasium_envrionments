@@ -21,6 +21,7 @@ from cares_reinforcement_learning.util.configurations import (
 )
 from environments.gym_environment import GymEnvironment
 from environments.multimodal_wrapper import MultiModalWrapper
+from evaluation_runner import EvaluationRunner
 from rich.progress import BarColumn, Progress, TextColumn, TimeElapsedColumn
 from training_runner import TrainingRunner
 from util.configurations import GymEnvironmentConfig
@@ -133,14 +134,28 @@ class TrainingCoordinator:
         if not self.run_config.data_path:
             raise ValueError("Data path is required for evaluate command")
 
-        # data_path = self.run_config.data_path
+        if self.base_log_dir is None:
+            raise ValueError("Base log directory must be set before running seeds")
 
-        # """Evaluate a specific seed (copied from original evaluate function)."""
-        # model_path = Path(f"{data_path}/{seed}/models/")
-        # folders = list(model_path.glob("*"))
+        logs.set_logger_level("parallel", logging.INFO)
+        logs.set_logger_level("seed", logging.INFO)
 
-        # # Sort folders and remove the final and best model folders
-        # folders = natsorted(folders)[:-2]
+        for iteration, seed in enumerate(self.seeds):
+            logger.info(
+                f"Running seed {iteration+1}/{len(self.seeds)} with Seed: {seed}"
+            )
+
+            eval_runner = EvaluationRunner(
+                eval_seed=seed,
+                configurations=self.configurations,
+                base_log_dir=self.base_log_dir,
+                former_base_path=self.run_config.data_path,
+                num_episodes=self.run_config.episodes,
+                save_configurations=(iteration == 0),
+            )
+            eval_runner.run_evaluation()
+
+        logger.info(f"Completed all {len(self.seeds)} seeds sequentially")
 
     def _test(
         self,
@@ -153,17 +168,6 @@ class TrainingCoordinator:
             raise ValueError("Data path is required for test command")
         if not self.run_config.episodes:
             raise ValueError("Episodes count is required for test command")
-
-        # data_path = self.run_config.data_path
-
-        # algorithm_directory = Path(f"{data_path}/")
-        # algorithm_data = list(algorithm_directory.glob("*"))
-
-        # seed_folders = [entry for entry in algorithm_data if os.path.isdir(entry)]
-        # seed_folders = natsorted(seed_folders)
-
-        # for folder in seed_folders:
-        #     model_path = Path(f"{folder}/models/final")
 
     def _listen_for_progress(self, queue, futures):
         progress = Progress(
@@ -234,7 +238,7 @@ class TrainingCoordinator:
             resume_path = self.run_config.data_path
 
         runner = TrainingRunner(
-            seed=seed,
+            train_seed=seed,
             configurations=self.configurations,
             base_log_dir=self.base_log_dir,
             progress_queue=progress_queue,
@@ -321,9 +325,7 @@ class TrainingCoordinator:
         if self.run_config.command in ["train", "resume"]:
             self._train()
         elif self.run_config.command == "evaluate":
-            raise NotImplementedError(
-                "Evaluate command is not yet implemented in TrainingCoordinator."
-            )
+            self._evaluate()
         elif self.run_config.command == "test":
             raise NotImplementedError(
                 "Test command is not yet implemented in TrainingCoordinator."

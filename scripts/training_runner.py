@@ -34,12 +34,13 @@ class TrainingRunner:
 
     def __init__(
         self,
-        seed: int,
+        train_seed: int,
         configurations: dict[str, Any],
         base_log_dir: str,
         progress_queue: Queue | None = None,
         resume_path: str | None = None,
         save_configurations: bool = False,
+        eval_seed: int | None = None,
     ):
         """
         Initialize TrainingRunner with all component creation and setup.
@@ -57,11 +58,12 @@ class TrainingRunner:
         training_config: TrainingConfig = configurations["train_config"]
         alg_config: AlgorithmConfig = configurations["alg_config"]
 
-        self.seed = seed
+        self.train_seed = train_seed
+        self.eval_seed = eval_seed if eval_seed is not None else self.train_seed
 
         # Set up logging first
         self.train_logger = logs.get_seed_logger()
-        self.train_logger.info(f"[SEED {self.seed}] Starting training")
+        self.train_logger.info(f"[SEED {self.train_seed}] Starting training")
 
         # Create factory instances (each process needs its own)
         env_factory = EnvironmentFactory()
@@ -81,7 +83,7 @@ class TrainingRunner:
         )
 
         # Set up record with agent and subdirectory
-        self.record.set_sub_directory(f"{self.seed}")
+        self.record.set_sub_directory(f"{self.train_seed}")
 
         # Save configurations if requested
         if save_configurations:
@@ -89,19 +91,21 @@ class TrainingRunner:
 
         # Create the Environment
         self.train_logger.info(
-            f"[SEED {self.seed}] Loading Environment: {env_config.gym}"
+            f"[SEED {self.train_seed}] Loading Environment: {env_config.gym}"
         )
         self.env, self.env_eval = env_factory.create_environment(
             env_config, alg_config.image_observation
         )
 
         # Set the seed for everything
-        hlp.set_seed(self.seed)
-        self.env.set_seed(self.seed)
-        self.env_eval.set_seed(self.seed)
+        hlp.set_seed(self.train_seed)
+        self.env.set_seed(self.train_seed)
+        self.env_eval.set_seed(self.eval_seed)
 
         # Create the algorithm
-        self.train_logger.info(f"[SEED {self.seed}] Algorithm: {alg_config.algorithm}")
+        self.train_logger.info(
+            f"[SEED {self.train_seed}] Algorithm: {alg_config.algorithm}"
+        )
         self.agent: Algorithm = network_factory.create_network(
             self.env.observation_space, self.env.action_num, alg_config
         )
@@ -162,44 +166,44 @@ class TrainingRunner:
         Returns:
             Tuple of (starting_training_step, loaded_memory)
         """
-        restart_path = Path(data_path) / str(self.seed)
+        restart_path = Path(data_path) / str(self.train_seed)
 
         # Check if seed directory exists
         if not restart_path.exists():
             self.train_logger.warning(
-                f"[SEED {self.seed}] No checkpoint found at {restart_path}, starting fresh training"
+                f"[SEED {self.train_seed}] No checkpoint found at {restart_path}, starting fresh training"
             )
             return 0, self.memory
 
         self.train_logger.info(
-            f"[SEED {self.seed}] Restarting from path: {restart_path}"
+            f"[SEED {self.train_seed}] Restarting from path: {restart_path}"
         )
 
         self.train_logger.info(
-            f"[SEED {self.seed}] Loading training and evaluation data"
+            f"[SEED {self.train_seed}] Loading training and evaluation data"
         )
         self.record.load(restart_path)
 
-        self.train_logger.info(f"[SEED {self.seed}] Loading memory buffer")
+        self.train_logger.info(f"[SEED {self.train_seed}] Loading memory buffer")
         try:
             loaded_memory = MemoryBuffer.load(restart_path / "memory", "memory")
         except FileNotFoundError:
             self.train_logger.warning(
-                f"[SEED {self.seed}] No memory buffer found at {restart_path / 'memory'}, starting with empty memory"
+                f"[SEED {self.train_seed}] No memory buffer found at {restart_path / 'memory'}, starting with empty memory"
             )
             loaded_memory = self.memory
 
-        self.train_logger.info(f"[SEED {self.seed}] Loading agent models")
+        self.train_logger.info(f"[SEED {self.train_seed}] Loading agent models")
         try:
             self.agent.load_models(restart_path / "models" / "checkpoint", algorithm)
         except FileNotFoundError:
             self.train_logger.warning(
-                f"[SEED {self.seed}] No agent models found at {restart_path / 'models' / 'checkpoint'}, starting with fresh models"
+                f"[SEED {self.train_seed}] No agent models found at {restart_path / 'models' / 'checkpoint'}, starting with fresh models"
             )
 
         start_training_step = self.record.get_last_logged_step()
         self.train_logger.info(
-            f"[SEED {self.seed}] Resuming from step: {start_training_step}"
+            f"[SEED {self.train_seed}] Resuming from step: {start_training_step}"
         )
 
         return start_training_step, loaded_memory
@@ -209,7 +213,7 @@ class TrainingRunner:
         if self.progress_queue is not None:
             self.progress_queue.put(
                 {
-                    "seed": self.seed,
+                    "seed": self.train_seed,
                     "episode": episode,
                     "step": step,
                     "total": self.max_steps_training,
