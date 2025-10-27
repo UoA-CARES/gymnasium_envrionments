@@ -157,17 +157,15 @@ class TrainingCoordinator:
 
         logger.info(f"Completed all {len(self.seeds)} seeds sequentially")
 
-    def _test(
-        self,
-        env_eval: GymEnvironment | MultiModalWrapper,
-        agent: Algorithm,
-        record: Record,
-    ) -> None:
+    def _test(self) -> None:
         """Handle the test command logic."""
         if not self.run_config.data_path:
             raise ValueError("Data path is required for test command")
         if not self.run_config.episodes:
             raise ValueError("Episodes count is required for test command")
+
+        if self.base_log_dir is None:
+            raise ValueError("Base log directory must be set before running seeds")
 
     def _listen_for_progress(self, queue, futures):
         progress = Progress(

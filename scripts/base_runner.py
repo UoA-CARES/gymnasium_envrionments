@@ -107,7 +107,7 @@ class BaseRunner(ABC):
             f"[SEED {self.train_seed}] Algorithm: {self.alg_config.algorithm}"
         )
         self.agent: Algorithm = self.network_factory.create_network(
-            self.env_eval.observation_space, self.env_eval.action_num, self.alg_config
+            self.env.observation_space, self.env.action_num, self.alg_config
         )
 
         # Validate agent creation
