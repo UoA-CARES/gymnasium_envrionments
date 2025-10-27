@@ -146,11 +146,11 @@ class TrainingCoordinator:
             )
 
             eval_runner = EvaluationRunner(
+                train_seed=seed,
                 eval_seed=seed,
                 configurations=self.configurations,
                 base_log_dir=self.base_log_dir,
                 former_base_path=self.run_config.data_path,
-                num_episodes=self.run_config.episodes,
                 save_configurations=(iteration == 0),
             )
             eval_runner.run_evaluation()

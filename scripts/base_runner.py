@@ -40,7 +40,7 @@ class BaseRunner(ABC):
         configurations: dict[str, Any],
         base_log_dir: str,
         save_configurations: bool = False,
-        num_episodes: int | None = None,
+        num_eval_episodes: int | None = None,
     ):
         """
         Initialize BaseRunner with common setup logic.
@@ -119,13 +119,13 @@ class BaseRunner(ABC):
         # Set up record with agent
         self.record.set_agent(self.agent)
 
-        # Runtime behavior
+        # Runtime behavior - action normalisation
         self.apply_action_normalisation = self.agent.policy_type in ["policy", "usd"]
 
         # Evaluation parameters
         self.number_eval_episodes = (
-            num_episodes
-            if num_episodes is not None
+            num_eval_episodes
+            if num_eval_episodes is not None
             else self.training_config.number_eval_episodes
         )
 
@@ -155,12 +155,8 @@ class BaseRunner(ABC):
         episode_actions = []
         episode_rewards: List[float] = []
 
-        # Reset environment for this episode (except for first episode where it may already be reset)
-        if episode_counter > 0:
-            state = self.env_eval.reset()
-        else:
-            # For first episode, assume environment is already reset and get initial state
-            state = self.env_eval.reset()
+        # Reset environment
+        state = self.env_eval.reset()
 
         while not done and not truncated:
             episode_timesteps += 1
@@ -239,7 +235,6 @@ class BaseRunner(ABC):
         self,
         log_step: int,
         video_label: str,
-        num_episodes: int | None = None,
     ) -> Dict[str, Any]:
         """
         Evaluate standard RL agent over multiple episodes.
@@ -252,10 +247,6 @@ class BaseRunner(ABC):
         Returns:
             Dictionary with aggregated evaluation results
         """
-        episodes_to_run = (
-            num_episodes if num_episodes is not None else self.number_eval_episodes
-        )
-
         self.env_eval.reset(training=False)
 
         if self.record is not None:
@@ -269,7 +260,7 @@ class BaseRunner(ABC):
         total_reward = 0.0
         all_bias_data = []
 
-        for eval_episode_counter in range(episodes_to_run):
+        for eval_episode_counter in range(self.number_eval_episodes):
             episode_results = self._run_single_episode_evaluation(
                 episode_counter=eval_episode_counter,
                 log_step=log_step,
@@ -375,25 +366,3 @@ class BaseRunner(ABC):
             "min_skill_reward": min_skill_reward,
             "total_skills": len(skill_results),
         }
-
-    def _run_evaluation_by_agent_type(
-        self,
-        log_step: int,
-        video_label: str,
-        num_episodes: int | None = None,
-    ) -> Dict[str, Any]:
-        """
-        Run evaluation based on agent type (USD vs standard RL).
-
-        Args:
-            log_step: Training/evaluation step for logging context
-            video_label: Label for video recording
-            num_episodes: Number of episodes for standard RL agents (ignored for USD)
-
-        Returns:
-            Dictionary with evaluation results
-        """
-        if self.agent.policy_type == "usd":
-            return self._evaluate_usd_skills(log_step, video_label)
-        else:
-            return self._evaluate_agent_episodes(log_step, video_label, num_episodes)
