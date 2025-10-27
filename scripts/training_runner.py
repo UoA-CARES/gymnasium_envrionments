@@ -1,22 +1,25 @@
-import logging
 import time
 from multiprocessing.queues import Queue
+from pathlib import Path
+from typing import Any
 
 import training_logger as logs
 from cares_reinforcement_learning.algorithm.algorithm import Algorithm
 from cares_reinforcement_learning.memory.memory_buffer import MemoryBuffer
+from cares_reinforcement_learning.memory.memory_factory import MemoryFactory
 from cares_reinforcement_learning.util import helpers as hlp
 from cares_reinforcement_learning.util.configurations import (
     AlgorithmConfig,
     TrainingConfig,
 )
+from cares_reinforcement_learning.util.network_factory import NetworkFactory
 from cares_reinforcement_learning.util.repetition import EpisodeReplay
 from cares_reinforcement_learning.util.training_context import (
     ActionContext,
     TrainingContext,
 )
-from environments.gym_environment import GymEnvironment
-from environments.multimodal_wrapper import MultiModalWrapper
+from environments.environment_factory import EnvironmentFactory
+from util.configurations import GymEnvironmentConfig
 from util.overlay import overlay_info
 from util.record import Record
 
@@ -26,82 +29,180 @@ class TrainingRunner:
     Handles the training loop for a single seed with integrated logging.
 
     This class encapsulates all training logic for a single seed, providing
-    clean separation between orchestration (TrainingRunner) and execution (TrainingLoop).
+    clean separation between orchestration (TrainingCoordinator) and execution (TrainingRunner).
     """
 
     def __init__(
         self,
-        env: GymEnvironment | MultiModalWrapper,
-        env_eval: GymEnvironment | MultiModalWrapper,
-        agent: Algorithm,
-        memory: MemoryBuffer,
-        record: Record,
-        train_config: TrainingConfig,
-        alg_config: AlgorithmConfig,
         seed: int,
+        configurations: dict[str, Any],
+        base_log_dir: str,
         progress_queue: Queue | None = None,
-        logger: logging.Logger | None = None,
-        display: bool = False,
-        start_training_step: int = 0,
+        resume_path: str | None = None,
+        save_configurations: bool = False,
     ):
         """
-        Initialize the training loop for a single seed.
+        Initialize TrainingRunner with all component creation and setup.
 
         Args:
-            env: Training environment
-            env_eval: Evaluation environment
-            agent: RL algorithm/agent
-            memory: Memory buffer for experiences
-            record: Recording system for metrics/videos
-            train_config: Training configuration (values extracted and cached)
-            alg_config: Algorithm configuration (values extracted and cached)
-            seed: Random seed for this training loop
+            seed: Random seed for this training run
+            configurations: Dictionary containing all parsed configurations
+            base_log_dir: Base directory for logging
             progress_queue: Queue for progress updates (if any)
-            logger: Logger for this training loop (if None, uses seed logger)
-            display: Whether to render environment
-            start_training_step: Step to start training from (for resume)
+            resume_path: Path to resume from (if None, start fresh training)
+            save_configurations: Whether to save configurations to disk
         """
-        # Core dependencies
-        self.env = env
-        self.env_eval = env_eval
+        # Extract configurations
+        env_config: GymEnvironmentConfig = configurations["env_config"]
+        training_config: TrainingConfig = configurations["train_config"]
+        alg_config: AlgorithmConfig = configurations["alg_config"]
 
-        self.agent = agent
-        self.memory = memory
-        self.record = record
+        self.seed = seed
+
+        # Set up logging first
+        self.train_logger = logs.get_seed_logger()
+        self.train_logger.info(f"[SEED {self.seed}] Starting training")
+
+        # Create factory instances (each process needs its own)
+        env_factory = EnvironmentFactory()
+        network_factory = NetworkFactory()
+        memory_factory = MemoryFactory()
+
+        # Create record for this seed
+        self.record = Record(
+            base_directory=base_log_dir,
+            algorithm=alg_config.algorithm,
+            task=env_config.task,
+            agent=None,
+            record_video=training_config.record_eval_video,
+            record_checkpoints=bool(env_config.save_train_checkpoints),
+            checkpoint_interval=training_config.checkpoint_interval,
+            logger=self.train_logger,
+        )
+
+        # Set up record with agent and subdirectory
+        self.record.set_sub_directory(f"{self.seed}")
+
+        # Save configurations if requested
+        if save_configurations:
+            self.record.save_configurations(configurations)
+
+        # Create the Environment
+        self.train_logger.info(
+            f"[SEED {self.seed}] Loading Environment: {env_config.gym}"
+        )
+        self.env, self.env_eval = env_factory.create_environment(
+            env_config, alg_config.image_observation
+        )
+
+        # Set the seed for everything
+        hlp.set_seed(self.seed)
+        self.env.set_seed(self.seed)
+        self.env_eval.set_seed(self.seed)
+
+        # Create the algorithm
+        self.train_logger.info(f"[SEED {self.seed}] Algorithm: {alg_config.algorithm}")
+        self.agent: Algorithm = network_factory.create_network(
+            self.env.observation_space, self.env.action_num, alg_config
+        )
+
+        # Validate agent creation
+        if self.agent is None:
+            raise ValueError(
+                f"Unknown agent for default algorithms {alg_config.algorithm}"
+            )
+
+        self.memory = memory_factory.create_memory(alg_config)
+
+        # Handle resume logic - this must modify our local variables
+        self.start_training_step = 0
+        if resume_path is not None:
+            self.start_training_step, self.memory = self._handle_resume(
+                resume_path,
+                alg_config.algorithm,
+            )
+
+        self.record.set_agent(self.agent)
+        self.record.set_memory_buffer(self.memory)
+
+        # Set instance variables
+        self.progress_queue = progress_queue
+        self.display = bool(env_config.display)
 
         # Runtime behavior
-        self.display = display
-        self.start_training_step = start_training_step
-
         self.apply_action_normalisation = self.agent.policy_type in ["policy", "usd"]
-
-        # Set up logging
-        self.seed = seed
-        self.progress_queue = progress_queue
-
-        if logger is None:
-            self.logger = logs.get_seed_logger()  # Use general seed logger for now
-        else:
-            self.logger = logger
-
-        # Create exploration logger as child of main logger
-        # self.exploration_logger = logging.getLogger(f"{self.logger.name}.exploration")
 
         # Algorithm Training parameters
         self.max_steps_training = alg_config.max_steps_training
         self.max_steps_exploration = alg_config.max_steps_exploration
         self.number_steps_per_train_policy = alg_config.number_steps_per_train_policy
-
         self.batch_size = alg_config.batch_size
         self.G = alg_config.G  # pylint: disable=invalid-name
 
         # Evaluation parameters
-        self.number_eval_episodes = train_config.number_eval_episodes
-        self.number_steps_per_evaluation = train_config.number_steps_per_evaluation
+        self.number_eval_episodes = training_config.number_eval_episodes
+        self.number_steps_per_evaluation = training_config.number_steps_per_evaluation
 
         # Episode repetition parameters
         self.repetition_num_episodes = alg_config.repetition_num_episodes
         self.use_episode_repetition = self.repetition_num_episodes > 0
+
+    def _handle_resume(
+        self,
+        data_path: str,
+        algorithm: str,
+    ) -> tuple[int, MemoryBuffer]:
+        """
+        Handle all resume logic and return starting step and loaded memory.
+
+        Args:
+            data_path: Path to the checkpoint data
+            algorithm: Algorithm name for loading models
+
+        Returns:
+            Tuple of (starting_training_step, loaded_memory)
+        """
+        restart_path = Path(data_path) / str(self.seed)
+
+        # Check if seed directory exists
+        if not restart_path.exists():
+            self.train_logger.warning(
+                f"[SEED {self.seed}] No checkpoint found at {restart_path}, starting fresh training"
+            )
+            return 0, self.memory
+
+        self.train_logger.info(
+            f"[SEED {self.seed}] Restarting from path: {restart_path}"
+        )
+
+        self.train_logger.info(
+            f"[SEED {self.seed}] Loading training and evaluation data"
+        )
+        self.record.load(restart_path)
+
+        self.train_logger.info(f"[SEED {self.seed}] Loading memory buffer")
+        try:
+            loaded_memory = MemoryBuffer.load(restart_path / "memory", "memory")
+        except FileNotFoundError:
+            self.train_logger.warning(
+                f"[SEED {self.seed}] No memory buffer found at {restart_path / 'memory'}, starting with empty memory"
+            )
+            loaded_memory = self.memory
+
+        self.train_logger.info(f"[SEED {self.seed}] Loading agent models")
+        try:
+            self.agent.load_models(restart_path / "models" / "checkpoint", algorithm)
+        except FileNotFoundError:
+            self.train_logger.warning(
+                f"[SEED {self.seed}] No agent models found at {restart_path / 'models' / 'checkpoint'}, starting with fresh models"
+            )
+
+        start_training_step = self.record.get_last_logged_step()
+        self.train_logger.info(
+            f"[SEED {self.seed}] Resuming from step: {start_training_step}"
+        )
+
+        return start_training_step, loaded_memory
 
     def _report_progress(self, episode: int, step: int, status: str) -> None:
         """Report progress to the main thread if a queue is provided."""
@@ -118,12 +219,12 @@ class TrainingRunner:
 
     def run_training(self) -> None:
         """
-        Execute the main training loop.
+        Execute the main training loop with proper cleanup.
 
         This is the main entry point that orchestrates the entire training process
         for this seed, including exploration, training, and evaluation phases.
         """
-        self.logger.info(
+        self.train_logger.info(
             f"Training {self.max_steps_training} Exploration {self.max_steps_exploration} "
             f"Evaluation {self.number_steps_per_evaluation}"
         )
@@ -147,6 +248,7 @@ class TrainingRunner:
         episode_repetitions = 0
 
         # Main training loop
+        train_step_counter = self.start_training_step
         for train_step_counter in range(
             self.start_training_step, int(self.max_steps_training)
         ):
@@ -268,15 +370,17 @@ class TrainingRunner:
 
         end_time = time.time()
         elapsed_time = end_time - start_time
-        self.logger.info(
+        self.train_logger.info(
             f"Training completed. Time: {time.strftime('%H:%M:%S', time.gmtime(elapsed_time))}"
         )
 
-        self._report_progress(episode_num + 1, train_step_counter + 1, "complete")
+        # Save record and report completion
+        self.record.save()
+        self._report_progress(episode_num + 1, train_step_counter + 1, "done")
 
     def _select_exploration_action(self, train_step_counter: int) -> tuple:
         """Handle exploration phase action selection."""
-        self.logger.info(
+        self.train_logger.info(
             f"Running Exploration Steps {train_step_counter + 1}/{self.max_steps_exploration}"
         )
 
@@ -296,7 +400,7 @@ class TrainingRunner:
         self, episode_num: int, episode_timesteps: int, repetition_buffer: EpisodeReplay
     ) -> tuple:
         """Handle episode repetition action selection."""
-        self.logger.info(
+        self.train_logger.info(
             f"Repeating Episode {episode_num} Step {episode_timesteps}/{len(repetition_buffer.best_actions)}"
         )
 
@@ -356,17 +460,6 @@ class TrainingRunner:
 
         return train_info
 
-    def _run_evaluation(self, train_step_counter: int) -> None:
-        """Execute evaluation phase."""
-        self.logger.info("*************--Evaluation Loop--*************")
-
-        if self.agent.policy_type == "usd":
-            self._evaluate_usd(train_step_counter)
-        else:
-            self._evaluate_agent(train_step_counter)
-
-        self.logger.info("--------------------------------------------")
-
     def _finalise_episode(
         self,
         train_step_counter: int,
@@ -397,6 +490,17 @@ class TrainingRunner:
             repetition_buffer.finish_episode(episode_reward)
 
         return repeating, repeat, repetition_counter, episode_repetitions
+
+    def _run_evaluation(self, train_step_counter: int) -> None:
+        """Execute evaluation phase."""
+        self.train_logger.info("*************--Evaluation Loop--*************")
+
+        if self.agent.policy_type == "usd":
+            self._evaluate_usd(train_step_counter)
+        else:
+            self._evaluate_agent(train_step_counter)
+
+        self.train_logger.info("--------------------------------------------")
 
     def _evaluate_usd(self, total_steps: int) -> None:
         """

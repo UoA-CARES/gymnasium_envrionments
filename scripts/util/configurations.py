@@ -10,14 +10,6 @@ from cares_reinforcement_learning.util.configurations import SubscriptableClass
 file_path = Path(__file__).parent.resolve()
 
 
-class RunConfig(SubscriptableClass):
-    command: str
-    data_path: str | None
-
-    seeds: list[int] | None = None
-    episodes: int | None = None
-
-
 class GymEnvironmentConfig(SubscriptableClass):
     """
     Configuration class for Gym Environment.
