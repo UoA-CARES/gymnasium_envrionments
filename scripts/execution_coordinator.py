@@ -1,7 +1,7 @@
 """
-TrainingCoordinator class for orchestrating reinforcement learning training across multiple seeds.
+ExecutionCoordinator class for orchestrating reinforcement learning execution across multiple seeds.
 This class handles the parallel execution, configuration management, and coordination
-of training runs for statistical validation.
+of training, evaluation, and testing runs for statistical validation.
 """
 
 import concurrent.futures
@@ -32,13 +32,18 @@ parallel_logger = logs.get_parallel_logger()
 
 class ExecutionCoordinator:
     """
-    Orchestrates reinforcement learning training across multiple seeds with support
+    Orchestrates reinforcement learning execution across multiple seeds with support
     for parallel execution, configuration management, and different run modes.
+
+    Supports:
+    - Training: Full training runs with progress tracking
+    - Evaluation: Testing all checkpoints from training runs
+    - Testing: Testing final models only with specified episodes
     """
 
     def __init__(self, configurations: dict[str, Any]):
         """
-        Initialize the TrainingCoordinator with parsed configurations.
+        Initialize the ExecutionCoordinator with parsed configurations.
 
         Args:
             configurations: Dictionary containing all parsed configurations
@@ -171,8 +176,96 @@ class ExecutionCoordinator:
                 if len(done_seeds) == len(futures):
                     break
 
+    def _test_single_seed(
+        self,
+        seed: int,
+        progress_queue: Queue | None = None,
+        save_configurations: bool = False,
+    ) -> None:
+        """
+        Execute testing for a single seed.
+        This delegates all setup to EvaluationRunner but calls run_test().
+
+        Args:
+            seed: Random seed for this run
+            progress_queue: Queue for progress updates (if any)
+            save_configurations: Whether to save configurations to disk
+        """
+        if self.base_log_dir is None:
+            raise ValueError("Base log directory must be set before running seeds")
+
+        if not self.run_config.data_path:
+            raise ValueError("Data path is required for test command")
+
+        # For testing, we use the test seed for evaluation as well
+        # and override the number of episodes
+        eval_runner = EvaluationRunner(
+            train_seed=seed,  # This finds the trained model
+            eval_seed=seed,  # This sets the random seed for testing
+            configurations=self.configurations,
+            base_log_dir=self.base_log_dir,
+            former_base_path=self.run_config.data_path,
+            num_eval_episodes=self.run_config.episodes,  # Use episodes from run_config
+            save_configurations=save_configurations,
+            progress_queue=progress_queue,
+        )
+        eval_runner.run_test()  # Call run_test instead of run_evaluation
+
+    def _test_parallel_seeds(self) -> None:
+        """
+        Execute testing across multiple seeds in parallel.
+        """
+        logger.info(f"Running testing with {self.max_workers} parallel workers")
+
+        with multiprocessing.Manager() as manager:
+            progress_queue = manager.Queue()
+
+            # Use ProcessPoolExecutor with limited workers
+            with concurrent.futures.ProcessPoolExecutor(
+                max_workers=self.max_workers
+            ) as executor:
+                futures = [
+                    executor.submit(
+                        self._test_single_seed,
+                        seed=seed,
+                        progress_queue=progress_queue,  # type: ignore[arg-type]
+                        save_configurations=(
+                            i == 0
+                        ),  # Save configs only for first seed
+                    )
+                    for i, seed in enumerate(self.seeds)
+                ]
+
+                self._listen_for_progress(progress_queue, futures)  # type: ignore[arg-type]
+
+        logger.info(f"Completed testing for all {len(self.seeds)} seeds")
+
+    def _test_sequential_seeds(self) -> None:
+        """
+        Execute testing across multiple seeds sequentially.
+        Useful for debugging or when parallel execution is not desired.
+        """
+        logs.set_logger_level("parallel", logging.INFO)
+        logs.set_logger_level("seed", logging.INFO)
+
+        for iteration, seed in enumerate(self.seeds):
+            logger.info(
+                f"Running testing seed {iteration+1}/{len(self.seeds)} with Seed: {seed}"
+            )
+            self._test_single_seed(
+                seed=seed,
+                save_configurations=(
+                    iteration == 0
+                ),  # Save configs only for first seed
+            )
+
+        logger.info(f"Completed testing for all {len(self.seeds)} seeds sequentially")
+
     def _test(self) -> None:
-        """Handle the test command logic."""
+        """
+        Execute testing across multiple seeds.
+        Chooses between parallel and sequential execution based on configuration.
+        """
         if not self.run_config.data_path:
             raise ValueError("Data path is required for test command")
         if not self.run_config.episodes:
@@ -180,6 +273,18 @@ class ExecutionCoordinator:
 
         if self.base_log_dir is None:
             raise ValueError("Base log directory must be set before running seeds")
+
+        start_time = time.time()
+        if self.max_workers > 1 and len(self.seeds) > 1:
+            self._test_parallel_seeds()
+        else:
+            self._test_sequential_seeds()
+
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+        logger.info(
+            f"Testing completed. Time: {time.strftime('%H:%M:%S', time.gmtime(elapsed_time))}"
+        )
 
     def _evaluate_single_seed(
         self,
@@ -394,13 +499,13 @@ class ExecutionCoordinator:
 
     def run(self) -> None:
         """
-        Main entry point to run the training process.
+        Main entry point to run the execution process.
         """
         if self.run_config.command in ["train", "resume"]:
             self._train()
         elif self.run_config.command == "evaluate":
             self._evaluate()
         elif self.run_config.command == "test":
-            raise NotImplementedError(
-                "Test command is not yet implemented in TrainingCoordinator."
-            )
+            self._test()
+        else:
+            raise ValueError(f"Unknown command: {self.run_config.command}")

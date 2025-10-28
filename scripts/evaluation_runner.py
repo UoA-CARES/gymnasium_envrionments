@@ -116,6 +116,52 @@ class EvaluationRunner(BaseRunner):
 
         return checkpoints
 
+    def _discover_final_checkpoint(self) -> dict[str, Any] | None:
+        """
+        Discover the final model checkpoint for this seed.
+
+        Returns:
+            Checkpoint info dictionary with 'path' and 'step' keys, or None if not found
+        """
+        if not self.former_model_seed_path.exists():
+            raise FileNotFoundError(
+                f"No model directory found for seed {self.eval_seed} at {self.former_model_seed_path}"
+            )
+
+        models_path = self.former_model_seed_path / "models"
+        if not models_path.exists():
+            raise FileNotFoundError(f"No models directory found at {models_path}")
+
+        folders = list(models_path.glob("*"))
+        folders = natsorted(folders)
+
+        # Look for 'final' folder first, then 'best', then highest numbered folder
+        for folder_name in ["final", "best"]:
+            for folder in folders:
+                if folder.name == folder_name:
+                    return {
+                        "path": folder,
+                        "step": folder_name,
+                    }
+
+        # If no 'final' or 'best' folder, use the highest numbered checkpoint
+        numbered_folders = []
+        for folder in folders:
+            try:
+                step = int(folder.name)
+                numbered_folders.append((step, folder))
+            except ValueError:
+                continue
+
+        if numbered_folders:
+            step, folder = max(numbered_folders)
+            return {
+                "path": folder,
+                "step": step,
+            }
+
+        return None
+
     def _load_checkpoint(self, checkpoint_info: dict[str, Any]) -> bool:
         """
         Load a specific model checkpoint into the agent.
@@ -216,11 +262,35 @@ class EvaluationRunner(BaseRunner):
 
     def run_test(self) -> None:
         """
-        Execute testing (alias for evaluation for now).
+        Execute testing on the final model checkpoint only.
 
-        This is kept separate in case future differentiation is needed
-        between evaluation and testing protocols.
+        Unlike evaluation which tests all checkpoints, testing only evaluates
+        the final trained model for the specified number of episodes.
         """
         self.logger.info(
-            f"[SEED {self.train_seed}] Starting testing with {self.number_eval_episodes} episodes per checkpoint on [SEED {self.eval_seed}]"
+            f"[SEED {self.train_seed}] Starting testing with {self.number_eval_episodes} episodes on final model [SEED {self.eval_seed}]"
         )
+
+        # Discover the final checkpoint
+        final_checkpoint = self._discover_final_checkpoint()
+
+        if not final_checkpoint:
+            self.logger.warning(
+                f"[SEED {self.eval_seed}] No final checkpoint found to test"
+            )
+            self._report_progress(0, 0, "done")
+            return
+
+        self._report_progress(0, 1, "starting")
+
+        self.logger.info(
+            f"[SEED {self.eval_seed}] Testing final checkpoint: {final_checkpoint['step']}"
+        )
+
+        self._evaluate_checkpoint(final_checkpoint)
+
+        # Save results
+        self.record.save()
+
+        self._report_progress(1, 1, "done")
+        self.logger.info(f"[SEED {self.eval_seed}] testing completed.")
