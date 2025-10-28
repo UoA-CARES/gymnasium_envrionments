@@ -23,8 +23,7 @@ class RunConfig(SubscriptableClass):
     command: str
     data_path: str | None
 
-    seed: int | None = None
-    seeds: list[int] | None = None
+    eval_seed: int | None = None
     episodes: int | None = None
 
 
@@ -247,11 +246,10 @@ class RLParser:
         )
 
         required.add_argument(
-            "--seeds",
+            "--eval_seed",
             type=int,
-            nargs="+",
             required=True,
-            help="List of seeds to use for testing trained models against",
+            help="Seed to use for testing trained models against",
         )
 
         required.add_argument(
@@ -302,13 +300,6 @@ class RLParser:
             type=str,
             required=True,
             help="Path to training files - e.g. alg_config.json, env_config.json, train_config.json",
-        )
-
-        parser.add_argument(
-            "--seed",
-            type=int,
-            required=True,
-            help="Seed to continue training from",
         )
 
         run_args = parser.parse_args(sys.argv[2:])
