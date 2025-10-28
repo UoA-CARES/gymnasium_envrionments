@@ -215,6 +215,22 @@ class TrainingRunner(BaseRunner):
 
         return normalised_action, denormalised_action
 
+    def _select_action(
+        self, train_step_counter: int, episode_step: int, state
+    ) -> tuple:
+        if train_step_counter < self.max_steps_exploration:
+            normalised_action, denormalised_action = self._select_exploration_action(
+                train_step_counter
+            )
+        elif self.repetition_manager.should_repeat(episode_step):
+            normalised_action, denormalised_action = self._select_repetition_action(
+                episode_step
+            )
+        else:
+            normalised_action, denormalised_action = self._select_policy_action(state)
+
+        return normalised_action, denormalised_action
+
     def _update_policy(
         self,
         train_step_counter: int,
@@ -281,21 +297,19 @@ class TrainingRunner(BaseRunner):
         start_time = time.time()
 
         # Initialize training state
-        episode_timesteps = 0
-        episode_reward = 0
         episode_num = 0
+        episode_step = 0
+        episode_reward = 0
+
         state = self.env.reset()
         episode_start = time.time()
-
-        # Episode repetition tracking - all handled by RepetitionManager now
-        # (No local variables needed)
 
         # Main training loop
         train_step_counter = self.start_training_step
         for train_step_counter in range(
             self.start_training_step, int(self.max_steps_training)
         ):
-            episode_timesteps += 1
+            episode_step += 1
 
             info: dict = {}
 
@@ -307,18 +321,9 @@ class TrainingRunner(BaseRunner):
             self._report_progress(episode_num + 1, train_step_counter + 1, status)
 
             # Determine action based on training phase
-            if train_step_counter < self.max_steps_exploration:
-                normalised_action, denormalised_action = (
-                    self._select_exploration_action(train_step_counter)
-                )
-            elif self.repetition_manager.should_repeat(episode_timesteps):
-                normalised_action, denormalised_action = self._select_repetition_action(
-                    episode_timesteps
-                )
-            else:
-                normalised_action, denormalised_action = self._select_policy_action(
-                    state
-                )
+            normalised_action, denormalised_action = self._select_action(
+                train_step_counter, episode_step, state
+            )
 
             # Record action and execute step
             self.repetition_manager.record_action(denormalised_action)
@@ -355,7 +360,7 @@ class TrainingRunner(BaseRunner):
                 train_info = self._update_policy(
                     train_step_counter,
                     episode_num,
-                    episode_timesteps,
+                    episode_step,
                     episode_reward,
                     done or truncated,
                 )
@@ -376,7 +381,7 @@ class TrainingRunner(BaseRunner):
                 self.record.log_train(
                     total_steps=train_step_counter + 1,
                     episode=episode_num + 1,
-                    episode_steps=episode_timesteps,
+                    episode_steps=episode_step,
                     episode_reward=episode_reward,
                     episode_time=episode_time,
                     **env_info,
@@ -389,7 +394,7 @@ class TrainingRunner(BaseRunner):
 
                 # Reset for next episode
                 state = self.env.reset()
-                episode_timesteps = 0
+                episode_step = 0
                 episode_reward = 0
                 episode_num += 1
                 self.agent.episode_done()
