@@ -23,7 +23,7 @@ class RunConfig(SubscriptableClass):
     command: str
     data_path: str | None
 
-    seeds: list[int] | None = None
+    eval_seed: int | None = None
     episodes: int | None = None
 
 
@@ -246,11 +246,10 @@ class RLParser:
         )
 
         required.add_argument(
-            "--seeds",
+            "--eval_seed",
             type=int,
-            nargs="+",
             required=True,
-            help="List of seeds to use for testing trained models against",
+            help="Seed to use for testing trained models against",
         )
 
         required.add_argument(

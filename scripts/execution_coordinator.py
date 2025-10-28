@@ -54,30 +54,16 @@ class ExecutionCoordinator:
         self.training_config: TrainingConfig = configurations["train_config"]
         self.alg_config: AlgorithmConfig = configurations["alg_config"]
 
-        self.seeds: list[int] = self._validate_and_prepare_seeds()
+        self.train_seeds: list[int] = self.training_config.seeds
 
         self.max_workers: int = self.training_config.max_workers
-        self.max_workers = min(len(self.seeds), self.max_workers)
+        self.max_workers = min(len(self.train_seeds), self.max_workers)
         self.max_workers = max(1, self.max_workers)
 
         self.base_log_dir: str | None = None
 
         # Log all configurations for debugging
         self._print_configurations()
-
-    def _validate_and_prepare_seeds(self) -> list[int]:
-        """
-        Validate configurations and prepare seed list for execution.
-        """
-        # Set seeds based on command type
-        seeds = (
-            self.run_config.seeds
-            if self.run_config.command == "test"
-            else self.training_config.seeds
-        )
-
-        logger.info(f"Running with seeds: {seeds}")
-        return seeds
 
     def _print_configurations(self) -> None:
         """Log all configurations for debugging and reproducibility."""
@@ -197,11 +183,15 @@ class ExecutionCoordinator:
         if not self.run_config.data_path:
             raise ValueError("Data path is required for test command")
 
+        if not self.run_config.eval_seed:
+            raise ValueError("Evaluation seed is required for test command")
+
         # For testing, we use the test seed for evaluation as well
         # and override the number of episodes
+        eval_seed = self.run_config.eval_seed
         eval_runner = EvaluationRunner(
-            train_seed=seed,  # This finds the trained model
-            eval_seed=seed,  # This sets the random seed for testing
+            train_seed=seed,  # This finds the trained model based on original seed
+            eval_seed=eval_seed,  # This sets the random seed for testing against
             configurations=self.configurations,
             base_log_dir=self.base_log_dir,
             former_base_path=self.run_config.data_path,
@@ -229,16 +219,15 @@ class ExecutionCoordinator:
                         self._test_single_seed,
                         seed=seed,
                         progress_queue=progress_queue,  # type: ignore[arg-type]
-                        save_configurations=(
-                            i == 0
-                        ),  # Save configs only for first seed
+                        # Save configs only for first seed
+                        save_configurations=(i == 0),
                     )
-                    for i, seed in enumerate(self.seeds)
+                    for i, seed in enumerate(self.train_seeds)
                 ]
 
                 self._listen_for_progress(progress_queue, futures)  # type: ignore[arg-type]
 
-        logger.info(f"Completed testing for all {len(self.seeds)} seeds")
+        logger.info(f"Completed testing for all {len(self.train_seeds)} seeds")
 
     def _test_sequential_seeds(self) -> None:
         """
@@ -248,18 +237,16 @@ class ExecutionCoordinator:
         logs.set_logger_level("parallel", logging.INFO)
         logs.set_logger_level("seed", logging.INFO)
 
-        for iteration, seed in enumerate(self.seeds):
+        for iteration, seed in enumerate(self.train_seeds):
             logger.info(
-                f"Running testing seed {iteration+1}/{len(self.seeds)} with Seed: {seed}"
+                f"Running testing seed {iteration+1}/{len(self.train_seeds)} with Seed: {seed}"
             )
-            self._test_single_seed(
-                seed=seed,
-                save_configurations=(
-                    iteration == 0
-                ),  # Save configs only for first seed
-            )
+            # Save configs only for first seed
+            self._test_single_seed(seed=seed, save_configurations=(iteration == 0))
 
-        logger.info(f"Completed testing for all {len(self.seeds)} seeds sequentially")
+        logger.info(
+            f"Completed testing for all {len(self.train_seeds)} seeds sequentially"
+        )
 
     def _test(self) -> None:
         """
@@ -275,7 +262,7 @@ class ExecutionCoordinator:
             raise ValueError("Base log directory must be set before running seeds")
 
         start_time = time.time()
-        if self.max_workers > 1 and len(self.seeds) > 1:
+        if self.max_workers > 1 and len(self.train_seeds) > 1:
             self._test_parallel_seeds()
         else:
             self._test_sequential_seeds()
@@ -340,12 +327,12 @@ class ExecutionCoordinator:
                             i == 0
                         ),  # Save configs only for first seed
                     )
-                    for i, seed in enumerate(self.seeds)
+                    for i, seed in enumerate(self.train_seeds)
                 ]
 
                 self._listen_for_progress(progress_queue, futures)  # type: ignore[arg-type]
 
-        logger.info(f"Completed evaluation for all {len(self.seeds)} seeds")
+        logger.info(f"Completed evaluation for all {len(self.train_seeds)} seeds")
 
     def _evaluate_sequential_seeds(self) -> None:
         """
@@ -355,9 +342,9 @@ class ExecutionCoordinator:
         logs.set_logger_level("parallel", logging.INFO)
         logs.set_logger_level("seed", logging.INFO)
 
-        for iteration, seed in enumerate(self.seeds):
+        for iteration, seed in enumerate(self.train_seeds):
             logger.info(
-                f"Running evaluation seed {iteration+1}/{len(self.seeds)} with Seed: {seed}"
+                f"Running evaluation seed {iteration+1}/{len(self.train_seeds)} with Seed: {seed}"
             )
             self._evaluate_single_seed(
                 seed=seed,
@@ -367,7 +354,7 @@ class ExecutionCoordinator:
             )
 
         logger.info(
-            f"Completed evaluation for all {len(self.seeds)} seeds sequentially"
+            f"Completed evaluation for all {len(self.train_seeds)} seeds sequentially"
         )
 
     def _evaluate(self) -> None:
@@ -382,7 +369,7 @@ class ExecutionCoordinator:
             raise ValueError("Base log directory must be set before running seeds")
 
         start_time = time.time()
-        if self.max_workers > 1 and len(self.seeds) > 1:
+        if self.max_workers > 1 and len(self.train_seeds) > 1:
             self._evaluate_parallel_seeds()
         else:
             self._evaluate_sequential_seeds()
@@ -452,12 +439,12 @@ class ExecutionCoordinator:
                             i == 0
                         ),  # Save configs only for first seed
                     )
-                    for i, seed in enumerate(self.seeds)
+                    for i, seed in enumerate(self.train_seeds)
                 ]
 
                 self._listen_for_progress(progress_queue, futures)  # type: ignore[arg-type]
 
-        logger.info(f"Completed all {len(self.seeds)} seeds")
+        logger.info(f"Completed all {len(self.train_seeds)} seeds")
 
     def _train_sequential_seeds(self) -> None:
         """
@@ -467,9 +454,9 @@ class ExecutionCoordinator:
         logs.set_logger_level("parallel", logging.INFO)
         logs.set_logger_level("seed", logging.INFO)
 
-        for iteration, seed in enumerate(self.seeds):
+        for iteration, seed in enumerate(self.train_seeds):
             logger.info(
-                f"Running seed {iteration+1}/{len(self.seeds)} with Seed: {seed}"
+                f"Running seed {iteration+1}/{len(self.train_seeds)} with Seed: {seed}"
             )
             self._train_single_seed(
                 seed=seed,
@@ -478,7 +465,7 @@ class ExecutionCoordinator:
                 ),  # Save configs only for first seed
             )
 
-        logger.info(f"Completed all {len(self.seeds)} seeds sequentially")
+        logger.info(f"Completed all {len(self.train_seeds)} seeds sequentially")
 
     def _train(self) -> None:
         """
@@ -486,7 +473,7 @@ class ExecutionCoordinator:
         Chooses between parallel and sequential execution based on configuration.
         """
         start_time = time.time()
-        if self.max_workers > 1 and len(self.seeds) > 1:
+        if self.max_workers > 1 and len(self.train_seeds) > 1:
             self._train_parallel_seeds()
         else:
             self._train_sequential_seeds()
