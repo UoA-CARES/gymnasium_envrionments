@@ -1,5 +1,5 @@
 """
-Logging configuration for the TrainingRunner system.
+Logging configuration for the ExecutionCoordinator system.
 Provides hierarchical logging following Python logging best practices.
 
 This module uses standard Python logging practices:
@@ -15,21 +15,21 @@ from typing import Dict, Optional
 
 # Logger hierarchy - follows Python module naming conventions
 LOGGERS = {
-    "main": "training_runner",
-    "seed": "training_runner.seed",
-    "parallel": "training_runner.parallel",
-    "record": "training_runner.record",
+    "main": "execution_coordinator",
+    "seed": "execution_coordinator.seed",
+    "parallel": "execution_coordinator.parallel",
+    "record": "execution_coordinator.record",
 }
 
 
-def setup_training_logging(
+def setup_execution_logging(
     levels: Optional[Dict[str, int]] = None,
     format_string: Optional[str] = None,
     handler: Optional[logging.Handler] = None,
     disable_existing: bool = True,
 ) -> None:
     """
-    Configure logging for the training runner system.
+    Configure logging for the execution coordinator system.
 
     This follows Python logging best practices by:
     - Using hierarchical logger names
@@ -105,7 +105,7 @@ def get_logger(logger_type: str = "main") -> logging.Logger:
 
 # Convenience functions - more Pythonic than class methods
 def get_main_logger() -> logging.Logger:
-    """Get the main training runner logger."""
+    """Get the main execution coordinator logger."""
     return get_logger("main")
 
 
@@ -153,7 +153,7 @@ class LoggingPresets:
     @staticmethod
     def development() -> None:
         """Development: All loggers enabled at INFO level."""
-        setup_training_logging(
+        setup_execution_logging(
             {
                 "main": logging.INFO,
                 "seed": logging.INFO,
@@ -165,7 +165,7 @@ class LoggingPresets:
     @staticmethod
     def production() -> None:
         """Production: Minimal logging to reduce noise."""
-        setup_training_logging(
+        setup_execution_logging(
             {
                 "main": logging.INFO,
                 "seed": logging.WARNING,
@@ -177,7 +177,7 @@ class LoggingPresets:
     @staticmethod
     def quiet() -> None:
         """Quiet: Only warnings and errors."""
-        setup_training_logging(
+        setup_execution_logging(
             {
                 "main": logging.WARNING,
                 "seed": logging.CRITICAL,
@@ -189,7 +189,7 @@ class LoggingPresets:
     @staticmethod
     def debug() -> None:
         """Debug: Verbose logging with function names and line numbers."""
-        setup_training_logging(
+        setup_execution_logging(
             levels={
                 "main": logging.DEBUG,
                 "seed": logging.DEBUG,
@@ -201,7 +201,7 @@ class LoggingPresets:
 
 
 # For backward compatibility and convenience
-def configure_training_logging(preset: str = "development") -> None:
+def configure_execution_logging(preset: str = "development") -> None:
     """
     Configure logging using a preset name.
 

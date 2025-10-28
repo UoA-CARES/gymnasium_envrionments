@@ -254,10 +254,12 @@ class TrainingRunner(BaseRunner):
         self.logger.info("*************--Evaluation Loop--*************")
 
         if self.agent.policy_type == "usd":
-            self._evaluate_usd_skills(train_step_counter, f"{train_step_counter + 1}")
+            self._evaluate_usd_skills(
+                train_step_counter + 1, f"{train_step_counter + 1}"
+            )
         else:
             self._evaluate_agent_episodes(
-                train_step_counter, f"{train_step_counter + 1}"
+                train_step_counter + 1, f"{train_step_counter + 1}"
             )
 
         self.logger.info("--------------------------------------------")

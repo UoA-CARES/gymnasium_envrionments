@@ -7,6 +7,7 @@ across training steps.
 """
 
 import time
+from multiprocessing.queues import Queue
 from pathlib import Path
 from typing import Any
 
@@ -31,6 +32,7 @@ class EvaluationRunner(BaseRunner):
         former_base_path: str,
         num_eval_episodes: int | None = None,
         save_configurations: bool = False,
+        progress_queue: Queue | None = None,
     ):
         """
         Initialize EvaluationRunner for sequential checkpoint evaluation.
@@ -43,6 +45,7 @@ class EvaluationRunner(BaseRunner):
             former_base_path: Base path to the trained model directory (contains seed subdirs)
             num_episodes: Number of episodes to run per checkpoint (if None, uses config default)
             save_configurations: Whether to save configurations to disk
+            progress_queue: Queue for progress updates (if any)
         """
         # Initialize the base runner with evaluation-specific settings
         super().__init__(
@@ -57,11 +60,26 @@ class EvaluationRunner(BaseRunner):
         # EvaluationRunner-specific attributes
         self.former_model_base_path = Path(former_base_path)
         self.former_model_seed_path = self.former_model_base_path / str(self.train_seed)
+        self.progress_queue = progress_queue
 
         # Update logging for evaluation context
         self.logger.info(
             f"[SEED {self.train_seed}] will run {self.number_eval_episodes} episodes per checkpoint on [SEED {self.eval_seed}]"
         )
+
+    def _report_progress(
+        self, checkpoint: int, total_checkpoints: int, status: str
+    ) -> None:
+        """Report progress to the main thread if a queue is provided."""
+        if self.progress_queue is not None:
+            self.progress_queue.put(
+                {
+                    "seed": self.train_seed,
+                    "step": checkpoint,
+                    "total": total_checkpoints,
+                    "status": status,
+                }
+            )
 
     def _discover_checkpoints(self) -> list[dict[str, Any]]:
         """
@@ -177,17 +195,23 @@ class EvaluationRunner(BaseRunner):
             self.logger.warning(
                 f"[SEED {self.eval_seed}] No checkpoints found to evaluate"
             )
+            self._report_progress(0, 0, "done")
             return
+
+        self._report_progress(0, len(checkpoints), "evaluating")
 
         for i, checkpoint_info in enumerate(checkpoints):
             self.logger.info(
                 f"[SEED {self.eval_seed}] Processing checkpoint {i + 1}/{len(checkpoints)}"
             )
             self._evaluate_checkpoint(checkpoint_info)
+            # Report progress after completing each checkpoint
+            self._report_progress(i + 1, len(checkpoints), "evaluating")
 
         # Save all results
         self.record.save()
 
+        self._report_progress(len(checkpoints), len(checkpoints), "done")
         self.logger.info(f"[SEED {self.eval_seed}] evaluation completed.")
 
     def run_test(self) -> None:

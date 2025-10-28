@@ -12,7 +12,7 @@ from multiprocessing.queues import Queue
 from queue import Empty
 from typing import Any
 
-import training_logger as logs
+import execution_logger as logs
 import yaml
 from cares_reinforcement_learning.util.configurations import (
     AlgorithmConfig,
@@ -30,7 +30,7 @@ logger = logs.get_main_logger()
 parallel_logger = logs.get_parallel_logger()
 
 
-class TrainingCoordinator:
+class ExecutionCoordinator:
     """
     Orchestrates reinforcement learning training across multiple seeds with support
     for parallel execution, configuration management, and different run modes.
@@ -126,51 +126,13 @@ class TrainingCoordinator:
 
         logger.info(f"Base Log Directory: {self.base_log_dir}")
 
-    def _evaluate(self) -> None:
-        """Handle the evaluate command logic."""
-        if not self.run_config.data_path:
-            raise ValueError("Data path is required for evaluate command")
-
-        if self.base_log_dir is None:
-            raise ValueError("Base log directory must be set before running seeds")
-
-        logs.set_logger_level("parallel", logging.INFO)
-        logs.set_logger_level("seed", logging.INFO)
-
-        for iteration, seed in enumerate(self.seeds):
-            logger.info(
-                f"Running seed {iteration+1}/{len(self.seeds)} with Seed: {seed}"
-            )
-
-            eval_runner = EvaluationRunner(
-                train_seed=seed,
-                eval_seed=seed,
-                configurations=self.configurations,
-                base_log_dir=self.base_log_dir,
-                former_base_path=self.run_config.data_path,
-                save_configurations=(iteration == 0),
-            )
-            eval_runner.run_evaluation()
-
-        logger.info(f"Completed all {len(self.seeds)} seeds sequentially")
-
-    def _test(self) -> None:
-        """Handle the test command logic."""
-        if not self.run_config.data_path:
-            raise ValueError("Data path is required for test command")
-        if not self.run_config.episodes:
-            raise ValueError("Episodes count is required for test command")
-
-        if self.base_log_dir is None:
-            raise ValueError("Base log directory must be set before running seeds")
-
-    def _listen_for_progress(self, queue, futures):
+    def _listen_for_progress(self, queue: Queue, futures: list[Any]) -> None:
         progress = Progress(
             TextColumn("[bold blue]{task.fields[seed]}"),
             BarColumn(),
             TextColumn("{task.percentage:>3.0f}%"),
             TextColumn("{task.fields[status]}"),
-            TextColumn("[cyan]{task.completed}/{task.total}"),  # <-- added this
+            TextColumn("[cyan]{task.completed}/{task.total}"),
             TimeElapsedColumn(),
         )
 
@@ -197,7 +159,7 @@ class TrainingCoordinator:
                         )
 
                     progress.update(
-                        tasks[seed],
+                        tasks[seed],  # type: ignore[arg-type]
                         completed=msg.get("step", 0),
                         status=msg.get("status", ""),
                     )
@@ -208,6 +170,123 @@ class TrainingCoordinator:
 
                 if len(done_seeds) == len(futures):
                     break
+
+    def _test(self) -> None:
+        """Handle the test command logic."""
+        if not self.run_config.data_path:
+            raise ValueError("Data path is required for test command")
+        if not self.run_config.episodes:
+            raise ValueError("Episodes count is required for test command")
+
+        if self.base_log_dir is None:
+            raise ValueError("Base log directory must be set before running seeds")
+
+    def _evaluate_single_seed(
+        self,
+        seed: int,
+        progress_queue: Queue | None = None,
+        save_configurations: bool = False,
+    ) -> None:
+        """
+        Execute evaluation for a single seed.
+        This delegates all setup to EvaluationRunner.
+
+        Args:
+            seed: Random seed for this run
+            progress_queue: Queue for progress updates (if any)
+            save_configurations: Whether to save configurations to disk
+        """
+        if self.base_log_dir is None:
+            raise ValueError("Base log directory must be set before running seeds")
+
+        if not self.run_config.data_path:
+            raise ValueError("Data path is required for evaluate command")
+
+        eval_runner = EvaluationRunner(
+            train_seed=seed,
+            eval_seed=seed,
+            configurations=self.configurations,
+            base_log_dir=self.base_log_dir,
+            former_base_path=self.run_config.data_path,
+            save_configurations=save_configurations,
+            progress_queue=progress_queue,
+        )
+        eval_runner.run_evaluation()
+
+    def _evaluate_parallel_seeds(self) -> None:
+        """
+        Execute evaluation across multiple seeds in parallel.
+        """
+        logger.info(f"Running evaluation with {self.max_workers} parallel workers")
+
+        with multiprocessing.Manager() as manager:
+            progress_queue = manager.Queue()
+
+            # Use ProcessPoolExecutor with limited workers
+            with concurrent.futures.ProcessPoolExecutor(
+                max_workers=self.max_workers
+            ) as executor:
+                futures = [
+                    executor.submit(
+                        self._evaluate_single_seed,
+                        seed=seed,
+                        progress_queue=progress_queue,  # type: ignore[arg-type]
+                        save_configurations=(
+                            i == 0
+                        ),  # Save configs only for first seed
+                    )
+                    for i, seed in enumerate(self.seeds)
+                ]
+
+                self._listen_for_progress(progress_queue, futures)  # type: ignore[arg-type]
+
+        logger.info(f"Completed evaluation for all {len(self.seeds)} seeds")
+
+    def _evaluate_sequential_seeds(self) -> None:
+        """
+        Execute evaluation across multiple seeds sequentially.
+        Useful for debugging or when parallel execution is not desired.
+        """
+        logs.set_logger_level("parallel", logging.INFO)
+        logs.set_logger_level("seed", logging.INFO)
+
+        for iteration, seed in enumerate(self.seeds):
+            logger.info(
+                f"Running evaluation seed {iteration+1}/{len(self.seeds)} with Seed: {seed}"
+            )
+            self._evaluate_single_seed(
+                seed=seed,
+                save_configurations=(
+                    iteration == 0
+                ),  # Save configs only for first seed
+            )
+
+        logger.info(
+            f"Completed evaluation for all {len(self.seeds)} seeds sequentially"
+        )
+
+    def _evaluate(self) -> None:
+        """
+        Execute evaluation across multiple seeds.
+        Chooses between parallel and sequential execution based on configuration.
+        """
+        if not self.run_config.data_path:
+            raise ValueError("Data path is required for evaluate command")
+
+        if self.base_log_dir is None:
+            raise ValueError("Base log directory must be set before running seeds")
+
+        start_time = time.time()
+        if self.max_workers > 1 and len(self.seeds) > 1:
+            self._evaluate_parallel_seeds()
+        else:
+            self._evaluate_sequential_seeds()
+
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+        logger.info(
+            f"Evaluation completed. Time: {time.strftime('%H:%M:%S', time.gmtime(elapsed_time))}"
+        )
 
     def _train_single_seed(
         self,
@@ -271,7 +350,7 @@ class TrainingCoordinator:
                     for i, seed in enumerate(self.seeds)
                 ]
 
-                self._listen_for_progress(progress_queue, futures)
+                self._listen_for_progress(progress_queue, futures)  # type: ignore[arg-type]
 
         logger.info(f"Completed all {len(self.seeds)} seeds")
 

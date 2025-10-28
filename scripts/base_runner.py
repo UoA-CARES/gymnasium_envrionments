@@ -8,7 +8,7 @@ training and evaluation runners can inherit from, reducing code duplication.
 from abc import ABC
 from typing import Any
 
-import training_logger as logs
+import execution_logger as logs
 from cares_reinforcement_learning.algorithm.algorithm import Algorithm
 from cares_reinforcement_learning.memory.memory_factory import MemoryFactory
 from cares_reinforcement_learning.util import helpers as hlp
@@ -158,7 +158,7 @@ class BaseRunner(ABC):
         episode_rewards: list[float] = []
 
         # Reset environment
-        state = self.env_eval.reset()
+        state = self.env_eval.reset(training=False)
 
         while not done and not truncated:
             episode_timesteps += 1
@@ -248,8 +248,6 @@ class BaseRunner(ABC):
         Returns:
             Dictionary with aggregated evaluation results
         """
-        self.env_eval.reset(training=False)
-
         if self.record is not None:
             frame = self.env_eval.grab_frame()
             self.record.start_video(video_label, frame)
@@ -274,9 +272,6 @@ class BaseRunner(ABC):
 
             if "bias_data" in episode_results:
                 all_bias_data.append(episode_results["bias_data"])
-
-            # Reset environment for next episode
-            self.env_eval.reset()
 
         if self.record is not None:
             self.record.stop_video()
@@ -348,9 +343,6 @@ class BaseRunner(ABC):
 
             if self.record is not None:
                 self.record.stop_video()
-
-            # Reset environment for next skill
-            self.env_eval.reset()
 
         # Calculate statistics
         if skill_results:
