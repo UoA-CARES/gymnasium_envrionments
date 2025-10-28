@@ -23,12 +23,23 @@ Use `python3 run.py -h` for help on what parameters are available for customisat
 ### Train
 The train command in the run.py script is used to initiate the training process for reinforcement learning models within specified gym environments. This command can be customized using various hyperparameters to tailor the training environment and the RL algorithm. You can use python "run.py train cli -h" to view all available options for customization and start a run directly through the terminal. This flexibility enables users to experiment with different settings and optimize their models effectively.
 
-Specific and larger configuration changes can be loaded using python "run.py train config --data_path <PATH_TO_TRAINING_CONFIGS>", allowing for a more structured and repeatable training setup through configuration files.
+Specific and larger configuration changes can be loaded using python "run.py train config --data_path <PATH_TO_TRAINING_CONFIGS>", allowing for a more structured and repeatable training setup through configuration files including modification of network structures for given algorithms.
 
 ```
 python run.py train cli -h
 python run.py train config --data_path <PATH_TO_TRAINING_CONFIGS>
 ```
+
+Training can run training across seeds in parrellel using the `--max_workers` parameter which will run each training seed in its own process. 
+
+```
+python run.py train cli --gym openai --task HalfCheetah-v4 TD3 --seeds 10 20 30 40 50 --max_workers 5
+```
+
+<p align="center">
+    <img src="./media/par.gif" alt="par gif" style="width: 100%;" />
+</p>
+
 
 ### Resume (Experimental)
 The resume command allows you to continue training from a previously saved checkpoint. This is useful if training was interrupted or if you want to further improve a model. You can specify the path to the checkpoint and resume training with your desired settings.
