@@ -186,8 +186,6 @@ class ExecutionCoordinator:
         if not self.run_config.eval_seed:
             raise ValueError("Evaluation seed is required for test command")
 
-        # For testing, we use the test seed for evaluation as well
-        # and override the number of episodes
         eval_seed = self.run_config.eval_seed
         eval_runner = EvaluationRunner(
             train_seed=seed,  # This finds the trained model based on original seed
@@ -215,11 +213,11 @@ class ExecutionCoordinator:
                 max_workers=self.max_workers
             ) as executor:
                 futures = [
+                    # Save configs only for first seed
                     executor.submit(
                         self._test_single_seed,
                         seed=seed,
                         progress_queue=progress_queue,  # type: ignore[arg-type]
-                        # Save configs only for first seed
                         save_configurations=(i == 0),
                     )
                     for i, seed in enumerate(self.train_seeds)
@@ -281,7 +279,6 @@ class ExecutionCoordinator:
     ) -> None:
         """
         Execute evaluation for a single seed.
-        This delegates all setup to EvaluationRunner.
 
         Args:
             seed: Random seed for this run
@@ -319,13 +316,12 @@ class ExecutionCoordinator:
                 max_workers=self.max_workers
             ) as executor:
                 futures = [
+                    # Save configs only for first seed
                     executor.submit(
                         self._evaluate_single_seed,
                         seed=seed,
                         progress_queue=progress_queue,  # type: ignore[arg-type]
-                        save_configurations=(
-                            i == 0
-                        ),  # Save configs only for first seed
+                        save_configurations=(i == 0),
                     )
                     for i, seed in enumerate(self.train_seeds)
                 ]
@@ -387,8 +383,7 @@ class ExecutionCoordinator:
         save_configurations: bool = False,
     ) -> None:
         """
-        Execute training/evaluation for a single seed.
-        This now delegates all setup to TrainingRunner.
+        Execute training for a single seed.
 
         Args:
             seed: Random seed for this run
@@ -398,7 +393,6 @@ class ExecutionCoordinator:
         if self.base_log_dir is None:
             raise ValueError("Base log directory must be set before running seeds")
 
-        # Create and run TrainingRunner - it handles all setup internally
         resume_path = None
         if self.run_config.command == "resume":
             resume_path = self.run_config.data_path
@@ -416,10 +410,7 @@ class ExecutionCoordinator:
 
     def _train_parallel_seeds(self) -> None:
         """
-        Execute training/evaluation across multiple seeds in parallel.
-
-        Args:
-            max_workers: Maximum number of parallel workers (default 1 for testing)
+        Execute training across multiple seeds in parallel.
         """
         logger.info(f"Running with {self.max_workers} parallel workers")
 
@@ -431,13 +422,12 @@ class ExecutionCoordinator:
                 max_workers=self.max_workers
             ) as executor:
                 futures = [
+                    # Save configs only for first seed
                     executor.submit(
                         self._train_single_seed,
                         seed=seed,
                         progress_queue=progress_queue,  # type: ignore[arg-type]
-                        save_configurations=(
-                            i == 0
-                        ),  # Save configs only for first seed
+                        save_configurations=(i == 0),
                     )
                     for i, seed in enumerate(self.train_seeds)
                 ]
@@ -448,7 +438,7 @@ class ExecutionCoordinator:
 
     def _train_sequential_seeds(self) -> None:
         """
-        Execute training/evaluation across multiple seeds sequentially.
+        Execute training across multiple seeds sequentially.
         Useful for debugging or when parallel execution is not desired.
         """
         logs.set_logger_level("parallel", logging.INFO)
@@ -469,7 +459,7 @@ class ExecutionCoordinator:
 
     def _train(self) -> None:
         """
-        Execute training/evaluation across multiple seeds.
+        Execute training across multiple seeds.
         Chooses between parallel and sequential execution based on configuration.
         """
         start_time = time.time()
