@@ -6,7 +6,7 @@ training and evaluation runners can inherit from, reducing code duplication.
 """
 
 from abc import ABC
-from typing import Any, Dict, List
+from typing import Any
 
 import training_logger as logs
 from cares_reinforcement_learning.algorithm.algorithm import Algorithm
@@ -136,7 +136,7 @@ class BaseRunner(ABC):
         episode_counter: int,
         log_step: int,
         record_video: bool = False,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Run a single evaluation episode and return detailed results.
 
@@ -155,7 +155,7 @@ class BaseRunner(ABC):
 
         episode_states = []
         episode_actions = []
-        episode_rewards: List[float] = []
+        episode_rewards: list[float] = []
 
         # Reset environment
         state = self.env_eval.reset()
@@ -237,7 +237,7 @@ class BaseRunner(ABC):
         self,
         log_step: int,
         video_label: str,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Evaluate standard RL agent over multiple episodes.
 
@@ -307,7 +307,7 @@ class BaseRunner(ABC):
         self,
         log_step: int,
         video_label: str,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Evaluate USD (Unsupervised Skill Discovery) agent skills.
 

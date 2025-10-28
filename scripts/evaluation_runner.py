@@ -8,7 +8,7 @@ across training steps.
 
 import time
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 from base_runner import BaseRunner
 from natsort import natsorted
@@ -63,7 +63,7 @@ class EvaluationRunner(BaseRunner):
             f"[SEED {self.train_seed}] will run {self.number_eval_episodes} episodes per checkpoint on [SEED {self.eval_seed}]"
         )
 
-    def _discover_checkpoints(self) -> List[Dict[str, Any]]:
+    def _discover_checkpoints(self) -> list[dict[str, Any]]:
         """
         Discover all available model checkpoints for this seed.
 
@@ -79,7 +79,7 @@ class EvaluationRunner(BaseRunner):
         if not models_path.exists():
             raise FileNotFoundError(f"No models directory found at {models_path}")
 
-        checkpoints: List[Dict[str, Any]] = []
+        checkpoints: list[dict[str, Any]] = []
 
         folders = list(models_path.glob("*"))
 
@@ -98,7 +98,7 @@ class EvaluationRunner(BaseRunner):
 
         return checkpoints
 
-    def _load_checkpoint(self, checkpoint_info: Dict[str, Any]) -> bool:
+    def _load_checkpoint(self, checkpoint_info: dict[str, Any]) -> bool:
         """
         Load a specific model checkpoint into the agent.
 
@@ -125,7 +125,7 @@ class EvaluationRunner(BaseRunner):
             )
             return False
 
-    def _evaluate_checkpoint(self, checkpoint_info: Dict[str, Any]) -> None:
+    def _evaluate_checkpoint(self, checkpoint_info: dict[str, Any]) -> None:
         """
         Evaluate a single checkpoint.
 
