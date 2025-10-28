@@ -63,7 +63,9 @@ class BaseRunner(ABC):
 
         # Set up logging
         self.logger = logs.get_seed_logger()
-        self.logger.info(f"[SEED {self.train_seed}] Setting up Runner")
+        self.logger.info(
+            f"[SEED {self.train_seed} | {self.eval_seed}] Setting up Runner"
+        )
 
         # Create factory instances (each process needs its own)
         self.env_factory = EnvironmentFactory()
@@ -91,7 +93,7 @@ class BaseRunner(ABC):
 
         # Create environments
         self.logger.info(
-            f"[SEED {self.train_seed}] Loading Environment: {self.env_config.gym}"
+            f"[SEED {self.train_seed} | {self.eval_seed}] Loading Environment: {self.env_config.gym}"
         )
         self.env, self.env_eval = self.env_factory.create_environment(
             self.env_config, self.alg_config.image_observation
@@ -104,7 +106,7 @@ class BaseRunner(ABC):
 
         # Create the algorithm
         self.logger.info(
-            f"[SEED {self.train_seed}] Algorithm: {self.alg_config.algorithm}"
+            f"[SEED {self.train_seed} | {self.eval_seed}] Algorithm: {self.alg_config.algorithm}"
         )
         self.agent: Algorithm = self.network_factory.create_network(
             self.env.observation_space, self.env.action_num, self.alg_config
@@ -113,7 +115,7 @@ class BaseRunner(ABC):
         # Validate agent creation
         if self.agent is None:
             raise ValueError(
-                f"Unknown agent for default algorithms {self.alg_config.algorithm}"
+                f"[SEED {self.train_seed} | {self.eval_seed}] Unknown agent for default algorithms {self.alg_config.algorithm}"
             )
 
         # Set up record with agent
@@ -242,7 +244,6 @@ class BaseRunner(ABC):
         Args:
             log_step: Training/evaluation step for logging context
             video_label: Label for video recording
-            num_episodes: Number of episodes to run (uses self.number_eval_episodes if None)
 
         Returns:
             Dictionary with aggregated evaluation results

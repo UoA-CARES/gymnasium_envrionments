@@ -14,13 +14,10 @@ from typing import Any
 
 import training_logger as logs
 import yaml
-from cares_reinforcement_learning.algorithm.algorithm import Algorithm
 from cares_reinforcement_learning.util.configurations import (
     AlgorithmConfig,
     TrainingConfig,
 )
-from environments.gym_environment import GymEnvironment
-from environments.multimodal_wrapper import MultiModalWrapper
 from evaluation_runner import EvaluationRunner
 from rich.progress import BarColumn, Progress, TextColumn, TimeElapsedColumn
 from training_runner import TrainingRunner

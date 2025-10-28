@@ -163,6 +163,132 @@ class TrainingRunner(BaseRunner):
                 }
             )
 
+    def _select_exploration_action(self, train_step_counter: int) -> tuple:
+        """Handle exploration phase action selection."""
+        self.logger.info(
+            f"Running Exploration Steps {train_step_counter + 1}/{self.max_steps_exploration}"
+        )
+
+        denormalised_action = self.env.sample_action()
+        normalised_action = denormalised_action
+
+        if self.apply_action_normalisation:
+            normalised_action = hlp.normalize(
+                denormalised_action,
+                self.env.max_action_value,
+                self.env.min_action_value,
+            )
+
+        return normalised_action, denormalised_action
+
+    def _select_repitition_action(
+        self, episode_num: int, episode_timesteps: int, repetition_buffer: EpisodeReplay
+    ) -> tuple:
+        """Handle episode repetition action selection."""
+        self.logger.info(
+            f"Repeating Episode {episode_num} Step {episode_timesteps}/{len(repetition_buffer.best_actions)}"
+        )
+
+        denormalised_action = repetition_buffer.replay_best_episode(
+            episode_timesteps - 1
+        )
+
+        # For repetition, assume we stored denormalized actions
+        normalised_action = denormalised_action
+        if self.apply_action_normalisation:
+            normalised_action = hlp.normalize(
+                denormalised_action,
+                self.env.max_action_value,
+                self.env.min_action_value,
+            )
+
+        return normalised_action, denormalised_action
+
+    def _select_policy_action(self, state) -> tuple:
+        """Handle policy-based action selection."""
+        available_actions = self.env.get_available_actions()
+        action_context = ActionContext(
+            state=state, evaluation=False, available_actions=available_actions
+        )
+        normalised_action = self.agent.select_action_from_policy(action_context)
+
+        denormalised_action = normalised_action
+        if self.apply_action_normalisation:
+            denormalised_action = hlp.denormalize(
+                normalised_action, self.env.max_action_value, self.env.min_action_value
+            )
+
+        return normalised_action, denormalised_action
+
+    def _update_policy(
+        self,
+        train_step_counter: int,
+        episode_num: int,
+        episode_timesteps: int,
+        episode_reward: float,
+        episode_done: bool,
+    ) -> dict:
+        """Execute policy training step."""
+        training_context = TrainingContext(
+            memory=self.memory,
+            batch_size=self.batch_size,
+            training_step=train_step_counter,
+            episode=episode_num + 1,
+            episode_steps=episode_timesteps,
+            episode_reward=episode_reward,
+            episode_done=episode_done,
+        )
+
+        train_info = {}
+        for _ in range(self.G):
+            train_info = self.agent.train_policy(training_context)
+
+        return train_info
+
+    def _finalise_episode(
+        self,
+        train_step_counter: int,
+        episode_reward: float,
+        repetition_buffer: EpisodeReplay,
+        repeating: bool,
+        repeat: bool,
+        repetition_counter: int,
+        episode_repetitions: int,
+    ) -> tuple:
+        """Handle episode completion and repetition logic."""
+        if repeating:
+            repeat = True
+            repetition_counter += 1
+            if repetition_counter >= self.repetition_num_episodes:
+                repeat = False
+                repeating = False
+                repetition_counter = 0
+        elif train_step_counter > self.max_steps_exploration:
+            repeat = repetition_buffer.finish_episode(episode_reward)
+            repeating = repeat
+            episode_repetitions = (
+                episode_repetitions + 1
+                if repeat and self.use_episode_repetition
+                else episode_repetitions
+            )
+        else:
+            repetition_buffer.finish_episode(episode_reward)
+
+        return repeating, repeat, repetition_counter, episode_repetitions
+
+    def _run_evaluation(self, train_step_counter: int) -> None:
+        """Execute evaluation phase."""
+        self.logger.info("*************--Evaluation Loop--*************")
+
+        if self.agent.policy_type == "usd":
+            self._evaluate_usd_skills(train_step_counter, f"{train_step_counter + 1}")
+        else:
+            self._evaluate_agent_episodes(
+                train_step_counter, f"{train_step_counter + 1}"
+            )
+
+        self.logger.info("--------------------------------------------")
+
     def run_training(self) -> None:
         """
         Execute the main training loop with proper cleanup.
@@ -323,129 +449,3 @@ class TrainingRunner(BaseRunner):
         # Save record and report completion
         self.record.save()
         self._report_progress(episode_num + 1, train_step_counter + 1, "done")
-
-    def _select_exploration_action(self, train_step_counter: int) -> tuple:
-        """Handle exploration phase action selection."""
-        self.logger.info(
-            f"Running Exploration Steps {train_step_counter + 1}/{self.max_steps_exploration}"
-        )
-
-        denormalised_action = self.env.sample_action()
-        normalised_action = denormalised_action
-
-        if self.apply_action_normalisation:
-            normalised_action = hlp.normalize(
-                denormalised_action,
-                self.env.max_action_value,
-                self.env.min_action_value,
-            )
-
-        return normalised_action, denormalised_action
-
-    def _select_repitition_action(
-        self, episode_num: int, episode_timesteps: int, repetition_buffer: EpisodeReplay
-    ) -> tuple:
-        """Handle episode repetition action selection."""
-        self.logger.info(
-            f"Repeating Episode {episode_num} Step {episode_timesteps}/{len(repetition_buffer.best_actions)}"
-        )
-
-        denormalised_action = repetition_buffer.replay_best_episode(
-            episode_timesteps - 1
-        )
-
-        # For repetition, assume we stored denormalized actions
-        normalised_action = denormalised_action
-        if self.apply_action_normalisation:
-            normalised_action = hlp.normalize(
-                denormalised_action,
-                self.env.max_action_value,
-                self.env.min_action_value,
-            )
-
-        return normalised_action, denormalised_action
-
-    def _select_policy_action(self, state) -> tuple:
-        """Handle policy-based action selection."""
-        available_actions = self.env.get_available_actions()
-        action_context = ActionContext(
-            state=state, evaluation=False, available_actions=available_actions
-        )
-        normalised_action = self.agent.select_action_from_policy(action_context)
-
-        denormalised_action = normalised_action
-        if self.apply_action_normalisation:
-            denormalised_action = hlp.denormalize(
-                normalised_action, self.env.max_action_value, self.env.min_action_value
-            )
-
-        return normalised_action, denormalised_action
-
-    def _update_policy(
-        self,
-        train_step_counter: int,
-        episode_num: int,
-        episode_timesteps: int,
-        episode_reward: float,
-        episode_done: bool,
-    ) -> dict:
-        """Execute policy training step."""
-        training_context = TrainingContext(
-            memory=self.memory,
-            batch_size=self.batch_size,
-            training_step=train_step_counter,
-            episode=episode_num + 1,
-            episode_steps=episode_timesteps,
-            episode_reward=episode_reward,
-            episode_done=episode_done,
-        )
-
-        train_info = {}
-        for _ in range(self.G):
-            train_info = self.agent.train_policy(training_context)
-
-        return train_info
-
-    def _finalise_episode(
-        self,
-        train_step_counter: int,
-        episode_reward: float,
-        repetition_buffer: EpisodeReplay,
-        repeating: bool,
-        repeat: bool,
-        repetition_counter: int,
-        episode_repetitions: int,
-    ) -> tuple:
-        """Handle episode completion and repetition logic."""
-        if repeating:
-            repeat = True
-            repetition_counter += 1
-            if repetition_counter >= self.repetition_num_episodes:
-                repeat = False
-                repeating = False
-                repetition_counter = 0
-        elif train_step_counter > self.max_steps_exploration:
-            repeat = repetition_buffer.finish_episode(episode_reward)
-            repeating = repeat
-            episode_repetitions = (
-                episode_repetitions + 1
-                if repeat and self.use_episode_repetition
-                else episode_repetitions
-            )
-        else:
-            repetition_buffer.finish_episode(episode_reward)
-
-        return repeating, repeat, repetition_counter, episode_repetitions
-
-    def _run_evaluation(self, train_step_counter: int) -> None:
-        """Execute evaluation phase."""
-        self.logger.info("*************--Evaluation Loop--*************")
-
-        if self.agent.policy_type == "usd":
-            self._evaluate_usd_skills(train_step_counter, f"{train_step_counter + 1}")
-        else:
-            self._evaluate_agent_episodes(
-                train_step_counter, f"{train_step_counter + 1}"
-            )
-
-        self.logger.info("--------------------------------------------")

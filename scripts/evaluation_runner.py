@@ -63,7 +63,7 @@ class EvaluationRunner(BaseRunner):
             f"[SEED {self.train_seed}] will run {self.number_eval_episodes} episodes per checkpoint on [SEED {self.eval_seed}]"
         )
 
-    def discover_checkpoints(self) -> List[Dict[str, Any]]:
+    def _discover_checkpoints(self) -> List[Dict[str, Any]]:
         """
         Discover all available model checkpoints for this seed.
 
@@ -98,7 +98,7 @@ class EvaluationRunner(BaseRunner):
 
         return checkpoints
 
-    def load_checkpoint(self, checkpoint_info: Dict[str, Any]) -> bool:
+    def _load_checkpoint(self, checkpoint_info: Dict[str, Any]) -> bool:
         """
         Load a specific model checkpoint into the agent.
 
@@ -125,7 +125,7 @@ class EvaluationRunner(BaseRunner):
             )
             return False
 
-    def evaluate_checkpoint(self, checkpoint_info: Dict[str, Any]) -> None:
+    def _evaluate_checkpoint(self, checkpoint_info: Dict[str, Any]) -> None:
         """
         Evaluate a single checkpoint.
 
@@ -164,7 +164,7 @@ class EvaluationRunner(BaseRunner):
         self.logger.info(f"[SEED {self.eval_seed}] Starting checkpoint evaluation")
 
         # Discover all checkpoints
-        checkpoints = self.discover_checkpoints()
+        checkpoints = self._discover_checkpoints()
 
         if not checkpoints:
             self.logger.warning(
@@ -178,13 +178,13 @@ class EvaluationRunner(BaseRunner):
             )
 
             # Load the checkpoint
-            if not self.load_checkpoint(checkpoint_info):
+            if not self._load_checkpoint(checkpoint_info):
                 self.logger.error(
                     f"[SEED {self.eval_seed}] Failed to load checkpoint {checkpoint_info['step']}, skipping"
                 )
                 continue
 
-            self.evaluate_checkpoint(checkpoint_info)
+            self._evaluate_checkpoint(checkpoint_info)
 
         # Save all results
         self.record.save()
