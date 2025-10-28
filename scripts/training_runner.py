@@ -389,7 +389,7 @@ class TrainingRunner(BaseRunner):
                     display=True,
                 )
 
-                # Handle episode repetition logic
+                # Handle any logic at episode end
                 self._finalise_episode(train_step_counter, episode_reward)
 
                 # Reset for next episode
