@@ -6,11 +6,11 @@ from typing import Any
 from base_runner import BaseRunner
 from cares_reinforcement_learning.memory.memory_buffer import MemoryBuffer
 from cares_reinforcement_learning.util import helpers as hlp
-from cares_reinforcement_learning.util.repetition import EpisodeReplay
 from cares_reinforcement_learning.util.training_context import (
     ActionContext,
     TrainingContext,
 )
+from util.repetition_manager import RepetitionManager
 
 
 class TrainingRunner(BaseRunner):
@@ -87,9 +87,10 @@ class TrainingRunner(BaseRunner):
             self.training_config.number_steps_per_evaluation
         )
 
-        # Episode repetition parameters
-        self.repetition_num_episodes = self.alg_config.repetition_num_episodes
-        self.use_episode_repetition = self.repetition_num_episodes > 0
+        # Episode repetition setup
+        self.repetition_manager = RepetitionManager(
+            max_repetitions=self.alg_config.repetition_num_episodes
+        )
 
         self.logger.info(f"[SEED {self.train_seed}] training instance setup complete")
 
@@ -181,16 +182,10 @@ class TrainingRunner(BaseRunner):
 
         return normalised_action, denormalised_action
 
-    def _select_repitition_action(
-        self, episode_num: int, episode_timesteps: int, repetition_buffer: EpisodeReplay
-    ) -> tuple:
+    def _select_repetition_action(self, episode_timesteps: int) -> tuple:
         """Handle episode repetition action selection."""
-        self.logger.info(
-            f"Repeating Episode {episode_num} Step {episode_timesteps}/{len(repetition_buffer.best_actions)}"
-        )
-
-        denormalised_action = repetition_buffer.replay_best_episode(
-            episode_timesteps - 1
+        denormalised_action = self.repetition_manager.get_repetition_action(
+            episode_timesteps
         )
 
         # For repetition, assume we stored denormalized actions
@@ -249,32 +244,10 @@ class TrainingRunner(BaseRunner):
         self,
         train_step_counter: int,
         episode_reward: float,
-        repetition_buffer: EpisodeReplay,
-        repeating: bool,
-        repeat: bool,
-        repetition_counter: int,
-        episode_repetitions: int,
-    ) -> tuple:
+    ) -> None:
         """Handle episode completion and repetition logic."""
-        if repeating:
-            repeat = True
-            repetition_counter += 1
-            if repetition_counter >= self.repetition_num_episodes:
-                repeat = False
-                repeating = False
-                repetition_counter = 0
-        elif train_step_counter > self.max_steps_exploration:
-            repeat = repetition_buffer.finish_episode(episode_reward)
-            repeating = repeat
-            episode_repetitions = (
-                episode_repetitions + 1
-                if repeat and self.use_episode_repetition
-                else episode_repetitions
-            )
-        else:
-            repetition_buffer.finish_episode(episode_reward)
-
-        return repeating, repeat, repetition_counter, episode_repetitions
+        in_training_phase = train_step_counter > self.max_steps_exploration
+        self.repetition_manager.finish_episode(episode_reward, in_training_phase)
 
     def _run_evaluation(self, train_step_counter: int) -> None:
         """Execute evaluation phase."""
@@ -312,12 +285,8 @@ class TrainingRunner(BaseRunner):
         state = self.env.reset()
         episode_start = time.time()
 
-        # Episode repetition tracking
-        repeating = False
-        repetition_counter = 0
-        repetition_buffer = EpisodeReplay()
-        repeat = False
-        episode_repetitions = 0
+        # Episode repetition tracking - all handled by RepetitionManager now
+        # (No local variables needed)
 
         # Main training loop
         train_step_counter = self.start_training_step
@@ -340,24 +309,18 @@ class TrainingRunner(BaseRunner):
                 normalised_action, denormalised_action = (
                     self._select_exploration_action(train_step_counter)
                 )
-            elif (
-                self.use_episode_repetition
-                and repeat
-                and repetition_buffer.has_best_episode()
-            ):
-                normalised_action, denormalised_action = self._select_repitition_action(
-                    episode_num, episode_timesteps, repetition_buffer
+            elif self.repetition_manager.should_repeat(episode_timesteps):
+                normalised_action, denormalised_action = self._select_repetition_action(
+                    episode_timesteps
                 )
-                if episode_timesteps >= len(repetition_buffer.best_actions):
-                    repeat = False
             else:
                 normalised_action, denormalised_action = self._select_policy_action(
                     state
                 )
 
             # Record action and execute step
-            repetition_buffer.record_action(denormalised_action)
-            info["repeated"] = episode_repetitions
+            self.repetition_manager.record_action(denormalised_action)
+            info |= self.repetition_manager.get_status_info()
 
             next_state, reward_extrinsic, done, truncated, env_info = self.env.step(
                 denormalised_action
@@ -420,17 +383,7 @@ class TrainingRunner(BaseRunner):
                 )
 
                 # Handle episode repetition logic
-                repeating, repeat, repetition_counter, episode_repetitions = (
-                    self._finalise_episode(
-                        train_step_counter,
-                        episode_reward,
-                        repetition_buffer,
-                        repeating,
-                        repeat,
-                        repetition_counter,
-                        episode_repetitions,
-                    )
-                )
+                self._finalise_episode(train_step_counter, episode_reward)
 
                 # Reset for next episode
                 state = self.env.reset()

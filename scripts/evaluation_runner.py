@@ -135,6 +135,13 @@ class EvaluationRunner(BaseRunner):
         Returns:
             Dictionary with evaluation results
         """
+        # Load the checkpoint
+        if not self._load_checkpoint(checkpoint_info):
+            self.logger.error(
+                f"[SEED {self.eval_seed}] Failed to load checkpoint {checkpoint_info['step']}, skipping"
+            )
+            return
+
         step = checkpoint_info["step"]
 
         self.logger.info(
@@ -176,14 +183,6 @@ class EvaluationRunner(BaseRunner):
             self.logger.info(
                 f"[SEED {self.eval_seed}] Processing checkpoint {i + 1}/{len(checkpoints)}"
             )
-
-            # Load the checkpoint
-            if not self._load_checkpoint(checkpoint_info):
-                self.logger.error(
-                    f"[SEED {self.eval_seed}] Failed to load checkpoint {checkpoint_info['step']}, skipping"
-                )
-                continue
-
             self._evaluate_checkpoint(checkpoint_info)
 
         # Save all results
