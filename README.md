@@ -33,26 +33,25 @@ python run.py train config --data_path <PATH_TO_TRAINING_CONFIGS>
 ### Resume (Experimental)
 The resume command allows you to continue training from a previously saved checkpoint. This is useful if training was interrupted or if you want to further improve a model. You can specify the path to the checkpoint and resume training with your desired settings.
 
-Note: to enable a training to be resumable you need to enable the "--save_train_checkpoints 1" when using the train command. Checkpoint saving does not default to true, this is because saving a checkpoint of the memory, and training parameters increases data storage on the HD - especially for image based learning. This is also an experimental feature and the "resume" does not set all parameters/evnrioments to the same state as before - this will change the training outcomes, it is not a true resume command. 
+Note: to enable a training to be resumable you need to enable the "--save_train_checkpoints 1" when using the train command. Checkpoint saving does not default to true, this is because saving a checkpoint of the memory, and training parameters increases data storage on the HD - especially for image based learning. This is also an experimental feature and the "resume" does not set all parameters/evnrioments to the same state as before - this will change the training outcomes, it is not a true resume command but it is useful for restarting training.
 
 ```
-python run.py resume --data_path <PATH_TO_TRAINING_DATA> --seed <SEED_TO_RESUME>
+python run.py resume --data_path <PATH_TO_TRAINING_DATA>
 ```
 
 ### Evaluate
-The evaluate command is used to re-run the evaluation loops from a prior training run - this will reproduce the evaluation graphs and data from a given training experiment. 
+The evaluate command is used to re-run the evaluation loops from a prior training run - this will reproduce the evaluation graphs and data from a given training experiment. Useful if you have updated metrics you want to capture without having to re-run the entire training process.
 
 ```
 python run.py evaluate --data_path <PATH_TO_TRAINING_DATA>
 ```
 
 ### Test
-The test command is used to run evaluation loops on a trained reinforcement learning model on the envrionment, users can load the trained model to evaluate how well the model performs on the given task with different seeds and over any number of episodes. 
+The test command is used to run evaluation loops on a trained reinforcement learning model on the envrionment, users can load the trained model to evaluate how well the model performs on the given task with different evaluation seeds and over any number of episodes. 
 
 ```
-python run.py test --data_path <PATH_TO_TRAINING_DATA> --seeds <LIST_OF_SEEDS> --episodes <NUM_EPISODES>
+python run.py test --data_path <PATH_TO_TRAINING_DATA> --eval_seed <EVAL_SEED> --episodes <NUM_EPISODES>
 ```
-
 
 ## Gym Environments
 This package contains wrappers for the following gym environments:
