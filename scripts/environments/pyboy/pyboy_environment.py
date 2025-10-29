@@ -4,14 +4,14 @@ import numpy as np
 from environments.gym_environment import GymEnvironment
 from util.configurations import PyBoyConfig
 
-from pyboy_environment import suite
+import pyboy_environment.suite as Suite
 
 
 class PyboyEnvironment(GymEnvironment):
     def __init__(self, config: PyBoyConfig) -> None:
         super().__init__(config)
 
-        self.env = suite.make(
+        self.env = Suite.make(
             config.domain,
             config.task,
             config.act_freq,
@@ -55,5 +55,4 @@ class PyboyEnvironment(GymEnvironment):
 
     def get_multimodal_observation(self) -> dict:
         # Default implementation, override if necessary
-        # TODO Sam - create a get_multimodal_observation method in pyboy side and call here
-        return {}
+        return self.env.get_multimodal_observation()
