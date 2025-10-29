@@ -50,7 +50,7 @@ class DMCSEnvironment(GymEnvironment):
         )  # # e.g. position, orientation, joint_angles
         return observation
 
-    def step(self, action: int) -> tuple:
+    def _step(self, action: int) -> tuple:
         time_step = self.env.step(action)
         state, reward, done = (
             np.hstack(list(time_step.observation.values())),

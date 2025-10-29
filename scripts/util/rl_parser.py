@@ -18,11 +18,12 @@ from pydantic import Field
 from . import configurations as cfg
 
 
+# TODO command specific args
 class RunConfig(SubscriptableClass):
     command: str
     data_path: str | None
 
-    seeds: list[int] | None = None
+    eval_seed: int | None = None
     episodes: int | None = None
 
 
@@ -137,7 +138,7 @@ class RLParser:
         # Add an argument
         parser.add_argument(
             "command",
-            choices=["train", "evaluate", "test"],
+            choices=["train", "evaluate", "test", "resume"],
             help="Commands to run this package",
         )
 
@@ -245,11 +246,10 @@ class RLParser:
         )
 
         required.add_argument(
-            "--seeds",
+            "--eval_seed",
             type=int,
-            nargs="+",
             required=True,
-            help="List of seeds to use for testing trained models against",
+            help="Seed to use for testing trained models against",
         )
 
         required.add_argument(
@@ -291,6 +291,22 @@ class RLParser:
             run_args = {"data_path": data_path}
 
         return run_args, args
+
+    def _resume(self) -> tuple[dict, dict]:
+        parser = argparse.ArgumentParser()
+
+        parser.add_argument(
+            "--data_path",
+            type=str,
+            required=True,
+            help="Path to training files - e.g. alg_config.json, env_config.json, train_config.json",
+        )
+
+        run_args = parser.parse_args(sys.argv[2:])
+
+        model_args = self._load_args_from_configs(run_args.data_path)
+
+        return vars(run_args), model_args
 
 
 ## Example of how to use the RLParser for custom environments -

@@ -1,5 +1,5 @@
 from environments.gym_environment import GymEnvironment
-from environments.image_wrapper import ImageWrapper
+from environments.multimodal_wrapper import MultiModalWrapper
 from util.configurations import GymEnvironmentConfig
 import util.configurations as cfg
 
@@ -13,10 +13,10 @@ class EnvironmentFactory:
 
     def create_environment(
         self, config: GymEnvironmentConfig, image_observation
-    ) -> tuple[GymEnvironment | ImageWrapper, GymEnvironment | ImageWrapper]:
+    ) -> tuple[GymEnvironment | MultiModalWrapper, GymEnvironment | MultiModalWrapper]:
 
-        env: GymEnvironment | ImageWrapper
-        eval_env: GymEnvironment | ImageWrapper
+        env: GymEnvironment | MultiModalWrapper
+        eval_env: GymEnvironment | MultiModalWrapper
         if isinstance(config, cfg.DMCSConfig):
             from environments.dmcs.dmcs_environment import DMCSEnvironment
 
@@ -38,7 +38,8 @@ class EnvironmentFactory:
             )
 
             env = ShowdownEnvironment(config, evaluation=False)
-            eval_env = ShowdownEnvironment(config, evaluation=True)
+            # eval_env = ShowdownEnvironment(config, evaluation=True)
+            eval_env = env  # temporary fix until showdown websocket fixed
         elif isinstance(config, cfg.GripperConfig):
             from environments.gripper.gripper_environment import GripperEnvironment
 
@@ -47,8 +48,8 @@ class EnvironmentFactory:
         else:
             raise ValueError(f"Unkown environment: {type(config)}")
 
-        env = ImageWrapper(config, env) if bool(image_observation) else env
+        env = MultiModalWrapper(config, env) if bool(image_observation) else env
         eval_env = (
-            ImageWrapper(config, eval_env) if bool(image_observation) else eval_env
+            MultiModalWrapper(config, eval_env) if bool(image_observation) else eval_env
         )
         return env, eval_env

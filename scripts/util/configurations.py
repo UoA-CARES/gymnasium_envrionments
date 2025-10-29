@@ -10,25 +10,17 @@ from cares_reinforcement_learning.util.configurations import SubscriptableClass
 file_path = Path(__file__).parent.resolve()
 
 
-class RunConfig(SubscriptableClass):
-    command: str
-    data_path: str | None
-
-    seeds: list[int] | None = None
-    episodes: int | None = None
-
-
 class GymEnvironmentConfig(SubscriptableClass):
     """
     Configuration class for Gym Environment.
 
     Attributes:
-        image_observation (bool): Whether to use image observation (default: False)
         frames_to_stack (int): Number of frames to stack for image observation (default: 3)
         frame_width (int): Width of the image frames (default: 84)
         frame_height (int): Height of the image frames (default: 84)
         grey_scale (bool): Whether to convert frames to grayscale (default: False)
         display (int): Display mode for the environment (default: 0)
+        save_train_checkpoints (int): Whether to save training checkpoints (default: 0)
     """
 
     gym: ClassVar[str]
@@ -36,6 +28,11 @@ class GymEnvironmentConfig(SubscriptableClass):
     task: str
 
     display: int = 0
+    save_train_checkpoints: int = 0
+
+    # stochastic noise configuration
+    state_std: float = 0.0
+    action_std: float = 0.0
 
     # image observation configurations
     frames_to_stack: int = 3
