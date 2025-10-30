@@ -5,11 +5,11 @@ import cv2
 import numpy as np
 from environments.marl_environment import MARLEnvironment
 from smacv2.env.starcraft2.wrapper import StarCraftCapabilityEnvWrapper
-from util.configurations import SMACConfig
+from util.configurations import SMAC2Config
 
 
-class SMACEnvironment(MARLEnvironment):
-    def __init__(self, config: SMACConfig, evaluation: bool = False) -> None:
+class SMAC2Environment(MARLEnvironment):
+    def __init__(self, config: SMAC2Config, evaluation: bool = False) -> None:
         super().__init__(config)
 
         self.distribution_config = {

@@ -99,5 +99,5 @@ class GripperConfig(GymEnvironmentConfig):
     # )
 
 
-class SMACConfig(GymEnvironmentConfig):
+class SMAC2Config(GymEnvironmentConfig):
     gym: ClassVar[str] = "smac2"
