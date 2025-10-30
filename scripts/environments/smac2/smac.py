@@ -12,7 +12,7 @@ class SMACEnvironment(MARLEnvironment):
     def __init__(self, config: SMACConfig, evaluation: bool = False) -> None:
         super().__init__(config)
 
-        distribution_config = {
+        self.distribution_config = {
             "n_units": 5,
             "n_enemies": 1,
             "team_gen": {
@@ -31,9 +31,9 @@ class SMACEnvironment(MARLEnvironment):
         }
 
         self.env = StarCraftCapabilityEnvWrapper(
-            capability_config=distribution_config,
+            capability_config=self.distribution_config,
             map_name="10gen_terran",
-            debug=True,
+            debug=False,
             conic_fov=False,
             obs_own_pos=True,
             use_unit_ranges=True,
@@ -41,6 +41,8 @@ class SMACEnvironment(MARLEnvironment):
         )
 
         self.env_info = self.env.get_env_info()
+
+        self.reset(training=not evaluation)
 
     @cached_property
     def max_action_value(self) -> float:
@@ -82,7 +84,20 @@ class SMACEnvironment(MARLEnvironment):
         return actions
 
     def set_seed(self, seed: int) -> None:
-        pass
+        self.env = StarCraftCapabilityEnvWrapper(
+            capability_config=self.distribution_config,
+            map_name="10gen_terran",
+            debug=False,
+            conic_fov=False,
+            obs_own_pos=True,
+            use_unit_ranges=True,
+            min_attack_range=2,
+            seed=seed,
+        )
+
+        self.env_info = self.env.get_env_info()
+
+        self.reset()
 
     def reset(self, training: bool = True) -> dict[str, Any]:
         marl_state = {}
