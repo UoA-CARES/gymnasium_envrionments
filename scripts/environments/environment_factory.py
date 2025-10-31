@@ -48,6 +48,11 @@ class EnvironmentFactory:
 
             env = GripperEnvironment(config)
             eval_env = env
+        elif isinstance(config, cfg.SMACConfig):
+            from environments.smac.smac import SMACEnvironment
+
+            env = SMACEnvironment(config, evaluation=False)
+            eval_env = SMACEnvironment(config, evaluation=True)
         elif isinstance(config, cfg.SMAC2Config):
             from environments.smac2.smac2 import SMAC2Environment
 
