@@ -13,8 +13,8 @@ class SMAC2Environment(MARLEnvironment):
         super().__init__(config)
 
         self.distribution_config = {
-            "n_units": 5,
-            "n_enemies": 1,
+            "n_units": config.n_units,
+            "n_enemies": config.n_enemies,
             "team_gen": {
                 "dist_type": "weighted_teams",
                 "unit_types": ["marine"],
@@ -32,7 +32,7 @@ class SMAC2Environment(MARLEnvironment):
 
         self.env = StarCraftCapabilityEnvWrapper(
             capability_config=self.distribution_config,
-            map_name="10gen_terran",
+            map_name=self.task,
             debug=False,
             conic_fov=False,
             obs_own_pos=True,
