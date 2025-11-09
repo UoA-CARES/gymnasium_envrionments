@@ -48,6 +48,12 @@ class EnvironmentFactory:
 
             env = GripperEnvironment(config)
             eval_env = env
+        elif isinstance(config, cfg.MPEConfig):
+            from environments.mpe.mpe import MPE2Environment
+
+            env = MPE2Environment(config, evaluation=False)
+            eval_env = MPE2Environment(config, evaluation=True)
+
         elif isinstance(config, cfg.SMACConfig):
             from environments.smac.smac import SMACEnvironment
 

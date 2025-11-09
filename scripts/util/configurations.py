@@ -87,3 +87,7 @@ class SMAC2Config(GymEnvironmentConfig):
 
     n_units: int = 3
     n_enemies: int = 3
+
+
+class MPEConfig(GymEnvironmentConfig):
+    gym: ClassVar[str] = "mpe"
