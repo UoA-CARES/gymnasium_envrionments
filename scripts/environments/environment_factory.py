@@ -33,12 +33,16 @@ class EnvironmentFactory:
             env = PyboyEnvironment(config)
             eval_env = PyboyEnvironment(config)
         elif isinstance(config, cfg.SpaceConfig):
-            from environments.space.corrective_transfer_env import (
-                CorrectiveTransferEnvironment,
-            )
+            from environments.space.space_environment import SpaceEnvironment
 
-            env = CorrectiveTransferEnvironment(config)
-            eval_env = CorrectiveTransferEnvironment(config)
+            env = SpaceEnvironment(config)
+            eval_env = SpaceEnvironment(config)
+        elif isinstance(config, cfg.GTOC13Config):
+            from environments.space.gtoc13_environment import GTOC13Environment
+
+            env = GTOC13Environment(config)
+            eval_env = GTOC13Environment(config)
+
         elif isinstance(config, cfg.ShowdownConfig):
             from environments.showdown.showdown_environment import (
                 ShowdownEnvironment,

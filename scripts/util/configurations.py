@@ -103,5 +103,13 @@ class GripperConfig(GymEnvironmentConfig):
     # )
 
 
+# TODO: for now separate but clean up later
+# multi-inheritance may not work as it requires external dependencies to run
+# unrelated enviornments...
 class SpaceConfig(SpaceEnvironmentConfig, GymEnvironmentConfig):
     gym: ClassVar[str] = "space"
+
+
+class GTOC13Config(GymEnvironmentConfig):
+    gym: ClassVar[str] = "gtoc13"
+    start_id: int  # starting object

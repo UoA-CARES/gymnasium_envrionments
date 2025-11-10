@@ -1,17 +1,16 @@
 from functools import cached_property
 
-import cv2
 import numpy as np
 from environments.gym_environment import GymEnvironment
-from util.configurations import SpaceConfig
-from rl_corrective_gym.environments.environment_factory import SpaceEnvironmentFactory
+from util.configurations import GTOC13Config
+from gtoc13_violet.GA_environment import GravityAssistSequenceEnvironment
 
 
-class CorrectiveTransferEnvironment(GymEnvironment):
-    def __init__(self, config: SpaceConfig) -> None:
+class GTOC13Environment(GymEnvironment):
+    def __init__(self, config: GTOC13Config) -> None:
         super().__init__(config)
-        factory = SpaceEnvironmentFactory()
-        self.env = factory.create_environment(config)
+
+        self.env = GravityAssistSequenceEnvironment(config)
 
     @cached_property
     def min_action_value(self) -> float:
