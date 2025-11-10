@@ -21,6 +21,9 @@ class GymEnvironment(metaclass=abc.ABCMeta):
         cv2.imshow(f"{self.task}", frame)
         cv2.waitKey(10)
 
+    def set_directory(self, directory: str) -> None:
+        pass
+
     def set_log_path(self, log_path: str, step_count: int) -> None:
         pass
 

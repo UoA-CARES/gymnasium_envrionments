@@ -98,6 +98,7 @@ class BaseRunner(ABC):
         self.env, self.env_eval = self.env_factory.create_environment(
             self.env_config, self.alg_config.image_observation
         )
+        self.env.set_directory(base_log_dir)
 
         # Set the seed for everything
         hlp.set_seed(self.train_seed)

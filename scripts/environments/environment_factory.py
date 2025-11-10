@@ -45,6 +45,11 @@ class EnvironmentFactory:
 
             env = GripperEnvironment(config)
             eval_env = env
+        elif isinstance(config, cfg.AUVEnvironmentConfig):
+            from environments.auv.auv_environment import AUVEnvironment
+
+            env = AUVEnvironment(config)
+            eval_env = env
         else:
             raise ValueError(f"Unkown environment: {type(config)}")
 
