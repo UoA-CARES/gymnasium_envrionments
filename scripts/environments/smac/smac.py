@@ -82,7 +82,10 @@ class SMACEnvironment(MARLEnvironment):
         marl_state["obs"] = self.env.get_obs()
         marl_state["avail_actions"] = self.env.get_avail_actions()
 
-        return marl_state, reward, done, done, info
+        rewards = [reward] * self.env_info["n_agents"]
+        dones = [done] * self.env_info["n_agents"]
+
+        return marl_state, rewards, dones, dones, info
 
     def grab_frame(self, height: int = 240, width: int = 300) -> np.ndarray:
         frame = self.env.render(mode="rgb_array")

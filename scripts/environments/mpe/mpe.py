@@ -10,8 +10,19 @@ from pettingzoo.utils.env import ParallelEnv, AgentID
 
 ALL_ENV_MODULES = {
     **mpe_all.mpe_environments,
-    # Add others here, e.g., "smac/3m": smac_3m
 }
+
+"""
+Observations - dict per agent
+
+Acttions - dict per agent
+
+Rewards - dict per agent
+
+Terminations - dict per agent
+
+Truncations - dict per agent
+"""
 
 
 def make_env(env_name: str, render_mode=None) -> ParallelEnv:
@@ -65,13 +76,7 @@ class MPE2Environment(MARLEnvironment):
         return np.ones((len(self.agents), self.action_num), dtype=np.int32)
 
     def sample_action(self) -> list[int]:
-        actions = []
-        avail_actions = self.get_available_actions()
-        for agent_id in range(len(self.agents)):
-            avail_actions_ind = np.nonzero(avail_actions[agent_id])[0]
-            action = np.random.choice(avail_actions_ind)
-            actions.append(action)
-        return actions
+        return [self.env.action_space(agent).sample() for agent in self.agents]
 
     def set_seed(self, seed: int) -> None:
         self.seed = seed
@@ -95,19 +100,26 @@ class MPE2Environment(MARLEnvironment):
         return marl_state
 
     def _step(self, actions: list[int]) -> tuple:
+        # Convert list of actions to dict for PettingZoo
         action_dict = {agent: act for agent, act in zip(self.env.agents, actions)}
+
         obs_dict, rewards, terminations, truncations, infos = self.env.step(action_dict)
 
-        obs = np.stack([obs_dict[a] for a in self.agents])
-        state = obs.flatten()
+        # --- Convert dicts -> ordered arrays ---
+        obs_list = [obs_dict[a] for a in self.env.agents]
+        obs = np.stack(obs_list, axis=0)  # (n_agents, obs_dim)
+        state = np.concatenate(obs_list, axis=-1)  # flattened global state
+
         avail_actions = self.get_available_actions()
 
-        reward = rewards[list(self.agents)[0]]  # shared reward
-        done = np.array([terminations[a] or truncations[a] for a in self.agents])
-        all_done = np.all(done)
-
         marl_state = {"obs": obs, "state": state, "avail_actions": avail_actions}
-        return marl_state, reward, all_done, all_done, infos
+
+        # Convert rewards, terminations, truncations to arrays
+        rewards = [rewards[a] for a in self.env.agents]
+        terminations = [terminations[a] for a in self.env.agents]
+        truncations = [truncations[a] for a in self.env.agents]
+
+        return marl_state, rewards, terminations, truncations, infos
 
     def grab_frame(self, height: int = 240, width: int = 300) -> np.ndarray:
         frame = self.env.render()
