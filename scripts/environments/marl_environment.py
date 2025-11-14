@@ -27,12 +27,12 @@ class MARLEnvironment(BaseEnvironment):
 
     @cached_property
     @abc.abstractmethod
-    def min_action_value(self) -> float:
+    def min_action_value(self) -> list[np.ndarray]:
         raise NotImplementedError("Override this method")
 
     @cached_property
     @abc.abstractmethod
-    def max_action_value(self) -> float:
+    def max_action_value(self) -> list[np.ndarray]:
         raise NotImplementedError("Override this method")
 
     @cached_property

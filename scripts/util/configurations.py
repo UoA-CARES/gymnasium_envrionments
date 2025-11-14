@@ -91,3 +91,5 @@ class SMAC2Config(GymEnvironmentConfig):
 
 class MPEConfig(GymEnvironmentConfig):
     gym: ClassVar[str] = "mpe"
+
+    continuous_actions: int = 0

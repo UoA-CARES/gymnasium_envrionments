@@ -1,11 +1,9 @@
 import time
-from dataclasses import dataclass, field
 from multiprocessing.queues import Queue
 from pathlib import Path
 from typing import Any
 
-import numpy as np
-from base_runner import BaseRunner
+from base_runner import BaseRunner, EpisodeStats
 from cares_reinforcement_learning.memory.memory_buffer import MemoryBuffer
 from cares_reinforcement_learning.util import helpers as hlp
 from cares_reinforcement_learning.util.training_context import (
@@ -13,41 +11,6 @@ from cares_reinforcement_learning.util.training_context import (
     TrainingContext,
 )
 from util.repetition_manager import RepetitionManager
-
-
-@dataclass
-class EpisodeStats:
-    n_agents: int
-    rewards: np.ndarray = field(init=False)
-    steps: int = 0
-
-    def __post_init__(self) -> None:
-        self.rewards = np.zeros(self.n_agents, dtype=np.float32)
-
-    def update(self, reward: float | list[float] | np.ndarray) -> None:
-        if np.isscalar(reward):
-            # Single-agent case (broadcast to all)
-            reward_vector = np.full(self.n_agents, reward, dtype=np.float32)
-        else:
-            reward_vector = np.asarray(reward, dtype=np.float32)
-
-        self.rewards += np.asarray(reward_vector)
-        self.steps += 1
-
-    def get_episode_reward(self) -> float:
-        return float(np.sum(self.rewards))
-
-    def summary(self) -> dict[str, float]:
-        return {
-            "episode_steps": self.steps,
-            "episode_reward": self.get_episode_reward(),
-            "episode_reward_mean": float(np.mean(self.rewards)),
-            **{f"agent_{i}_reward": float(r) for i, r in enumerate(self.rewards)},
-        }
-
-    def reset(self) -> None:
-        self.rewards[:] = 0
-        self.steps = 0
 
 
 class TrainingRunner(BaseRunner):
@@ -335,7 +298,7 @@ class TrainingRunner(BaseRunner):
 
         # Initialize training state
         episode_num = 0
-        episode_stats = EpisodeStats(n_agents=1)
+        episode_stats = EpisodeStats(n_agents=self.env.num_agents)
 
         state = self.env.reset()
         episode_start = time.time()
@@ -347,6 +310,8 @@ class TrainingRunner(BaseRunner):
         ):
             info: dict = {}
 
+            episode_stats.step()
+
             status = (
                 "training"
                 if train_step_counter >= self.max_steps_exploration
@@ -356,7 +321,7 @@ class TrainingRunner(BaseRunner):
 
             # Determine action based on training phase
             normalised_action, denormalised_action = self._select_action(
-                train_step_counter, episode_stats.steps + 1, state
+                train_step_counter, episode_stats.steps, state
             )
 
             # Record action and execute step
@@ -368,24 +333,30 @@ class TrainingRunner(BaseRunner):
                 denormalised_action
             )
 
+            all_done = all(done) if isinstance(done, list) else done
+            all_truncated = all(truncated) if isinstance(truncated, list) else truncated
+            episode_end = all_done or all_truncated
+
             if self.display:
                 self.env.render()
 
             # Calculate total reward (extrinsic + intrinsic)
             total_reward = reward_extrinsic
-            if train_step_counter > self.max_steps_exploration:
-                intrinsic_reward = self.agent.get_intrinsic_reward(
-                    state, normalised_action, next_state
-                )
-                # TODO doesn't function for multiagent yet
-                total_reward += intrinsic_reward
-                info["intrinsic_reward"] = intrinsic_reward
+
+            # TODO bring back for intrinsic rewards and modify for MARL
+            # if train_step_counter > self.max_steps_exploration:
+            #     intrinsic_reward = self.agent.get_intrinsic_reward(
+            #         state, normalised_action, next_state
+            #     )
+            #     total_reward += intrinsic_reward
+            #     info["intrinsic_reward"] = intrinsic_reward
 
             # Store experience in memory
             self.memory.add(state, normalised_action, total_reward, next_state, done)
 
             state = next_state
-            episode_stats.update(reward_extrinsic)
+
+            episode_stats.update_reward(reward_extrinsic)
 
             # Train policy if conditions are met
             if (
@@ -395,9 +366,9 @@ class TrainingRunner(BaseRunner):
                 train_info = self._update_policy(
                     train_step_counter,
                     episode_num,
-                    episode_stats.steps + 1,
+                    episode_stats.steps,
                     episode_stats.get_episode_reward(),
-                    done or truncated,
+                    episode_end,
                 )
                 info |= train_info
 
@@ -409,7 +380,7 @@ class TrainingRunner(BaseRunner):
                 self._run_evaluation(train_step_counter)
 
             # Handle episode completion
-            if done or truncated:
+            if episode_end:
                 episode_time = time.time() - episode_start
 
                 info.update(episode_stats.summary())
@@ -433,8 +404,6 @@ class TrainingRunner(BaseRunner):
                 state = self.env.reset()
                 episode_stats.reset()
 
-                episode_step = 0
-                episode_reward = 0
                 episode_num += 1
                 self.agent.episode_done()
 

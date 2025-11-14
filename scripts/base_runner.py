@@ -6,9 +6,11 @@ training and evaluation runners can inherit from, reducing code duplication.
 """
 
 from abc import ABC
+from dataclasses import dataclass, field
 from typing import Any
 
 import execution_logger as logs
+import numpy as np
 from cares_reinforcement_learning.algorithm.algorithm import Algorithm
 from cares_reinforcement_learning.memory.memory_factory import MemoryFactory
 from cares_reinforcement_learning.util import helpers as hlp
@@ -22,6 +24,43 @@ from environments.environment_factory import EnvironmentFactory
 from util.configurations import GymEnvironmentConfig
 from util.overlay import overlay_info
 from util.record import Record
+
+
+@dataclass
+class EpisodeStats:
+    n_agents: int
+    rewards: np.ndarray = field(init=False)
+    steps: int = 0
+
+    def __post_init__(self) -> None:
+        self.rewards = np.zeros(self.n_agents, dtype=np.float32)
+
+    def step(self) -> None:
+        self.steps += 1
+
+    def update_reward(self, reward: float | list[float] | np.ndarray) -> None:
+        if np.isscalar(reward):
+            # Single-agent case (broadcast to all)
+            reward_vector = np.full(self.n_agents, reward, dtype=np.float32)
+        else:
+            reward_vector = np.asarray(reward, dtype=np.float32)
+
+        self.rewards += np.asarray(reward_vector)
+
+    def get_episode_reward(self) -> float:
+        return float(np.sum(self.rewards))
+
+    def summary(self) -> dict[str, float]:
+        return {
+            "episode_steps": self.steps,
+            "episode_reward": self.get_episode_reward(),
+            "episode_reward_mean": float(np.mean(self.rewards)),
+            **{f"agent_{i}_reward": float(r) for i, r in enumerate(self.rewards)},
+        }
+
+    def reset(self) -> None:
+        self.rewards[:] = 0
+        self.steps = 0
 
 
 class BaseRunner(ABC):
@@ -148,20 +187,21 @@ class BaseRunner(ABC):
         Returns:
             Dictionary with episode results including reward, states, actions, etc.
         """
-        episode_timesteps = 0
-        episode_reward = 0.0
-        done = False
-        truncated = False
 
         episode_states = []
         episode_actions = []
         episode_rewards: list[float] = []
 
+        episode_stats = EpisodeStats(n_agents=self.env_eval.num_agents)
+
         # Reset environment
         state = self.env_eval.reset(training=False)
 
-        while not done and not truncated:
-            episode_timesteps += 1
+        all_done = False
+        all_truncated = False
+
+        while not all_done and not all_truncated:
+            episode_stats.step()
 
             # Action selection
             available_actions = self.env_eval.get_available_actions()
@@ -184,34 +224,41 @@ class BaseRunner(ABC):
             state, reward, done, truncated, env_info = self.env_eval.step(
                 denormalised_action
             )
-            episode_reward += reward
+
+            all_done = all(done) if isinstance(done, list) else done
+            all_truncated = all(truncated) if isinstance(truncated, list) else truncated
+            episode_end = all_done or all_truncated
+
+            episode_stats.update_reward(reward)
 
             # Collect data for bias calculation
             episode_states.append(state)
             episode_actions.append(normalised_action)
-            episode_rewards.append(reward)
+
+            # Just taking the sum reward for processing bias
+            episode_rewards.append(episode_stats.get_episode_reward())
 
             # Record video if requested
             if record_video and self.record is not None:
                 frame = self.env_eval.grab_frame()
                 overlay = overlay_info(
                     frame,
-                    reward=f"{episode_reward:.1f}",
+                    reward=f"{episode_stats.get_episode_reward():.1f}",
                     **self.env_eval.get_overlay_info(),
                 )
                 self.record.log_video(overlay)
 
         # Calculate bias and log results
         episode_results = {
-            "episode_reward": episode_reward,
-            "episode_timesteps": episode_timesteps,
+            "episode_reward": episode_stats.get_episode_reward(),
+            "episode_timesteps": episode_stats.steps,
             "episode_states": episode_states,
             "episode_actions": episode_actions,
             "episode_rewards": episode_rewards,
-            "env_info": env_info if done or truncated else {},
+            "env_info": env_info,
         }
 
-        if done or truncated:
+        if episode_end:
             # Calculate bias
             bias_data = self.agent.calculate_bias(
                 episode_states, episode_actions, episode_rewards
@@ -223,10 +270,10 @@ class BaseRunner(ABC):
                 self.record.log_eval(
                     total_steps=log_step,
                     episode=episode_counter + 1,
-                    episode_reward=episode_reward,
                     display=True,
                     **env_info,
                     **bias_data,
+                    **episode_stats.summary(),
                 )
 
             self.agent.episode_done()

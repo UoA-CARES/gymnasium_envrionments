@@ -45,12 +45,18 @@ class SMAC2Environment(MARLEnvironment):
         self.reset(training=not evaluation)
 
     @cached_property
-    def max_action_value(self) -> float:
-        return 1
+    def max_action_value(self) -> list[np.ndarray]:
+        max_action_values = []
+        for _ in range(self.env_info["n_agents"]):
+            max_action_values.append(np.array(1.0))
+        return max_action_values
 
     @cached_property
-    def min_action_value(self) -> float:
-        return 0
+    def min_action_value(self) -> list[np.ndarray]:
+        min_action_values = []
+        for _ in range(self.env_info["n_agents"]):
+            min_action_values.append(np.array(0.0))
+        return min_action_values
 
     @cached_property
     def observation_space(self) -> dict[str, int]:
@@ -62,6 +68,10 @@ class SMAC2Environment(MARLEnvironment):
         observation_space["num_agents"] = self.env_info["n_agents"]
 
         return observation_space
+
+    @cached_property
+    def num_agents(self) -> int:
+        return self.env_info["n_agents"]
 
     @cached_property
     def action_num(self) -> int:
@@ -117,7 +127,11 @@ class SMAC2Environment(MARLEnvironment):
         marl_state["obs"] = self.env.get_obs()
         marl_state["avail_actions"] = self.env.get_avail_actions()
 
-        return marl_state, reward, done, done, info
+        rewards = [0] * self.env_info["n_agents"]
+        rewards[0] = reward  # Assuming reward is for all agents equally
+        dones = [done] * self.env_info["n_agents"]
+
+        return marl_state, rewards, dones, dones, info
 
     def grab_frame(self, height: int = 240, width: int = 300) -> np.ndarray:
         frame = self.env.render(mode="rgb_array")

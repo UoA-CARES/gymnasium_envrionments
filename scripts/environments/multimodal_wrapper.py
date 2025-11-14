@@ -47,12 +47,16 @@ class MultiModalWrapper:
         return self.gym.action_num
 
     @cached_property
-    def min_action_value(self) -> float:
+    def min_action_value(self) -> np.ndarray:
         return self.gym.min_action_value
 
     @cached_property
-    def max_action_value(self) -> float:
+    def max_action_value(self) -> np.ndarray:
         return self.gym.max_action_value
+
+    @cached_property
+    def num_agents(self) -> int:
+        return self.gym.num_agents
 
     def render(self):
         self.gym.render()

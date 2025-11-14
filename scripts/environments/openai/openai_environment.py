@@ -14,12 +14,12 @@ class OpenAIEnvironment(GymEnvironment):
         self.env = gym.make(config.task, render_mode="rgb_array")
 
     @cached_property
-    def max_action_value(self) -> float:
-        return self.env.action_space.high[0]
+    def max_action_value(self) -> np.ndarray:
+        return self.env.action_space.high
 
     @cached_property
-    def min_action_value(self) -> float:
-        return self.env.action_space.low[0]
+    def min_action_value(self) -> np.ndarray:
+        return self.env.action_space.low
 
     @cached_property
     def observation_space(self) -> int:

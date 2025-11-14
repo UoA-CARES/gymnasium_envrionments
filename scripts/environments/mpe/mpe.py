@@ -4,58 +4,60 @@ from typing import Any
 import cv2
 import numpy as np
 from environments.marl_environment import MARLEnvironment
+from gymnasium import spaces
 from mpe2 import all_modules as mpe_all
+from pettingzoo.utils.env import AgentID, ParallelEnv
 from util.configurations import MPEConfig
-from pettingzoo.utils.env import ParallelEnv, AgentID
 
 ALL_ENV_MODULES = {
     **mpe_all.mpe_environments,
 }
 
-"""
-Observations - dict per agent
 
-Acttions - dict per agent
-
-Rewards - dict per agent
-
-Terminations - dict per agent
-
-Truncations - dict per agent
-"""
-
-
-def make_env(env_name: str, render_mode=None) -> ParallelEnv:
+def make_env(env_name: str, render_mode=None, continuous_actions=False) -> ParallelEnv:
     if f"mpe/{env_name}" not in ALL_ENV_MODULES:
         raise ValueError(
             f"Unknown environment '{env_name}'. Available: {list(ALL_ENV_MODULES.keys())}"
         )
 
     module = ALL_ENV_MODULES[f"mpe/{env_name}"]
-    return (module.parallel_env)(render_mode=render_mode)
+    return (module.parallel_env)(
+        render_mode=render_mode, continuous_actions=continuous_actions
+    )
 
 
 class MPE2Environment(MARLEnvironment):
     def __init__(self, config: MPEConfig, evaluation: bool = False) -> None:
         super().__init__(config)
 
-        self.env = make_env(env_name=self.task, render_mode="rgb_array")
+        self.continuous_actions = bool(config.continuous_actions)
+
+        self.env = make_env(
+            env_name=self.task,
+            render_mode="rgb_array",
+            continuous_actions=self.continuous_actions,
+        )
 
         self.agents: list[AgentID] = []
 
         self.seed = 10
 
     @cached_property
-    def max_action_value(self) -> float:
-        return 1
+    def max_action_value(self) -> list[np.ndarray]:
+        max_action_values = []
+        for agent in self.env.agents:
+            max_action_values.append(self.env.action_space(agent).high)
+        return max_action_values
 
     @cached_property
-    def min_action_value(self) -> float:
-        return 0
+    def min_action_value(self) -> list[np.ndarray]:
+        min_action_values = []
+        for agent in self.env.agents:
+            min_action_values.append(self.env.action_space(agent).low)
+        return min_action_values
 
     @cached_property
     def observation_space(self) -> dict[str, int]:
-        """Return core observation/state dimensions for homogeneous MPE2 tasks."""
         agent_name = self.env.agents[0]
 
         obs_shape = self.env.observation_space(agent_name).shape[0]
@@ -69,8 +71,20 @@ class MPE2Environment(MARLEnvironment):
         }
 
     @cached_property
+    def num_agents(self) -> int:
+        return self.env.num_agents
+
+    @cached_property
     def action_num(self) -> int:
-        return self.env.action_space(self.env.agents[0]).n
+        if isinstance(self.env.action_space(self.env.agents[0]), spaces.Box):
+            action_num = self.env.action_space(self.env.agents[0]).shape[0]
+        elif isinstance(self.env.action_space(self.env.agents[0]), spaces.Discrete):
+            action_num = self.env.action_space(self.env.agents[0]).n
+        else:
+            raise ValueError(
+                f"Unhandled action space type: {type(self.env.action_space)}"
+            )
+        return action_num
 
     def get_available_actions(self) -> np.ndarray:
         return np.ones((len(self.agents), self.action_num), dtype=np.int32)
@@ -101,12 +115,12 @@ class MPE2Environment(MARLEnvironment):
 
     def _step(self, actions: list[int]) -> tuple:
         # Convert list of actions to dict for PettingZoo
-        action_dict = {agent: act for agent, act in zip(self.env.agents, actions)}
+        action_dict = {agent: act for agent, act in zip(self.agents, actions)}
 
         obs_dict, rewards, terminations, truncations, infos = self.env.step(action_dict)
 
         # --- Convert dicts -> ordered arrays ---
-        obs_list = [obs_dict[a] for a in self.env.agents]
+        obs_list = [obs_dict[a] for a in self.agents]
         obs = np.stack(obs_list, axis=0)  # (n_agents, obs_dim)
         state = np.concatenate(obs_list, axis=-1)  # flattened global state
 
@@ -115,9 +129,9 @@ class MPE2Environment(MARLEnvironment):
         marl_state = {"obs": obs, "state": state, "avail_actions": avail_actions}
 
         # Convert rewards, terminations, truncations to arrays
-        rewards = [rewards[a] for a in self.env.agents]
-        terminations = [terminations[a] for a in self.env.agents]
-        truncations = [truncations[a] for a in self.env.agents]
+        rewards = [rewards[a] for a in self.agents]
+        terminations = [terminations[a] for a in self.agents]
+        truncations = [truncations[a] for a in self.agents]
 
         return marl_state, rewards, terminations, truncations, infos
 
