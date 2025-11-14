@@ -39,6 +39,7 @@ class GymEnvironmentConfig(SubscriptableClass):
     frame_width: int = 84
     frame_height: int = 84
     grey_scale: int = 0
+    fps: int = 30
 
     def dict(self, *args, **kwargs):
         """Inject the class-level name into serialized dict."""
@@ -101,3 +102,4 @@ class GripperConfig(GymEnvironmentConfig):
 
 class AUVEnvironmentConfig(GymEnvironmentConfig):
     gym: ClassVar[str] = "auv"
+    fps: int = 1

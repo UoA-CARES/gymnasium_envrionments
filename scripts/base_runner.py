@@ -132,6 +132,8 @@ class BaseRunner(ABC):
             else self.training_config.number_eval_episodes
         )
 
+        self.fps = self.env_config.fps
+
     def _run_single_episode_evaluation(
         self,
         episode_counter: int,
@@ -251,7 +253,7 @@ class BaseRunner(ABC):
         """
         if self.record is not None:
             frame = self.env_eval.grab_frame()
-            self.record.start_video(video_label, frame)
+            self.record.start_video(video_label, frame, self.fps)
 
             log_path = self.record.current_sub_directory
             self.env_eval.set_log_path(log_path, log_step)
@@ -326,7 +328,7 @@ class BaseRunner(ABC):
             if self.record is not None:
                 frame = self.env_eval.grab_frame()
                 skill_video_label = f"{video_label}_skill_{skill}"
-                self.record.start_video(skill_video_label, frame)
+                self.record.start_video(skill_video_label, frame, self.fps)
 
                 log_path = self.record.current_sub_directory
                 self.env_eval.set_log_path(log_path, skill)

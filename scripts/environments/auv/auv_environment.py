@@ -40,7 +40,8 @@ class AUVEnvironment(GymEnvironment):
         return self.env.sample_action()
 
     def set_seed(self, seed: int) -> None:
-        pass
+        if hasattr(self.env, "set_seed"):
+            self.env.set_seed(seed)
 
     def reset(self, training: bool = True):
         return self.env.reset()
