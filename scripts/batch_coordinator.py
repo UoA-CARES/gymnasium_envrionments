@@ -6,17 +6,49 @@ configuration combination and prepares them for execution.
 
 import itertools
 
+from cares_reinforcement_learning.util.configurations import FunctionLayer, MLPConfig, TrainableLayer
+
 from execution_coordinator import ExecutionCoordinator
 import execution_logger as logs
 from util.rl_parser import RLParser
+
+relu: MLPConfig = MLPConfig(
+        layers=[
+            TrainableLayer(layer_type="Linear", out_features=64),
+            FunctionLayer(layer_type="ReLU"),
+            TrainableLayer(layer_type="Linear", in_features=64, out_features=64),
+            FunctionLayer(layer_type="ReLU"),
+            TrainableLayer(layer_type="Linear", in_features=64),
+        ]
+    )
+
+gelu: MLPConfig = MLPConfig(
+        layers=[
+            TrainableLayer(layer_type="Linear", out_features=64),
+            FunctionLayer(layer_type="GELU"),
+            TrainableLayer(layer_type="Linear", in_features=64, out_features=64),
+            FunctionLayer(layer_type="GELU"),
+            TrainableLayer(layer_type="Linear", in_features=64),
+        ]
+    )
+
+golu: MLPConfig = MLPConfig(
+        layers=[
+            TrainableLayer(layer_type="Linear", out_features=64),
+            FunctionLayer(layer_type="GoLU"),
+            TrainableLayer(layer_type="Linear", in_features=64, out_features=64),
+            FunctionLayer(layer_type="GoLU"),
+            TrainableLayer(layer_type="Linear", in_features=64),
+        ]
+    )
 
 # MARK: BATCH CONFIG
 # Configure batch parameters here. The cross-product of these lists will be used
 # to create multiple experiment configurations.
 batch_config: dict[str, list] = {
-    "train_seeds": [[42], [43], [44]],
-    "alg_config.actor_lr": [0.001, 0.0005],
-    "alg_config.batch_size": [64, 128],
+    "alg_config.network_config": [relu, gelu, golu],
+    # "env_config.domain": ["ball_in_cup", "walker"],
+    # "env_config.task": ["walk", "catch"],
 }
 
 # Get the main logger for this function
@@ -56,6 +88,9 @@ def get_batch_coordinators() -> list[tuple[ExecutionCoordinator, str]]:
 def get_name_from_config(config: dict, index: int) -> str:
     name_parts = []
     for key, value in config.items():
+        if not isinstance(value, str) and not isinstance(value, int) and not isinstance(value, float):
+            # TODO: make this better - but for now hash non-primitive types
+            value = hash(str(value))
         name_parts.append(f"{key.split('.')[-1]}-{value}")
     return f"[{index}]_" + "_".join(name_parts)
 
