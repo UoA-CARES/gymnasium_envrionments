@@ -6,10 +6,11 @@ This demonstrates how to replace the main() function logic with the new runner.
 import multiprocessing
 import sys
 
-from cares_reinforcement_learning.util import helpers as hlp
 from execution_coordinator import ExecutionCoordinator
 import execution_logger as logs
 from util.rl_parser import RLParser
+from batch_coordinator import get_batch_coordinators
+from cares_reinforcement_learning.util import helpers as hlp
 
 # Set up logging first - choose your preferred preset
 logs.LoggingPresets.production()  # or .production(), .quiet(), .debug()
@@ -26,6 +27,7 @@ def main_with_runner():
     # Parse configurations (same as before)
     parser = RLParser()
     configurations = parser.parse_args()
+    is_batch = configurations.get("env_config").batch == 1 # type: ignore
 
     # Create the execution coordinator
     coordinator = ExecutionCoordinator(configurations)
@@ -36,7 +38,7 @@ def main_with_runner():
 
     # Interactive prompts
     run_name = input(
-        "Double check your experiment configurations :) Press ENTER to continue. (Optional - Enter a name for this run)\n"
+        f"Double check your experiment configurations :) Press ENTER to continue. {'(Optional - Enter a name for this run)' if is_batch != 1 else ''}\n"
     )
 
     if device.type == "cpu":
@@ -62,14 +64,26 @@ def main_with_runner():
                 logger.info("Disabling training checkpoint saving.")
                 coordinator.env_config.save_train_checkpoints = False
 
-    # Setup directories and logging
-    coordinator.setup_logging_and_directories(run_name)
-
+    # Log command and data path
     logger.info(f"Command: {coordinator.run_config.command}")
     logger.info(f"Data Path: {coordinator.run_config.data_path}")
 
-    # Run the training process
-    coordinator.run()
+    if is_batch == 1:
+        # Create batch coordinators
+        batch_coordinators = get_batch_coordinators()
+        logger.info(f"Running batch of {len(batch_coordinators)} experiments.")
+
+        # Execute batch runs
+        for i, (batch_coordinator, batch_run_name) in enumerate(batch_coordinators):
+            logger.info(f"[{i+1}/{len(batch_coordinators)}] Running {batch_run_name}")
+            batch_coordinator.setup_logging_and_directories(batch_run_name)
+            batch_coordinator.run()
+        logger.info(f"Completed all {len(batch_coordinators)} batch experiments.")
+    else:
+        # Single Run
+        logger.info("Running single experiment.")
+        coordinator.setup_logging_and_directories(run_name)
+        coordinator.run()
 
 
 if __name__ == "__main__":
