@@ -5,6 +5,7 @@ configuration combination and prepares them for execution.
 """
 
 import itertools
+from typing import Any
 
 from cares_reinforcement_learning.util.configurations import FunctionLayer, MLPConfig, TrainableLayer
 
@@ -45,8 +46,8 @@ golu: MLPConfig = MLPConfig(
 # MARK: BATCH CONFIG
 # Configure batch parameters here. The cross-product of these lists will be used
 # to create multiple experiment configurations.
-batch_config: dict[str, list] = {
-    "alg_config.network_config": [relu, gelu, golu],
+batch_config: dict[str, list[Any | tuple[Any, str]]] = {
+    "alg_config.network_config": [(relu, "relu"), (gelu, "gelu"), (golu, "golu")],
     # "env_config.domain": ["ball_in_cup", "walker"],
     # "env_config.task": ["walk", "catch"],
 }
@@ -73,7 +74,7 @@ def get_batch_coordinators() -> list[tuple[ExecutionCoordinator, str]]:
     """
     # Expand batch configs into all combinations
     keys = list(batch_config.keys())
-    configs = [dict(zip(keys, config_values)) for config_values in itertools.product(*batch_config.values())]
+    configs = [create_config(keys, config_values) for config_values in itertools.product(*batch_config.values())]
 
     coordinators: list[tuple[ExecutionCoordinator, str]] = []
     for i, config in enumerate(configs):
@@ -85,26 +86,33 @@ def get_batch_coordinators() -> list[tuple[ExecutionCoordinator, str]]:
 
     return coordinators
 
-def get_name_from_config(config: dict, index: int) -> str:
+def create_config(keys: list[str], config_values: tuple[Any | tuple[Any, str], ...]) -> dict[str, tuple[Any, str]]:
+    config: dict[str, tuple[Any, str]] = {}
+    for i, value in enumerate(config_values):
+        # Ensure value is a tuple (actual_value, name)
+        if isinstance(value, tuple):
+            config[keys[i]] = value
+        else:
+            config[keys[i]] = (value, f"{keys[i]}-{value}")
+    return config
+
+def get_name_from_config(config: dict[str, tuple[Any, str]], index: int) -> str:
     name_parts = []
-    for key, value in config.items():
-        if not isinstance(value, str) and not isinstance(value, int) and not isinstance(value, float):
-            # TODO: make this better - but for now hash non-primitive types
-            value = hash(str(value))
-        name_parts.append(f"{key.split('.')[-1]}-{value}")
+    for value in config.values():
+        name_parts.append(value[1])
     return f"[{index}]_" + "_".join(name_parts)
 
-def config_to_coordinator(config: dict) -> ExecutionCoordinator:
+def config_to_coordinator(config: dict[str, tuple[Any, str]]) -> ExecutionCoordinator:
     parser = RLParser()
     base_configs = parser.parse_args()
     coordinator = ExecutionCoordinator(base_configs)
     replace_configurations(coordinator, config)
     return coordinator
 
-def replace_configurations(coordinator: ExecutionCoordinator, config: dict):
+def replace_configurations(coordinator: ExecutionCoordinator, config: dict[str, tuple[Any, str]]):
     for key, value in config.items():
         keys = key.split('.')
         obj = coordinator
         for k in keys[:-1]:
             obj = getattr(obj, k)
-        setattr(obj, keys[-1], value)
+        setattr(obj, keys[-1], value[0]) # value is a tuple (actual_value, name)
