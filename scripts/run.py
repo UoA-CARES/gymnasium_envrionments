@@ -38,7 +38,7 @@ def main_with_runner():
 
     # Interactive prompts
     run_name = input(
-        f"Double check your experiment configurations :) Press ENTER to continue. {'(Optional - Enter a name for this run)' if is_batch != 1 else ''}\n"
+        f"Double check your experiment configurations :) Press ENTER to continue. {'' if is_batch else '(Optional - Enter a name for this run)'}\n"
     )
 
     if device.type == "cpu":
@@ -68,7 +68,7 @@ def main_with_runner():
     logger.info(f"Command: {coordinator.run_config.command}")
     logger.info(f"Data Path: {coordinator.run_config.data_path}")
 
-    if is_batch == 1:
+    if is_batch:
         # Create batch coordinators
         batch_coordinators = get_batch_coordinators()
         logger.info(f"Running batch of {len(batch_coordinators)} experiments.")
