@@ -52,8 +52,8 @@ def batch_main_with_runner():
 
     # MARK: BATCHING LOGIC
     config_templates: dict[str, list] = {
-        "env_config.seed": [42, 43, 44],
-        "alg_config.learning_rate": [0.001, 0.0005],
+        "train_seeds": [[42], [43], [44]],
+        "alg_config.actor_lr": [0.001, 0.0005],
         "alg_config.batch_size": [64, 128],
     }
     keys = list(config_templates.keys())
