@@ -104,7 +104,7 @@ class MPE2Environment(MARLEnvironment):
 
         # Stack per-agent observations into an array
         obs = np.stack([obs_dict[a] for a in self.env.agents])
-        state = obs.flatten()  # simple concatenated global state
+        state = self.env.state()
 
         marl_state = {
             "obs": obs,
@@ -120,9 +120,8 @@ class MPE2Environment(MARLEnvironment):
         obs_dict, rewards, terminations, truncations, infos = self.env.step(action_dict)
 
         # --- Convert dicts -> ordered arrays ---
-        obs_list = [obs_dict[a] for a in self.agents]
-        obs = np.stack(obs_list, axis=0)  # (n_agents, obs_dim)
-        state = np.concatenate(obs_list, axis=-1)  # flattened global state
+        obs = np.stack([obs_dict[a] for a in self.agents])
+        state = self.env.state()
 
         avail_actions = self.get_available_actions()
 
