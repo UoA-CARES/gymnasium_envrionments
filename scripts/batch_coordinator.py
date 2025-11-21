@@ -13,44 +13,69 @@ from util.rl_parser import RLParser
 
 from cares_reinforcement_learning.util.configurations import FunctionLayer, MLPConfig, TrainableLayer
 
-relu: MLPConfig = MLPConfig(
+golu_a: MLPConfig = MLPConfig(
         layers=[
-            TrainableLayer(layer_type="Linear", out_features=64),
-            FunctionLayer(layer_type="ReLU"),
-            TrainableLayer(layer_type="Linear", in_features=64, out_features=64),
-            FunctionLayer(layer_type="ReLU"),
-            TrainableLayer(layer_type="Linear", in_features=64),
+            TrainableLayer(layer_type="Linear", out_features=256),
+            FunctionLayer(layer_type="GoLU"),
         ]
     )
 
-gelu: MLPConfig = MLPConfig(
+golu_c: MLPConfig = MLPConfig(
         layers=[
-            TrainableLayer(layer_type="Linear", out_features=64),
-            FunctionLayer(layer_type="GELU"),
-            TrainableLayer(layer_type="Linear", in_features=64, out_features=64),
-            FunctionLayer(layer_type="GELU"),
-            TrainableLayer(layer_type="Linear", in_features=64),
+            TrainableLayer(layer_type="Linear", out_features=256),
+            FunctionLayer(layer_type="GoLU"),
+            TrainableLayer(layer_type="Linear", in_features=256, out_features=1),
         ]
     )
 
-golu: MLPConfig = MLPConfig(
+gelu_a: MLPConfig = MLPConfig(
         layers=[
-            TrainableLayer(layer_type="Linear", out_features=64),
-            FunctionLayer(layer_type="GoLU"),
-            TrainableLayer(layer_type="Linear", in_features=64, out_features=64),
-            FunctionLayer(layer_type="GoLU"),
-            TrainableLayer(layer_type="Linear", in_features=64),
+            TrainableLayer(layer_type="Linear", out_features=256),
+            FunctionLayer(layer_type="GELU"),
+        ]
+    )
+
+gelu_c: MLPConfig = MLPConfig(
+        layers=[
+            TrainableLayer(layer_type="Linear", out_features=256),
+            FunctionLayer(layer_type="GELU"),
+            TrainableLayer(layer_type="Linear", in_features=256, out_features=1),
+        ]
+    )
+
+relu_a: MLPConfig = MLPConfig(
+        layers=[
+            TrainableLayer(layer_type="Linear", out_features=256),
+            FunctionLayer(layer_type="ReLU"),
+        ]
+    )
+
+relu_c: MLPConfig = MLPConfig(
+        layers=[
+            TrainableLayer(layer_type="Linear", out_features=256),
+            FunctionLayer(layer_type="ReLU"),
+            TrainableLayer(layer_type="Linear", in_features=256, out_features=1),
         ]
     )
 
 # MARK: BATCH CONFIG
 # Configure batch parameters here. The cross-product of these lists will be used
 # to create multiple experiment configurations.
+
+# python run.py train cli --gym dmcs --domain cartpole --task swingup --batch 1 SAC --seeds 10 20 30 40 50 --max_workers 5
 batch_config: dict[str, list[Any | tuple[Any, str]]] = {
-    "alg_config.network_config": [(relu, "relu"), (gelu, "gelu"), (golu, "golu")],
-    "env_config.domain": ["ball_in_cup", "walker"],
-    "env_config.task": ["catch", "walk"],
+    "alg_config.actor_config": [(relu_a, "relu"), (gelu_a, "gelu"), (golu_a, "golu")],
+    "alg_config.critic_config": [(relu_c, "relu"), (gelu_c, "gelu"), (golu_c, "golu")],
+    "env_config.domain": ["cheetah", "cartpole", "finger", "walker"],
+    "env_config.task": ["run", "swingup", "spin", "walk"],
 }
+
+# python run.py train cli --gym openai --task HalfCheetah-v4 --batch 1 SAC --seeds 10 20 30 40 50 --max_workers 5
+# batch_config: dict[str, list[Any | tuple[Any, str]]] = {
+#     "alg_config.actor_config": [(relu_a, "relu"), (gelu_a, "gelu"), (golu_a, "golu")],
+#     "alg_config.critic_config": [(relu_c, "relu"), (gelu_c, "gelu"), (golu_c, "golu")],
+#     "env_config.task": ["HalfCheetah-v4", "Humanoid-v4", "Ant-v4", "Hopper-v4"],
+# }
 
 def _skip(config: dict[str, tuple[Any, str]]) -> bool:
     """Determine if a given configuration combination should be skipped.
@@ -63,9 +88,19 @@ def _skip(config: dict[str, tuple[Any, str]]) -> bool:
     Returns:
         bool: True if the configuration should be skipped, False otherwise.
     """
-    # Implement skipping logic here if needed
-    return (config.get("env_config.domain", (None,))[0] == "ball_in_cup" and config.get("env_config.task", (None,))[0] == "walk") \
-        or (config.get("env_config.domain", (None,))[0] == "walker" and config.get("env_config.task", (None,))[0] == "catch")
+    # Homogeneous activations for actor and critic
+    if config.get("alg_config.actor_config", (None, "A"))[1] != config.get("alg_config.critic_config", (None, "B"))[1]:
+        return False
+
+    # OpenAI Gym tasks have no domain, only task
+    if config.get("env_config.domain") is None:
+        return True
+
+    # Match domain to task
+    return not ((config.get("env_config.domain", (None,))[0] == "cartpole" and config.get("env_config.task", (None,))[0] == "swingup") \
+        or (config.get("env_config.domain", (None,))[0] == "finger" and config.get("env_config.task", (None,))[0] == "spin") \
+        or (config.get("env_config.domain", (None,))[0] == "cheetah" and config.get("env_config.task", (None,))[0] == "run") \
+        or (config.get("env_config.domain", (None,))[0] == "walker" and config.get("env_config.task", (None,))[0] == "walk"))
 
 # -------------------------------------------------------------------
 
