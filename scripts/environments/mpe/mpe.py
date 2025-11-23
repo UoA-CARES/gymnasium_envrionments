@@ -57,17 +57,27 @@ class MPE2Environment(MARLEnvironment):
         return min_action_values
 
     @cached_property
-    def observation_space(self) -> dict[str, int]:
-        agent_name = self.env.agents[0]
+    def observation_space(self) -> dict[str, Any]:
+        """
+        Return observation and state dimensions for each agent and the global critic.
+        """
 
-        obs_shape = self.env.observation_space(agent_name).shape[0]
+        # 1. Per-agent observation shapes (may differ!)
+        obs_spaces = {
+            agent: self.env.observation_space(agent).shape[0]
+            for agent in self.env.agents
+        }
+
+        # 2. Global state shape (single vector from env.state())
+        state_shape = self.env.state_space.shape[0]
+
+        # 3. Number of agents
         num_agents = self.env.num_agents
-        state_shape = obs_shape * num_agents  # simple concatenated global state
 
         return {
-            "obs": obs_shape,
-            "state": state_shape,
-            "num_agents": num_agents,
+            "obs": obs_spaces,  # dict[str → obs_dim_i]
+            "state": state_shape,  # scalar int
+            "num_agents": num_agents,  # int
         }
 
     @cached_property
@@ -102,13 +112,9 @@ class MPE2Environment(MARLEnvironment):
 
         self.agents = self.env.agents
 
-        # Stack per-agent observations into an array
-        obs = np.stack([obs_dict[a] for a in self.env.agents])
-        state = self.env.state()
-
         marl_state = {
-            "obs": obs,
-            "state": state,
+            "obs": obs_dict,
+            "state": self.env.state(),
             "avail_actions": self.get_available_actions(),
         }
         return marl_state
@@ -119,13 +125,13 @@ class MPE2Environment(MARLEnvironment):
 
         obs_dict, rewards, terminations, truncations, infos = self.env.step(action_dict)
 
-        # --- Convert dicts -> ordered arrays ---
-        obs = np.stack([obs_dict[a] for a in self.agents])
-        state = self.env.state()
-
         avail_actions = self.get_available_actions()
 
-        marl_state = {"obs": obs, "state": state, "avail_actions": avail_actions}
+        marl_state = {
+            "obs": obs_dict,
+            "state": self.env.state(),
+            "avail_actions": avail_actions,
+        }
 
         # Convert rewards, terminations, truncations to arrays
         rewards = [rewards[a] for a in self.agents]

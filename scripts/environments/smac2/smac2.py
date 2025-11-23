@@ -42,6 +42,8 @@ class SMAC2Environment(MARLEnvironment):
 
         self.env_info = self.env.get_env_info()
 
+        self.agent_ids = [f"agent_{i}" for i in range(self.env_info["n_agents"])]
+
         self.reset(training=not evaluation)
 
     @cached_property
@@ -113,8 +115,11 @@ class SMAC2Environment(MARLEnvironment):
         marl_state = {}
         obs, state = self.env.reset()
 
+        # Convert obs list → dict[str -> obs_i]
+        obs_dict = {agent_id: obs[i] for i, agent_id in enumerate(self.agent_ids)}
+
         marl_state["state"] = state
-        marl_state["obs"] = obs
+        marl_state["obs"] = obs_dict
         marl_state["avail_actions"] = self.env.get_avail_actions()
 
         return marl_state
@@ -123,8 +128,12 @@ class SMAC2Environment(MARLEnvironment):
         marl_state = {}
         reward, done, info = self.env.step(actions)
 
+        obs = self.env.get_obs()
+        # Convert obs list → dict[str -> obs_i]
+        obs_dict = {agent_id: obs[i] for i, agent_id in enumerate(self.agent_ids)}
+
         marl_state["state"] = self.env.get_state()
-        marl_state["obs"] = self.env.get_obs()
+        marl_state["obs"] = obs_dict
         marl_state["avail_actions"] = self.env.get_avail_actions()
 
         rewards = [0] * self.env_info["n_agents"]
