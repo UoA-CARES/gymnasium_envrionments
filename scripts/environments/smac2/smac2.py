@@ -61,10 +61,14 @@ class SMAC2Environment(MARLEnvironment):
         return min_action_values
 
     @cached_property
-    def observation_space(self) -> dict[str, int]:
-        observation_space: dict[str, int] = {}
+    def observation_space(self) -> dict[str, Any]:
+        observation_space: dict[str, Any] = {}
 
-        observation_space["obs"] = self.env_info["obs_shape"]
+        obs_dict = {}
+        for agent_id in self.agent_ids:
+            obs_dict[agent_id] = self.env_info["obs_shape"]
+
+        observation_space["obs"] = obs_dict
 
         observation_space["state"] = self.env_info["state_shape"]
         observation_space["num_agents"] = self.env_info["n_agents"]
