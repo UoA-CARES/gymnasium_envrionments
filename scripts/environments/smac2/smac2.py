@@ -113,8 +113,6 @@ class SMAC2Environment(MARLEnvironment):
 
         self.env_info = self.env.get_env_info()
 
-        self.reset()
-
     def reset(self, training: bool = True) -> dict[str, Any]:
         marl_state = {}
         obs, state = self.env.reset()
