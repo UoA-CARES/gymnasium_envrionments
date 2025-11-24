@@ -51,7 +51,7 @@ class MARLEnvironment(BaseEnvironment):
         raise NotImplementedError("Override this method")
 
     @abc.abstractmethod
-    def sample_action(self) -> list[int]:
+    def sample_action(self) -> list[Any]:
         """
         Sample random actions for all agents.
         Returns: List of actions, one per agent
@@ -71,7 +71,7 @@ class MARLEnvironment(BaseEnvironment):
         raise NotImplementedError("Override this method")
 
     @abc.abstractmethod
-    def _step(self, actions: list[int]) -> tuple:
+    def _step(self, actions: list[Any]) -> tuple:
         """
         Internal step function that executes actions for all agents.
         Args:
@@ -81,7 +81,7 @@ class MARLEnvironment(BaseEnvironment):
         """
         raise NotImplementedError("Override this method")
 
-    def step(self, action: list[int]) -> tuple:
+    def step(self, action: list[Any]) -> tuple:
         """
         Execute one step with actions from all agents.
         Args:
