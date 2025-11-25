@@ -69,9 +69,20 @@ def main_with_runner():
     logger.info(f"Data Path: {coordinator.run_config.data_path}")
 
     if is_batch:
-        # Create batch coordinators
         batch_coordinators = get_batch_coordinators()
-        logger.info(f"Running batch of {len(batch_coordinators)} experiments.")
+
+        # User confirmation
+        print("---------------------------------------------------")
+        print("BATCH RUNS")
+        print("---------------------------------------------------")
+        for i, (_, batch_run_name) in enumerate(batch_coordinators):
+            print(f"[{i+1}/{len(batch_coordinators)}] {batch_run_name}")
+        batch_confirmation = input(
+            f"Running batch of {len(batch_coordinators)} experiments. Do you want to continue? [y/n]\n"
+        )
+        if batch_confirmation not in ["y", "Y"]:
+            logger.info("Terminating Batch Experiment as per user request.")
+            sys.exit()
 
         # Execute batch runs
         for i, (batch_coordinator, batch_run_name) in enumerate(batch_coordinators):

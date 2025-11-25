@@ -129,13 +129,15 @@ def get_batch_coordinators() -> list[tuple[ExecutionCoordinator, str]]:
     configs = [_create_config(keys, config_values) for config_values in itertools.product(*batch_config.values())]
 
     coordinators: list[tuple[ExecutionCoordinator, str]] = []
-    for i, config in enumerate(configs):
+    i = 0
+    for config in configs:
         # Certain combinations may be invalid - skip these
         if _skip(config):
             continue
+        i += 1
 
         # Setup specific name and coordinator
-        run_name = _get_name_from_config(config, i+1)
+        run_name = _get_name_from_config(config, i)
         coordinator = _config_to_coordinator(config)
         _replace_configurations(coordinator, config)
         coordinators.append((coordinator, run_name))
