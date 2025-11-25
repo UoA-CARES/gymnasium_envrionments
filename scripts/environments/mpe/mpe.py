@@ -4,110 +4,147 @@ from typing import Any
 import cv2
 import numpy as np
 from environments.marl_environment import MARLEnvironment
+from gymnasium import spaces
 from mpe2 import all_modules as mpe_all
+from pettingzoo.utils.env import AgentID, ParallelEnv
 from util.configurations import MPEConfig
-from pettingzoo.utils.env import ParallelEnv, AgentID
 
 ALL_ENV_MODULES = {
     **mpe_all.mpe_environments,
-    # Add others here, e.g., "smac/3m": smac_3m
 }
 
 
-def make_env(env_name: str, render_mode=None) -> ParallelEnv:
+def make_env(env_name: str, render_mode=None, continuous_actions=False) -> ParallelEnv:
     if f"mpe/{env_name}" not in ALL_ENV_MODULES:
         raise ValueError(
             f"Unknown environment '{env_name}'. Available: {list(ALL_ENV_MODULES.keys())}"
         )
 
     module = ALL_ENV_MODULES[f"mpe/{env_name}"]
-    return (module.parallel_env)(render_mode=render_mode)
+    return (module.parallel_env)(
+        render_mode=render_mode, continuous_actions=continuous_actions
+    )
 
 
 class MPE2Environment(MARLEnvironment):
     def __init__(self, config: MPEConfig, evaluation: bool = False) -> None:
         super().__init__(config)
 
-        self.env = make_env(env_name=self.task, render_mode="rgb_array")
+        self.continuous_actions = bool(config.continuous_actions)
+
+        self.env = make_env(
+            env_name=self.task,
+            render_mode="rgb_array",
+            continuous_actions=self.continuous_actions,
+        )
 
         self.agents: list[AgentID] = []
 
         self.seed = 10
 
     @cached_property
-    def max_action_value(self) -> float:
-        return 1
+    def max_action_value(self) -> list[np.ndarray]:
+        max_action_values = []
+        for agent in self.env.agents:
+            max_action_values.append(self.env.action_space(agent).high)
+        return max_action_values
 
     @cached_property
-    def min_action_value(self) -> float:
-        return 0
+    def min_action_value(self) -> list[np.ndarray]:
+        min_action_values = []
+        for agent in self.env.agents:
+            min_action_values.append(self.env.action_space(agent).low)
+        return min_action_values
 
     @cached_property
-    def observation_space(self) -> dict[str, int]:
-        """Return core observation/state dimensions for homogeneous MPE2 tasks."""
-        agent_name = self.env.agents[0]
+    def observation_space(self) -> dict[str, Any]:
+        """
+        Return observation and state dimensions for each agent and the global critic.
+        """
 
-        obs_shape = self.env.observation_space(agent_name).shape[0]
+        # 1. Per-agent observation shapes (may differ!)
+        obs_spaces = {
+            agent: self.env.observation_space(agent).shape[0]
+            for agent in self.env.agents
+        }
+
+        # 2. Global state shape (single vector from env.state())
+        state_shape = self.env.state_space.shape[0]
+
+        # 3. Number of agents
         num_agents = self.env.num_agents
-        state_shape = obs_shape * num_agents  # simple concatenated global state
 
         return {
-            "obs": obs_shape,
-            "state": state_shape,
-            "num_agents": num_agents,
+            "obs": obs_spaces,  # dict[str → obs_dim_i]
+            "state": state_shape,  # scalar int
+            "num_agents": num_agents,  # int
         }
 
     @cached_property
+    def num_agents(self) -> int:
+        return self.env.num_agents
+
+    @cached_property
     def action_num(self) -> int:
-        return self.env.action_space(self.env.agents[0]).n
+        if isinstance(self.env.action_space(self.env.agents[0]), spaces.Box):
+            action_num = self.env.action_space(self.env.agents[0]).shape[0]
+        elif isinstance(self.env.action_space(self.env.agents[0]), spaces.Discrete):
+            action_num = self.env.action_space(self.env.agents[0]).n
+        else:
+            raise ValueError(
+                f"Unhandled action space type: {type(self.env.action_space)}"
+            )
+        return action_num
 
     def get_available_actions(self) -> np.ndarray:
         return np.ones((len(self.agents), self.action_num), dtype=np.int32)
 
     def sample_action(self) -> list[int]:
-        actions = []
-        avail_actions = self.get_available_actions()
-        for agent_id in range(len(self.agents)):
-            avail_actions_ind = np.nonzero(avail_actions[agent_id])[0]
-            action = np.random.choice(avail_actions_ind)
-            actions.append(action)
-        return actions
+        return [self.env.action_space(agent).sample() for agent in self.agents]
 
     def set_seed(self, seed: int) -> None:
         self.seed = seed
-        self.env.reset(seed=seed)
+
+        self.env.reset(seed=self.seed)
+
+        # Seed action and observation spaces
+        for agent in self.env.agents:
+            self.env.action_space(agent).seed(self.seed)
+            self.env.observation_space(agent).seed(self.seed)
 
     def reset(self, training: bool = True) -> dict[str, Any]:
         """Reset PettingZoo parallel env and return MARL-compatible state dict."""
-        obs_dict, info = self.env.reset(seed=self.seed)
+        obs_dict, info = self.env.reset()
 
         self.agents = self.env.agents
 
-        # Stack per-agent observations into an array
-        obs = np.stack([obs_dict[a] for a in self.env.agents])
-        state = obs.flatten()  # simple concatenated global state
-
         marl_state = {
-            "obs": obs,
-            "state": state,
+            "obs": obs_dict,
+            "state": self.env.state(),
             "avail_actions": self.get_available_actions(),
         }
         return marl_state
 
     def _step(self, actions: list[int]) -> tuple:
-        action_dict = {agent: act for agent, act in zip(self.env.agents, actions)}
+        # Convert list of actions to dict for PettingZoo
+        action_dict = {agent: act for agent, act in zip(self.agents, actions)}
+
         obs_dict, rewards, terminations, truncations, infos = self.env.step(action_dict)
 
-        obs = np.stack([obs_dict[a] for a in self.agents])
-        state = obs.flatten()
         avail_actions = self.get_available_actions()
 
-        reward = rewards[list(self.agents)[0]]  # shared reward
-        done = np.array([terminations[a] or truncations[a] for a in self.agents])
-        all_done = np.all(done)
+        marl_state = {
+            "obs": obs_dict,
+            "state": self.env.state(),
+            "avail_actions": avail_actions,
+        }
 
-        marl_state = {"obs": obs, "state": state, "avail_actions": avail_actions}
-        return marl_state, reward, all_done, all_done, infos
+        # Convert rewards, terminations, truncations to arrays
+        rewards = [rewards[a] for a in self.agents]
+        terminations = [terminations[a] for a in self.agents]
+        truncations = [truncations[a] for a in self.agents]
+
+        return marl_state, rewards, terminations, truncations, infos
 
     def grab_frame(self, height: int = 240, width: int = 300) -> np.ndarray:
         frame = self.env.render()

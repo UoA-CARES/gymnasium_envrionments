@@ -40,6 +40,8 @@ class GymEnvironmentConfig(SubscriptableClass):
     frame_height: int = 84
     grey_scale: int = 0
 
+    record_video_fps: int = 30
+
     def dict(self, *args, **kwargs):
         """Inject the class-level name into serialized dict."""
         data = super().dict(*args, **kwargs)
@@ -79,6 +81,8 @@ class SMACConfig(GymEnvironmentConfig):
 
     task: str = "3m"
 
+    record_video_fps: int = 5
+
 
 class SMAC2Config(GymEnvironmentConfig):
     gym: ClassVar[str] = "smac2"
@@ -88,6 +92,12 @@ class SMAC2Config(GymEnvironmentConfig):
     n_units: int = 3
     n_enemies: int = 3
 
+    record_video_fps: int = 5
+
 
 class MPEConfig(GymEnvironmentConfig):
     gym: ClassVar[str] = "mpe"
+
+    continuous_actions: int = 0
+
+    record_video_fps: int = 5

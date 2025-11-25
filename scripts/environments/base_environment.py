@@ -39,6 +39,10 @@ class BaseEnvironment(metaclass=abc.ABCMeta):
     def get_available_actions(self) -> np.ndarray:
         return np.array([])
 
+    @cached_property
+    def num_agents(self) -> int:
+        return 1
+
     @abc.abstractmethod
     def get_overlay_info(self) -> dict:
         raise NotImplementedError("Override this method")

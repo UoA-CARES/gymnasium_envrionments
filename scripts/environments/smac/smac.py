@@ -16,26 +16,42 @@ class SMACEnvironment(MARLEnvironment):
 
         self.env_info = self.env.get_env_info()
 
+        self.agent_ids = [f"agent_{i}" for i in range(self.env_info["n_agents"])]
+
         self.reset(training=not evaluation)
 
     @cached_property
-    def max_action_value(self) -> float:
-        return 1
+    def max_action_value(self) -> list[np.ndarray]:
+        max_action_values = []
+        for _ in range(self.env_info["n_agents"]):
+            max_action_values.append(np.array(1.0))
+        return max_action_values
 
     @cached_property
-    def min_action_value(self) -> float:
-        return 0
+    def min_action_value(self) -> list[np.ndarray]:
+        min_action_values = []
+        for _ in range(self.env_info["n_agents"]):
+            min_action_values.append(np.array(0.0))
+        return min_action_values
 
     @cached_property
-    def observation_space(self) -> dict[str, int]:
-        observation_space: dict[str, int] = {}
+    def observation_space(self) -> dict[str, Any]:
+        observation_space: dict[str, Any] = {}
 
-        observation_space["obs"] = self.env_info["obs_shape"]
+        obs_dict = {}
+        for agent_id in self.agent_ids:
+            obs_dict[agent_id] = self.env_info["obs_shape"]
+
+        observation_space["obs"] = obs_dict
 
         observation_space["state"] = self.env_info["state_shape"]
         observation_space["num_agents"] = self.env_info["n_agents"]
 
         return observation_space
+
+    @cached_property
+    def num_agents(self) -> int:
+        return self.env_info["n_agents"]
 
     @cached_property
     def action_num(self) -> int:
@@ -68,8 +84,11 @@ class SMACEnvironment(MARLEnvironment):
         marl_state = {}
         obs, state = self.env.reset()
 
+        # Convert obs list → dict[str -> obs_i]
+        obs_dict = {agent_id: obs[i] for i, agent_id in enumerate(self.agent_ids)}
+
         marl_state["state"] = state
-        marl_state["obs"] = obs
+        marl_state["obs"] = obs_dict
         marl_state["avail_actions"] = self.env.get_avail_actions()
 
         return marl_state
@@ -78,11 +97,19 @@ class SMACEnvironment(MARLEnvironment):
         marl_state = {}
         reward, done, info = self.env.step(actions)
 
+        obs = self.env.get_obs()
+        # Convert obs list → dict[str -> obs_i]
+        obs_dict = {agent_id: obs[i] for i, agent_id in enumerate(self.agent_ids)}
+
         marl_state["state"] = self.env.get_state()
-        marl_state["obs"] = self.env.get_obs()
+        marl_state["obs"] = obs_dict
         marl_state["avail_actions"] = self.env.get_avail_actions()
 
-        return marl_state, reward, done, done, info
+        rewards = [0] * self.env_info["n_agents"]
+        rewards[0] = reward  # Assuming reward is for all agents equally
+        dones = [done] * self.env_info["n_agents"]
+
+        return marl_state, rewards, dones, dones, info
 
     def grab_frame(self, height: int = 240, width: int = 300) -> np.ndarray:
         frame = self.env.render(mode="rgb_array")

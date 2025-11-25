@@ -3,7 +3,7 @@ from multiprocessing.queues import Queue
 from pathlib import Path
 from typing import Any
 
-from base_runner import BaseRunner
+from base_runner import BaseRunner, EpisodeStats
 from cares_reinforcement_learning.memory.memory_buffer import MemoryBuffer
 from cares_reinforcement_learning.util import helpers as hlp
 from cares_reinforcement_learning.util.training_context import (
@@ -298,8 +298,7 @@ class TrainingRunner(BaseRunner):
 
         # Initialize training state
         episode_num = 0
-        episode_step = 0
-        episode_reward = 0
+        episode_stats = EpisodeStats(n_agents=self.env.num_agents)
 
         state = self.env.reset()
         episode_start = time.time()
@@ -309,9 +308,9 @@ class TrainingRunner(BaseRunner):
         for train_step_counter in range(
             self.start_training_step, int(self.max_steps_training)
         ):
-            episode_step += 1
-
             info: dict = {}
+
+            episode_stats.step()
 
             status = (
                 "training"
@@ -322,35 +321,42 @@ class TrainingRunner(BaseRunner):
 
             # Determine action based on training phase
             normalised_action, denormalised_action = self._select_action(
-                train_step_counter, episode_step, state
+                train_step_counter, episode_stats.steps, state
             )
 
             # Record action and execute step
             self.repetition_manager.record_action(denormalised_action)
             info |= self.repetition_manager.get_status_info()
 
+            # TODO handle done or truncated per agent
             next_state, reward_extrinsic, done, truncated, env_info = self.env.step(
                 denormalised_action
             )
+
+            all_done = all(done) if isinstance(done, list) else done
+            all_truncated = all(truncated) if isinstance(truncated, list) else truncated
+            episode_end = all_done or all_truncated
 
             if self.display:
                 self.env.render()
 
             # Calculate total reward (extrinsic + intrinsic)
-            intrinsic_reward = 0
-            if train_step_counter > self.max_steps_exploration:
-                intrinsic_reward = self.agent.get_intrinsic_reward(
-                    state, normalised_action, next_state
-                )
+            total_reward = reward_extrinsic
 
-            total_reward = reward_extrinsic + intrinsic_reward
+            # TODO bring back for intrinsic rewards and modify for MARL
+            # if train_step_counter > self.max_steps_exploration:
+            #     intrinsic_reward = self.agent.get_intrinsic_reward(
+            #         state, normalised_action, next_state
+            #     )
+            #     total_reward += intrinsic_reward
+            #     info["intrinsic_reward"] = intrinsic_reward
 
             # Store experience in memory
             self.memory.add(state, normalised_action, total_reward, next_state, done)
 
             state = next_state
-            episode_reward += reward_extrinsic
-            info["intrinsic_reward"] = intrinsic_reward
+
+            episode_stats.update_reward(reward_extrinsic)
 
             # Train policy if conditions are met
             if (
@@ -360,9 +366,9 @@ class TrainingRunner(BaseRunner):
                 train_info = self._update_policy(
                     train_step_counter,
                     episode_num,
-                    episode_step,
-                    episode_reward,
-                    done or truncated,
+                    episode_stats.steps,
+                    episode_stats.get_episode_reward(),
+                    episode_end,
                 )
                 info |= train_info
 
@@ -374,15 +380,15 @@ class TrainingRunner(BaseRunner):
                 self._run_evaluation(train_step_counter)
 
             # Handle episode completion
-            if done or truncated:
+            if episode_end:
                 episode_time = time.time() - episode_start
+
+                info.update(episode_stats.summary())
 
                 # Log training data
                 self.record.log_train(
                     total_steps=train_step_counter + 1,
                     episode=episode_num + 1,
-                    episode_steps=episode_step,
-                    episode_reward=episode_reward,
                     episode_time=episode_time,
                     **env_info,
                     **info,
@@ -390,14 +396,17 @@ class TrainingRunner(BaseRunner):
                 )
 
                 # Handle any logic at episode end
-                self._finalise_episode(train_step_counter, episode_reward)
+                self._finalise_episode(
+                    train_step_counter, episode_stats.get_episode_reward()
+                )
 
                 # Reset for next episode
                 state = self.env.reset()
-                episode_step = 0
-                episode_reward = 0
+                episode_stats.reset()
+
                 episode_num += 1
                 self.agent.episode_done()
+
                 episode_start = time.time()
 
         end_time = time.time()

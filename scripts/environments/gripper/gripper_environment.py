@@ -19,11 +19,11 @@ class GripperEnvironment(GymEnvironment):
         self.env = factory.create_environment(self.domain, self.task, self.gripper_id)
 
     @cached_property
-    def min_action_value(self) -> float:
+    def min_action_value(self) -> np.ndarray:
         return self.env.min_action_value
 
     @cached_property
-    def max_action_value(self) -> float:
+    def max_action_value(self) -> np.ndarray:
         return self.env.max_action_value
 
     @cached_property
