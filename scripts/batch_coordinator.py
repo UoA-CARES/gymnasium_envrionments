@@ -90,11 +90,11 @@ def _skip(config: dict[str, tuple[Any, str]]) -> bool:
     """
     # Homogeneous activations for actor and critic
     if config.get("alg_config.actor_config", (None, "A"))[1] != config.get("alg_config.critic_config", (None, "B"))[1]:
-        return False
+        return True
 
     # OpenAI Gym tasks have no domain, only task
     if config.get("env_config.domain") is None:
-        return True
+        return False # Do not skip
 
     # Match domain to task
     return not ((config.get("env_config.domain", (None,))[0] == "cartpole" and config.get("env_config.task", (None,))[0] == "swingup") \
