@@ -111,6 +111,8 @@ class BaseRunner(ABC):
         self.network_factory = NetworkFactory()
         self.memory_factory = MemoryFactory()
 
+        self.fps = self.env_config.record_video_fps
+
         # Create record for this seed
         self.record = Record(
             base_directory=base_log_dir,
@@ -297,7 +299,7 @@ class BaseRunner(ABC):
         """
         if self.record is not None:
             frame = self.env_eval.grab_frame()
-            self.record.start_video(video_label, frame)
+            self.record.start_video(video_label, frame, fps=self.fps)
 
             log_path = self.record.current_sub_directory
             self.env_eval.set_log_path(log_path, log_step)
