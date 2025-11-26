@@ -42,9 +42,8 @@ class GymEnvironmentConfig(SubscriptableClass):
 
     record_video_fps: int = 30
 
-    def dict(self, *args, **kwargs):
-        """Inject the class-level name into serialized dict."""
-        data = super().dict(*args, **kwargs)
+    def model_dump(self, *args, **kwargs):
+        data = super().model_dump(*args, **kwargs)
         data["gym"] = self.__class__.gym
         return data
 

@@ -95,7 +95,7 @@ class Record:
         with open(
             f"{self.base_directory}/{file_name}.json", "w", encoding="utf-8"
         ) as outfile:
-            json.dump(configuration.dict(exclude_none=True), outfile)
+            json.dump(configuration.model_dump(exclude_none=True), outfile)
 
     def save_configurations(self, configurations: dict) -> None:
         for config_name, config in configurations.items():
