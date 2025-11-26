@@ -69,6 +69,10 @@ class ShowdownConfig(GymEnvironmentConfig):
     gym: ClassVar[str] = "showdown"
 
 
+class DroneConfig(GymEnvironmentConfig):
+    gym: ClassVar[str] = "drone"
+
+
 class GripperConfig(GymEnvironmentConfig):
     gym: ClassVar[str] = "gripper"
 
