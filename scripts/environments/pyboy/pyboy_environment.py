@@ -36,9 +36,7 @@ class PyboyEnvironment(GymEnvironment):
         return self.env.action_num
 
     def sample_action(self):
-        return np.random.uniform(
-            self.min_action_value, self.max_action_value, size=self.action_num
-        )
+        return self.env.sample_action()
 
     def set_seed(self, seed: int) -> None:
         self.env.set_seed(seed)
@@ -46,7 +44,7 @@ class PyboyEnvironment(GymEnvironment):
     def reset(self, training: bool = True) -> np.ndarray:
         return self.env.reset(training=training)
 
-    def step(self, action: int) -> tuple:
+    def _step(self, action: int) -> tuple:
         return self.env.step(action)
 
     def grab_frame(self, height=240, width=300) -> np.ndarray:
@@ -54,3 +52,8 @@ class PyboyEnvironment(GymEnvironment):
 
     def get_overlay_info(self) -> dict:
         return self.env.get_overlay_info()
+
+    def get_multimodal_observation(self) -> dict:
+        # Default implementation, override if necessary
+        # TODO Sam - create a get_multimodal_observation method in pyboy side and call here
+        return {}

@@ -5,7 +5,7 @@ import json
 import logging
 import sys
 from argparse import Namespace
-from typing import Any, get_origin
+from typing import Any, Union, get_args, get_origin
 
 from cares_reinforcement_learning.util import configurations
 from cares_reinforcement_learning.util.configurations import (
@@ -13,17 +13,50 @@ from cares_reinforcement_learning.util.configurations import (
     SubscriptableClass,
     TrainingConfig,
 )
-from pydantic import Field
+from pydantic_core import PydanticUndefined
 
 from . import configurations as cfg
 
 
+# TODO command specific args
 class RunConfig(SubscriptableClass):
     command: str
-    data_path: str | None
+    data_path: str | None = None
 
-    seeds: list[int] | None = None
+    eval_seed: int | None = None
     episodes: int | None = None
+
+
+def annotation_to_argparse_type(annotation):
+    """
+    Convert a Pydantic v2 annotation into an argparse-compatible type function.
+    """
+    origin = get_origin(annotation)
+
+    # Handle Optional[T] or Union[T, None]
+    if origin is Union:
+        args = [a for a in get_args(annotation) if a is not type(None)]
+        if len(args) == 1:
+            return annotation_to_argparse_type(args[0])
+        else:
+            # Multi-type unions cannot map to a single type
+            return str
+
+    # Handle list inputs
+    if origin is list:
+        elem_type = get_args(annotation)[0]
+        return annotation_to_argparse_type(elem_type)
+
+    # Handle dict / tuple by parsing literal input
+    if origin in (dict, tuple):
+        return ast.literal_eval
+
+    # Basic built-in types
+    if annotation in (int, float, str, bool):
+        return annotation
+
+    # Fallback
+    return str
 
 
 class RLParser:
@@ -56,27 +89,29 @@ class RLParser:
     def _add_model(
         self, parser: argparse.ArgumentParser, model: type[AlgorithmConfig]
     ) -> None:
-        fields = model.__fields__
+        fields = model.model_fields
         for name, field in fields.items():
             # Check for list type (or other iterable types)
             nargs = "+" if get_origin(field.annotation) is list else None
 
-            # Handle default_factory for mutable fields like dict or list
-            default_value = field.default
-            if default_value is None and field.default_factory is not None:
+            # Default value handling
+            if field.default is not PydanticUndefined:
+                default_value = field.default
+            elif field.default_factory is not None:
                 default_value = field.default_factory()
+            else:
+                default_value = None
 
-            field_type = field.type_
-            if get_origin(field.annotation) in [dict, tuple]:
-                field_type = ast.literal_eval
+            # argparse type resolution
+            arg_type = annotation_to_argparse_type(field.annotation)
 
             parser.add_argument(
                 f"--{name}",
                 dest=name,
-                type=field_type,
+                type=arg_type,
                 default=default_value,
-                help=field.field_info.description,
-                required=field.required,  # type: ignore[arg-type]
+                help=field.description,
+                required=field.is_required(),  # type: ignore[arg-type]
                 nargs=nargs,
             )
 
@@ -245,11 +280,10 @@ class RLParser:
         )
 
         required.add_argument(
-            "--seeds",
+            "--eval_seed",
             type=int,
-            nargs="+",
             required=True,
-            help="List of seeds to use for testing trained models against",
+            help="Seed to use for testing trained models against",
         )
 
         required.add_argument(
@@ -302,13 +336,6 @@ class RLParser:
             help="Path to training files - e.g. alg_config.json, env_config.json, train_config.json",
         )
 
-        parser.add_argument(
-            "--seed",
-            type=int,
-            required=True,
-            help="Seed to continue training from",
-        )
-
         run_args = parser.parse_args(sys.argv[2:])
 
         model_args = self._load_args_from_configs(run_args.data_path)
@@ -318,16 +345,6 @@ class RLParser:
 
 ## Example of how to use the RLParser for custom environments -
 #  in this case the Example envrionment and task with Example algorithm
-
-
-class ExampleConfig(AlgorithmConfig):
-    algorithm: str = Field("Example", Literal=True)
-    lr: float = 1e-3
-    gamma: float = 0.99
-    memory: str = "MemoryBuffer"
-
-    exploration_min: float = 1e-3
-    exploration_decay: float = 0.95
 
 
 class ExampleHardwareConfig(SubscriptableClass):

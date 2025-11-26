@@ -1,11 +1,8 @@
-import os
-import time
 from functools import cached_property
-import numpy as np
-import cv2
 
-from environments.gym_environment import GymEnvironment
+import numpy as np
 from drone_gym import move_to_position
+from environments.gym_environment import GymEnvironment
 from util.configurations import GymEnvironmentConfig
 
 
@@ -25,10 +22,9 @@ class DroneEnvironment(GymEnvironment):
         self.env.set_seed()
 
     def get_overlay_info(self) -> dict:
-        # TODO: Add overlay information for gyms as needed
         return self.env.get_overlay_info()
 
-    def step(self, action):
+    def _step(self, action):
         return self.env.step(action)
 
     @cached_property
@@ -45,15 +41,7 @@ class DroneEnvironment(GymEnvironment):
 
     @cached_property
     def action_num(self) -> int:
-
         return self.env.action_num
 
-    def grab_frame(self, height = 720, width = 1280 ) -> np.ndarray:
-
+    def grab_frame(self, height=720, width=1280) -> np.ndarray:
         return self.env.grab_frame(height, width)
-
-    # returning an empty white frame
-    # def grab_frame(self, height: int = 240, width: int = 300) -> np.ndarray:
-    #     # 255 is the value for white
-    #     white_frame = np.full((height, width, 3), 255, dtype=np.uint8)
-    #     return white_frame
