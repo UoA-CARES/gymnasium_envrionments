@@ -41,7 +41,7 @@ class EnvironmentFactory:
             from environments.showdown.showdown_environment import ShowdownEnvironment
 
             env = ShowdownEnvironment(config, evaluation=False)
-            eval_env = ShowdownEnvironment(config, evaluation=True)
+            eval_env = env
 
         elif isinstance(config, cfg.DroneConfig):
             from environments.drone.drone_environment import DroneEnvironment
