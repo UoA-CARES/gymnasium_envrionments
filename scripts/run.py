@@ -86,6 +86,11 @@ def main_with_runner():
 
         # Execute batch runs
         for i, (batch_coordinator, batch_run_name) in enumerate(batch_coordinators):
+            # Temp
+            if i+1 < 10:
+                logger.info(f"[{i+1}/{len(batch_coordinators)}] Skipping {batch_run_name}")
+                continue
+
             logger.info(f"[{i+1}/{len(batch_coordinators)}] Running {batch_run_name}")
             batch_coordinator.setup_logging_and_directories(batch_run_name)
             batch_coordinator.run()
