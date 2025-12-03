@@ -14,7 +14,7 @@ class EnvironmentFactory:
         pass
 
     def create_environment(
-        self, config: GymEnvironmentConfig, image_observation
+        self, config: GymEnvironmentConfig, image_observation, train_seed: int, eval_seed: int
     ) -> tuple[
         BaseEnvironment | MultiModalWrapper,
         BaseEnvironment | MultiModalWrapper,
@@ -69,8 +69,14 @@ class EnvironmentFactory:
 
             env = SMAC2Environment(config, evaluation=False)
             eval_env = SMAC2Environment(config, evaluation=True)
+        elif isinstance(config, cfg.AtariConfig):
+            from environments.atari.atari_environment import AtariEnvironment
+
+            env = AtariEnvironment(config, train_seed, evaluation=False)
+            eval_env = AtariEnvironment(config, eval_seed, evaluation=True)
+            image_observation = False
         else:
-            raise ValueError(f"Unkown environment: {type(config)}")
+            raise ValueError(f"Unknown environment: {type(config)}")
 
         if isinstance(env, GymEnvironment) and isinstance(eval_env, GymEnvironment):
             env = MultiModalWrapper(config, env) if bool(image_observation) else env
