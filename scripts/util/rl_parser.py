@@ -220,7 +220,7 @@ class RLParser:
 
         if len(rest) > 0:
             logging.warning(
-                f"Arugements not being passed properly and have been left over: {rest}"
+                f"Arguements not being passed properly and have been left over: {rest}"
             )
 
         args = Namespace(**vars(first_args), **vars(env_args), **vars(alg_args))
