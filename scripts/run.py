@@ -85,7 +85,7 @@ def main_with_runner():
         print("---------------------------------------------------")
         for i, (batch_coordinator, batch_run_name) in enumerate(batch_coordinators):
             print(
-                f"[{i+1}/{len(batch_coordinators)}] {batch_run_name}{' <- SKIPPED' if i < b_start or i >= b_end else ''}"
+                f"[{i+1}/{len(batch_coordinators)}] {batch_run_name}{' <- SKIPPED' if i+1 < b_start or i+1 > b_end else ''}"
             )
         batch_confirmation = input(
             f"Running batch of {len(batch_coordinators)} experiments. Do you want to continue? [y/n]\n"
