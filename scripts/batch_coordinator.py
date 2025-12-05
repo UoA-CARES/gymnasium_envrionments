@@ -11,84 +11,88 @@ from execution_coordinator import ExecutionCoordinator
 import execution_logger as logs
 from util.rl_parser import RLParser
 
-from cares_reinforcement_learning.util.configurations import FunctionLayer, MLPConfig, TrainableLayer
+from cares_reinforcement_learning.util.configurations import (
+    FunctionLayer,
+    MLPConfig,
+    TrainableLayer,
+)
 
 # MARK: ACTIVATION LAYERS
 
 # GoLU
 golu_a: MLPConfig = MLPConfig(
-        layers=[
-            TrainableLayer(layer_type="Linear", out_features=256),
-            FunctionLayer(layer_type="GoLU"),
-        ]
-    )
+    layers=[
+        TrainableLayer(layer_type="Linear", out_features=256),
+        FunctionLayer(layer_type="GoLU"),
+    ]
+)
 golu_c: MLPConfig = MLPConfig(
-        layers=[
-            TrainableLayer(layer_type="Linear", out_features=256),
-            FunctionLayer(layer_type="GoLU"),
-            TrainableLayer(layer_type="Linear", in_features=256, out_features=1),
-        ]
-    )
+    layers=[
+        TrainableLayer(layer_type="Linear", out_features=256),
+        FunctionLayer(layer_type="GoLU"),
+        TrainableLayer(layer_type="Linear", in_features=256, out_features=1),
+    ]
+)
 
 # GELU
 gelu_a: MLPConfig = MLPConfig(
-        layers=[
-            TrainableLayer(layer_type="Linear", out_features=256),
-            FunctionLayer(layer_type="GELU"),
-        ]
-    )
+    layers=[
+        TrainableLayer(layer_type="Linear", out_features=256),
+        FunctionLayer(layer_type="GELU"),
+    ]
+)
 gelu_c: MLPConfig = MLPConfig(
-        layers=[
-            TrainableLayer(layer_type="Linear", out_features=256),
-            FunctionLayer(layer_type="GELU"),
-            TrainableLayer(layer_type="Linear", in_features=256, out_features=1),
-        ]
-    )
+    layers=[
+        TrainableLayer(layer_type="Linear", out_features=256),
+        FunctionLayer(layer_type="GELU"),
+        TrainableLayer(layer_type="Linear", in_features=256, out_features=1),
+    ]
+)
 
 # ReLU
 relu_a: MLPConfig = MLPConfig(
-        layers=[
-            TrainableLayer(layer_type="Linear", out_features=256),
-            FunctionLayer(layer_type="ReLU"),
-        ]
-    )
+    layers=[
+        TrainableLayer(layer_type="Linear", out_features=256),
+        FunctionLayer(layer_type="ReLU"),
+    ]
+)
 relu_c: MLPConfig = MLPConfig(
-        layers=[
-            TrainableLayer(layer_type="Linear", out_features=256),
-            FunctionLayer(layer_type="ReLU"),
-            TrainableLayer(layer_type="Linear", in_features=256, out_features=1),
-        ]
-    )
+    layers=[
+        TrainableLayer(layer_type="Linear", out_features=256),
+        FunctionLayer(layer_type="ReLU"),
+        TrainableLayer(layer_type="Linear", in_features=256, out_features=1),
+    ]
+)
 
 # Leaky ReLU
 leaky_a: MLPConfig = MLPConfig(
-        layers=[
-            TrainableLayer(layer_type="Linear", out_features=256),
-            FunctionLayer(layer_type="LeakyReLU"),
-        ]
-    )
+    layers=[
+        TrainableLayer(layer_type="Linear", out_features=256),
+        FunctionLayer(layer_type="LeakyReLU"),
+    ]
+)
 leaky_c: MLPConfig = MLPConfig(
-        layers=[
-            TrainableLayer(layer_type="Linear", out_features=256),
-            FunctionLayer(layer_type="LeakyReLU"),
-            TrainableLayer(layer_type="Linear", in_features=256, out_features=1),
-        ]
-    )
+    layers=[
+        TrainableLayer(layer_type="Linear", out_features=256),
+        FunctionLayer(layer_type="LeakyReLU"),
+        TrainableLayer(layer_type="Linear", in_features=256, out_features=1),
+    ]
+)
 
 # PReLU
 prelu_a: MLPConfig = MLPConfig(
-        layers=[
-            TrainableLayer(layer_type="Linear", out_features=256),
-            FunctionLayer(layer_type="PReLU"),
-        ]
-    )
+    layers=[
+        TrainableLayer(layer_type="Linear", out_features=256),
+        FunctionLayer(layer_type="PReLU"),
+    ]
+)
 prelu_c: MLPConfig = MLPConfig(
-        layers=[
-            TrainableLayer(layer_type="Linear", out_features=256),
-            FunctionLayer(layer_type="PReLU"),
-            TrainableLayer(layer_type="Linear", in_features=256, out_features=1),
-        ]
-    )
+    layers=[
+        TrainableLayer(layer_type="Linear", out_features=256),
+        FunctionLayer(layer_type="PReLU"),
+        TrainableLayer(layer_type="Linear", in_features=256, out_features=1),
+    ]
+)
 
 # MARK: BATCH CONFIG
 # Configure batch parameters here. The cross-product of these lists will be used
@@ -109,6 +113,7 @@ batch_config: dict[str, list[Any | tuple[Any, str]]] = {
 #     "env_config.task": ["HalfCheetah-v4", "Humanoid-v4", "Ant-v4", "Hopper-v4"],
 # }
 
+
 def _skip(config: dict[str, tuple[Any, str]]) -> bool:
     """Determine if a given configuration combination should be skipped.
     E.g., task walker.catch doesn't exist.
@@ -121,18 +126,35 @@ def _skip(config: dict[str, tuple[Any, str]]) -> bool:
         bool: True if the configuration should be skipped, False otherwise.
     """
     # Homogeneous activations for actor and critic
-    if config.get("alg_config.actor_config", (None, "A"))[1] != config.get("alg_config.critic_config", (None, "B"))[1]:
+    if (
+        config.get("alg_config.actor_config", (None, "A"))[1]
+        != config.get("alg_config.critic_config", (None, "B"))[1]
+    ):
         return True
 
     # OpenAI Gym tasks have no domain, only task
     if config.get("env_config.domain") is None:
-        return False # Do not skip
+        return False  # Do not skip
 
     # Match domain to task
-    return not ((config.get("env_config.domain", (None,))[0] == "cartpole" and config.get("env_config.task", (None,))[0] == "swingup") \
-        or (config.get("env_config.domain", (None,))[0] == "finger" and config.get("env_config.task", (None,))[0] == "spin") \
-        or (config.get("env_config.domain", (None,))[0] == "cheetah" and config.get("env_config.task", (None,))[0] == "run") \
-        or (config.get("env_config.domain", (None,))[0] == "walker" and config.get("env_config.task", (None,))[0] == "walk"))
+    return not (
+        (
+            config.get("env_config.domain", (None,))[0] == "cartpole"
+            and config.get("env_config.task", (None,))[0] == "swingup"
+        )
+        or (
+            config.get("env_config.domain", (None,))[0] == "finger"
+            and config.get("env_config.task", (None,))[0] == "spin"
+        )
+        or (
+            config.get("env_config.domain", (None,))[0] == "cheetah"
+            and config.get("env_config.task", (None,))[0] == "run"
+        )
+        or (
+            config.get("env_config.domain", (None,))[0] == "walker"
+            and config.get("env_config.task", (None,))[0] == "walk"
+        )
+    )
 
 
 # -------------------------------------------------------------------
@@ -141,6 +163,7 @@ def _skip(config: dict[str, tuple[Any, str]]) -> bool:
 
 # Get the main logger for this function
 logger = logs.get_main_logger()
+
 
 def get_batch_coordinators() -> list[tuple[ExecutionCoordinator, str]]:
     """Create coordinators for every combination in batch_config.
@@ -161,7 +184,10 @@ def get_batch_coordinators() -> list[tuple[ExecutionCoordinator, str]]:
     """
     # Expand batch configs into all combinations
     keys = list(batch_config.keys())
-    configs = [_create_config(keys, config_values) for config_values in itertools.product(*batch_config.values())]
+    configs = [
+        _create_config(keys, config_values)
+        for config_values in itertools.product(*batch_config.values())
+    ]
 
     coordinators: list[tuple[ExecutionCoordinator, str]] = []
     i = 0
@@ -179,7 +205,10 @@ def get_batch_coordinators() -> list[tuple[ExecutionCoordinator, str]]:
 
     return coordinators
 
-def _create_config(keys: list[str], config_values: tuple[Any | tuple[Any, str], ...]) -> dict[str, tuple[Any, str]]:
+
+def _create_config(
+    keys: list[str], config_values: tuple[Any | tuple[Any, str], ...]
+) -> dict[str, tuple[Any, str]]:
     config: dict[str, tuple[Any, str]] = {}
     for i, value in enumerate(config_values):
         # Ensure value is a tuple (actual_value, name)
@@ -189,11 +218,13 @@ def _create_config(keys: list[str], config_values: tuple[Any | tuple[Any, str], 
             config[keys[i]] = (value, f"{keys[i]}-{value}")
     return config
 
+
 def _get_name_from_config(config: dict[str, tuple[Any, str]], index: int) -> str:
     name_parts = []
     for value in config.values():
         name_parts.append(value[1])
     return f"[{index}]_" + "_".join(name_parts)
+
 
 def _config_to_coordinator(config: dict[str, tuple[Any, str]]) -> ExecutionCoordinator:
     parser = RLParser()
@@ -202,10 +233,13 @@ def _config_to_coordinator(config: dict[str, tuple[Any, str]]) -> ExecutionCoord
     _replace_configurations(coordinator, config)
     return coordinator
 
-def _replace_configurations(coordinator: ExecutionCoordinator, config: dict[str, tuple[Any, str]]):
+
+def _replace_configurations(
+    coordinator: ExecutionCoordinator, config: dict[str, tuple[Any, str]]
+):
     for key, value in config.items():
-        keys = key.split('.')
+        keys = key.split(".")
         obj = coordinator
         for k in keys[:-1]:
             obj = getattr(obj, k)
-        setattr(obj, keys[-1], value[0]) # value is a tuple (actual_value, name)
+        setattr(obj, keys[-1], value[0])  # value is a tuple (actual_value, name)
