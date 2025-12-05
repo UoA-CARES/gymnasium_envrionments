@@ -1,35 +1,20 @@
 import abc
-import logging
 from functools import cached_property
 
 import cv2
 import numpy as np
+from environments.base_environment import BaseEnvironment
 from util.configurations import GymEnvironmentConfig
 
 
-class GymEnvironment(metaclass=abc.ABCMeta):
+class GymEnvironment(BaseEnvironment):
     def __init__(self, config: GymEnvironmentConfig) -> None:
-        logging.info(f"Training with Task {config.task}")
-
-        self.task = config.task
-
-        self.state_std = config.state_std
-        self.action_std = config.action_std
+        super().__init__(config)
 
     def render(self):
         frame = self.grab_frame()
         cv2.imshow(f"{self.task}", frame)
         cv2.waitKey(10)
-
-    def set_log_path(self, log_path: str, step_count: int) -> None:
-        pass
-
-    def get_multimodal_observation(self) -> dict:
-        # Default implementation, override if necessary
-        return {}
-
-    def get_available_actions(self) -> dict:
-        return {}
 
     @abc.abstractmethod
     def get_overlay_info(self) -> dict:
@@ -37,12 +22,12 @@ class GymEnvironment(metaclass=abc.ABCMeta):
 
     @cached_property
     @abc.abstractmethod
-    def min_action_value(self) -> float:
+    def min_action_value(self) -> np.ndarray:
         raise NotImplementedError("Override this method")
 
     @cached_property
     @abc.abstractmethod
-    def max_action_value(self) -> float:
+    def max_action_value(self) -> np.ndarray:
         raise NotImplementedError("Override this method")
 
     @cached_property
@@ -86,7 +71,7 @@ class GymEnvironment(metaclass=abc.ABCMeta):
         noise = np.random.normal(0, sigma, size=data.shape)
         return data + noise
 
-    def step(self, action):
+    def step(self, action: np.ndarray) -> tuple:
         # Apply action noise
         if self.action_std > 0:
             action = self._add_relative_noise(action, self.action_std)

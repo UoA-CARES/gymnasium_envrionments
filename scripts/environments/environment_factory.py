@@ -1,7 +1,9 @@
+import util.configurations as cfg
+from environments.base_environment import BaseEnvironment
 from environments.gym_environment import GymEnvironment
+from environments.marl_environment import MARLEnvironment
 from environments.multimodal_wrapper import MultiModalWrapper
 from util.configurations import GymEnvironmentConfig
-import util.configurations as cfg
 
 # Disable these as this is a deliberate use of dynamic imports
 # pylint: disable=import-outside-toplevel
@@ -13,10 +15,13 @@ class EnvironmentFactory:
 
     def create_environment(
         self, config: GymEnvironmentConfig, image_observation
-    ) -> tuple[GymEnvironment | MultiModalWrapper, GymEnvironment | MultiModalWrapper]:
+    ) -> tuple[
+        BaseEnvironment | MultiModalWrapper,
+        BaseEnvironment | MultiModalWrapper,
+    ]:
 
-        env: GymEnvironment | MultiModalWrapper
-        eval_env: GymEnvironment | MultiModalWrapper
+        env: BaseEnvironment | MultiModalWrapper
+        eval_env: BaseEnvironment | MultiModalWrapper
         if isinstance(config, cfg.DMCSConfig):
             from environments.dmcs.dmcs_environment import DMCSEnvironment
 
@@ -33,23 +38,45 @@ class EnvironmentFactory:
             env = PyboyEnvironment(config)
             eval_env = PyboyEnvironment(config)
         elif isinstance(config, cfg.ShowdownConfig):
-            from environments.showdown.showdown_environment import (
-                ShowdownEnvironment,
-            )
+            from environments.showdown.showdown_environment import ShowdownEnvironment
 
             env = ShowdownEnvironment(config, evaluation=False)
-            # eval_env = ShowdownEnvironment(config, evaluation=True)
-            eval_env = env  # temporary fix until showdown websocket fixed
+            eval_env = env
+
+        elif isinstance(config, cfg.DroneConfig):
+            from environments.drone.drone_environment import DroneEnvironment
+
+            env = DroneEnvironment(config)
+            eval_env = env
         elif isinstance(config, cfg.GripperConfig):
             from environments.gripper.gripper_environment import GripperEnvironment
 
             env = GripperEnvironment(config)
             eval_env = env
+        elif isinstance(config, cfg.MPEConfig):
+            from environments.mpe.mpe import MPE2Environment
+
+            env = MPE2Environment(config, evaluation=False)
+            eval_env = MPE2Environment(config, evaluation=True)
+
+        elif isinstance(config, cfg.SMACConfig):
+            from environments.smac.smac import SMACEnvironment
+
+            env = SMACEnvironment(config, evaluation=False)
+            eval_env = SMACEnvironment(config, evaluation=True)
+        elif isinstance(config, cfg.SMAC2Config):
+            from environments.smac2.smac2 import SMAC2Environment
+
+            env = SMAC2Environment(config, evaluation=False)
+            eval_env = SMAC2Environment(config, evaluation=True)
         else:
             raise ValueError(f"Unkown environment: {type(config)}")
 
-        env = MultiModalWrapper(config, env) if bool(image_observation) else env
-        eval_env = (
-            MultiModalWrapper(config, eval_env) if bool(image_observation) else eval_env
-        )
+        if isinstance(env, GymEnvironment) and isinstance(eval_env, GymEnvironment):
+            env = MultiModalWrapper(config, env) if bool(image_observation) else env
+            eval_env = (
+                MultiModalWrapper(config, eval_env)
+                if bool(image_observation)
+                else eval_env
+            )
         return env, eval_env

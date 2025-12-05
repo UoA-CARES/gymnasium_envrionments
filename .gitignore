@@ -16,3 +16,4 @@ dist/
 rl_logs/
 .vscode/
 configs
+scripts/cache/

@@ -4,7 +4,8 @@ from functools import cached_property
 
 import cv2
 import numpy as np
-from environments.gym_environment import GymEnvironment, GymEnvironmentConfig
+from environments.gym_environment import GymEnvironment
+from util.configurations import GymEnvironmentConfig
 
 
 class MultiModalWrapper:
@@ -28,7 +29,7 @@ class MultiModalWrapper:
     def get_overlay_info(self):
         return self.gym.get_overlay_info()
 
-    def get_available_actions(self) -> dict:
+    def get_available_actions(self) -> np.ndarray:
         return self.gym.get_available_actions()
 
     @cached_property
@@ -46,12 +47,16 @@ class MultiModalWrapper:
         return self.gym.action_num
 
     @cached_property
-    def min_action_value(self) -> float:
+    def min_action_value(self) -> np.ndarray:
         return self.gym.min_action_value
 
     @cached_property
-    def max_action_value(self) -> float:
+    def max_action_value(self) -> np.ndarray:
         return self.gym.max_action_value
+
+    @cached_property
+    def num_agents(self) -> int:
+        return self.gym.num_agents
 
     def render(self):
         self.gym.render()

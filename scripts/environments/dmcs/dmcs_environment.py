@@ -17,12 +17,12 @@ class DMCSEnvironment(GymEnvironment):
         self.env = suite.load(self.domain, self.task)
 
     @cached_property
-    def min_action_value(self) -> float:
-        return self.env.action_spec().minimum[0]
+    def min_action_value(self) -> np.ndarray:
+        return self.env.action_spec().minimum
 
     @cached_property
-    def max_action_value(self) -> float:
-        return self.env.action_spec().maximum[0]
+    def max_action_value(self) -> np.ndarray:
+        return self.env.action_spec().maximum
 
     @cached_property
     def observation_space(self) -> int:
