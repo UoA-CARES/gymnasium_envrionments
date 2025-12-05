@@ -13,13 +13,15 @@ from util.rl_parser import RLParser
 
 from cares_reinforcement_learning.util.configurations import FunctionLayer, MLPConfig, TrainableLayer
 
+# MARK: ACTIVATION LAYERS
+
+# GoLU
 golu_a: MLPConfig = MLPConfig(
         layers=[
             TrainableLayer(layer_type="Linear", out_features=256),
             FunctionLayer(layer_type="GoLU"),
         ]
     )
-
 golu_c: MLPConfig = MLPConfig(
         layers=[
             TrainableLayer(layer_type="Linear", out_features=256),
@@ -28,13 +30,13 @@ golu_c: MLPConfig = MLPConfig(
         ]
     )
 
+# GELU
 gelu_a: MLPConfig = MLPConfig(
         layers=[
             TrainableLayer(layer_type="Linear", out_features=256),
             FunctionLayer(layer_type="GELU"),
         ]
     )
-
 gelu_c: MLPConfig = MLPConfig(
         layers=[
             TrainableLayer(layer_type="Linear", out_features=256),
@@ -43,17 +45,47 @@ gelu_c: MLPConfig = MLPConfig(
         ]
     )
 
+# ReLU
 relu_a: MLPConfig = MLPConfig(
         layers=[
             TrainableLayer(layer_type="Linear", out_features=256),
             FunctionLayer(layer_type="ReLU"),
         ]
     )
-
 relu_c: MLPConfig = MLPConfig(
         layers=[
             TrainableLayer(layer_type="Linear", out_features=256),
             FunctionLayer(layer_type="ReLU"),
+            TrainableLayer(layer_type="Linear", in_features=256, out_features=1),
+        ]
+    )
+
+# Leaky ReLU
+leaky_a: MLPConfig = MLPConfig(
+        layers=[
+            TrainableLayer(layer_type="Linear", out_features=256),
+            FunctionLayer(layer_type="LeakyReLU"),
+        ]
+    )
+leaky_c: MLPConfig = MLPConfig(
+        layers=[
+            TrainableLayer(layer_type="Linear", out_features=256),
+            FunctionLayer(layer_type="LeakyReLU"),
+            TrainableLayer(layer_type="Linear", in_features=256, out_features=1),
+        ]
+    )
+
+# PReLU
+prelu_a: MLPConfig = MLPConfig(
+        layers=[
+            TrainableLayer(layer_type="Linear", out_features=256),
+            FunctionLayer(layer_type="PReLU"),
+        ]
+    )
+prelu_c: MLPConfig = MLPConfig(
+        layers=[
+            TrainableLayer(layer_type="Linear", out_features=256),
+            FunctionLayer(layer_type="PReLU"),
             TrainableLayer(layer_type="Linear", in_features=256, out_features=1),
         ]
     )
@@ -64,16 +96,16 @@ relu_c: MLPConfig = MLPConfig(
 
 # python run.py train cli --gym dmcs --domain cartpole --task swingup --batch 1 SAC --seeds 10 20 30 40 50 --max_workers 5
 batch_config: dict[str, list[Any | tuple[Any, str]]] = {
-    "alg_config.actor_config": [(relu_a, "relu"), (gelu_a, "gelu"), (golu_a, "golu")],
-    "alg_config.critic_config": [(relu_c, "relu"), (gelu_c, "gelu"), (golu_c, "golu")],
+    "alg_config.actor_config": [(leaky_a, "leaky"), (prelu_a, "prelu")],
+    "alg_config.critic_config": [(leaky_c, "leaky"), (prelu_c, "prelu")],
     "env_config.domain": ["cheetah", "cartpole", "finger", "walker"],
     "env_config.task": ["run", "swingup", "spin", "walk"],
 }
 
 # python run.py train cli --gym openai --task HalfCheetah-v4 --batch 1 SAC --seeds 10 20 30 40 50 --max_workers 5
 # batch_config: dict[str, list[Any | tuple[Any, str]]] = {
-#     "alg_config.actor_config": [(relu_a, "relu"), (gelu_a, "gelu"), (golu_a, "golu")],
-#     "alg_config.critic_config": [(relu_c, "relu"), (gelu_c, "gelu"), (golu_c, "golu")],
+#     "alg_config.actor_config": [(leaky_a, "leaky"), (prelu_a, "prelu")],
+#     "alg_config.critic_config": [(leaky_c, "leaky"), (prelu_c, "prelu")],
 #     "env_config.task": ["HalfCheetah-v4", "Humanoid-v4", "Ant-v4", "Hopper-v4"],
 # }
 
@@ -102,6 +134,9 @@ def _skip(config: dict[str, tuple[Any, str]]) -> bool:
         or (config.get("env_config.domain", (None,))[0] == "cheetah" and config.get("env_config.task", (None,))[0] == "run") \
         or (config.get("env_config.domain", (None,))[0] == "walker" and config.get("env_config.task", (None,))[0] == "walk"))
 
+
+# -------------------------------------------------------------------
+# MARK: INTERNALS
 # -------------------------------------------------------------------
 
 # Get the main logger for this function
