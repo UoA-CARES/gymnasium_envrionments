@@ -172,8 +172,8 @@ def get_batch_coordinators() -> list[tuple[ExecutionCoordinator, str]]:
         i += 1
 
         # Setup specific name and coordinator
-        run_name = _get_name_from_config(config, i)
         coordinator = _config_to_coordinator(config)
+        run_name = _get_name_from_config(config, i)
         _replace_configurations(coordinator, config)
         coordinators.append((coordinator, run_name))
 
