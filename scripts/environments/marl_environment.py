@@ -17,8 +17,8 @@ class MARLEnvironment(BaseEnvironment):
     multiple agents interact simultaneously in a shared environment.
     """
 
-    def __init__(self, config: GymEnvironmentConfig) -> None:
-        super().__init__(config)
+    def __init__(self, config: GymEnvironmentConfig, seed: int) -> None:
+        super().__init__(config, seed)
 
     def render(self):
         frame = self.grab_frame()

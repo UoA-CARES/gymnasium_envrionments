@@ -9,9 +9,14 @@ from util.configurations import OpenAIConfig
 
 
 class OpenAIEnvironment(GymEnvironment):
-    def __init__(self, config: OpenAIConfig) -> None:
-        super().__init__(config)
+    def __init__(self, config: OpenAIConfig, seed: int) -> None:
+        super().__init__(config, seed)
+
         self.env = gym.make(config.task, render_mode="rgb_array")
+        self.set_seed(self.seed)
+
+        # If Box space, we will apply action normalization - even if redundant
+        self.apply_action_normalization = isinstance(self.env.action_space, spaces.Box)
 
     @cached_property
     def max_action_value(self) -> np.ndarray:

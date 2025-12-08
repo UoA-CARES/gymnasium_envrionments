@@ -137,13 +137,14 @@ class BaseRunner(ABC):
             f"[SEED {self.train_seed} | {self.eval_seed}] Loading Environment: {self.env_config.gym}"
         )
         self.env, self.env_eval = self.env_factory.create_environment(
-            self.env_config, self.alg_config.image_observation
+            self.env_config,
+            self.train_seed,
+            self.eval_seed,
+            self.alg_config.image_observation,
         )
 
         # Set the seed for everything
         hlp.set_seed(self.train_seed)
-        self.env.set_seed(self.train_seed)
-        self.env_eval.set_seed(self.eval_seed)
 
         # Create the algorithm
         self.logger.info(

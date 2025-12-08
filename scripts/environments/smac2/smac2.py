@@ -9,8 +9,8 @@ from util.configurations import SMAC2Config
 
 
 class SMAC2Environment(MARLEnvironment):
-    def __init__(self, config: SMAC2Config, evaluation: bool = False) -> None:
-        super().__init__(config)
+    def __init__(self, config: SMAC2Config, seed: int) -> None:
+        super().__init__(config, seed)
 
         self.distribution_config = {
             "n_units": config.n_units,
@@ -38,13 +38,14 @@ class SMAC2Environment(MARLEnvironment):
             obs_own_pos=True,
             use_unit_ranges=True,
             min_attack_range=2,
+            seed=self.seed,
         )
 
         self.env_info = self.env.get_env_info()
 
         self.agent_ids = [f"agent_{i}" for i in range(self.env_info["n_agents"])]
 
-        self.reset(training=not evaluation)
+        self.reset()
 
     @cached_property
     def max_action_value(self) -> list[np.ndarray]:

@@ -17,12 +17,13 @@ class BaseEnvironment(metaclass=abc.ABCMeta):
     both types uniformly in training loops and run scripts.
     """
 
-    def __init__(self, config: GymEnvironmentConfig) -> None:
+    def __init__(self, config: GymEnvironmentConfig, seed: int) -> None:
         logging.info(f"Training with Task {config.task}")
 
         self.task = config.task
         self.state_std = config.state_std
         self.action_std = config.action_std
+        self.seed = seed
 
     def render(self):
         frame = self.grab_frame()

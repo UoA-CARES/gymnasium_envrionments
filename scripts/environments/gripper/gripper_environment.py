@@ -8,8 +8,8 @@ from util.configurations import GripperConfig
 
 
 class GripperEnvironment(GymEnvironment):
-    def __init__(self, config: GripperConfig) -> None:
-        super().__init__(config)
+    def __init__(self, config: GripperConfig, seed: int) -> None:
+        super().__init__(config, seed)
 
         factory = EnvironmentFactory()
         self.domain = config.domain
@@ -17,6 +17,7 @@ class GripperEnvironment(GymEnvironment):
         self.gripper_id = config.gripper_id
 
         self.env = factory.create_environment(self.domain, self.task, self.gripper_id)
+        self.set_seed(self.seed)
 
     @cached_property
     def min_action_value(self) -> np.ndarray:

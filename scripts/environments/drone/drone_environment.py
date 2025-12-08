@@ -7,10 +7,12 @@ from util.configurations import GymEnvironmentConfig
 
 
 class DroneEnvironment(GymEnvironment):
-    def __init__(self, config: GymEnvironmentConfig, evaluation: bool = False) -> None:
-        super().__init__(config)
+    def __init__(self, config: GymEnvironmentConfig, seed: int) -> None:
+        super().__init__(config, seed)
 
         self.env = move_to_position.MoveToPosition()
+
+        self.set_seed(self.seed)
 
     def reset(self, training: bool = True):
         return self.env.reset(training)
@@ -19,7 +21,7 @@ class DroneEnvironment(GymEnvironment):
         return self.env.sample_action()
 
     def set_seed(self, seed: int) -> None:
-        self.env.set_seed()
+        self.env.set_seed(seed)
 
     def get_overlay_info(self) -> dict:
         return self.env.get_overlay_info()

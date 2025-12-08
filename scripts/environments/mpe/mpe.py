@@ -27,8 +27,8 @@ def make_env(env_name: str, render_mode=None, continuous_actions=False) -> Paral
 
 
 class MPE2Environment(MARLEnvironment):
-    def __init__(self, config: MPEConfig, evaluation: bool = False) -> None:
-        super().__init__(config)
+    def __init__(self, config: MPEConfig, seed: int) -> None:
+        super().__init__(config, seed)
 
         self.continuous_actions = bool(config.continuous_actions)
 
@@ -40,7 +40,7 @@ class MPE2Environment(MARLEnvironment):
 
         self.agents: list[AgentID] = []
 
-        self.seed = 10
+        self.set_seed(self.seed)
 
     @cached_property
     def max_action_value(self) -> list[np.ndarray]:
@@ -99,7 +99,7 @@ class MPE2Environment(MARLEnvironment):
     def get_available_actions(self) -> np.ndarray:
         return np.ones((len(self.agents), self.action_num), dtype=np.int32)
 
-    def sample_action(self) -> list[int]:
+    def sample_action(self) -> list[int | np.ndarray]:
         return [self.env.action_space(agent).sample() for agent in self.agents]
 
     def set_seed(self, seed: int) -> None:
@@ -125,7 +125,7 @@ class MPE2Environment(MARLEnvironment):
         }
         return marl_state
 
-    def _step(self, actions: list[int]) -> tuple:
+    def _step(self, actions: list[int | np.ndarray]) -> tuple:
         # Convert list of actions to dict for PettingZoo
         action_dict = {agent: act for agent, act in zip(self.agents, actions)}
 

@@ -9,16 +9,16 @@ from util.configurations import SMACConfig
 
 
 class SMACEnvironment(MARLEnvironment):
-    def __init__(self, config: SMACConfig, evaluation: bool = False) -> None:
-        super().__init__(config)
+    def __init__(self, config: SMACConfig, seed: int) -> None:
+        super().__init__(config, seed)
 
-        self.env = StarCraft2Env(map_name=self.task)
+        self.env = StarCraft2Env(map_name=self.task, seed=self.seed)
 
         self.env_info = self.env.get_env_info()
 
         self.agent_ids = [f"agent_{i}" for i in range(self.env_info["n_agents"])]
 
-        self.reset(training=not evaluation)
+        self.reset()
 
     @cached_property
     def max_action_value(self) -> list[np.ndarray]:

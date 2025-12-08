@@ -9,12 +9,12 @@ from util.configurations import DMCSConfig
 
 
 class DMCSEnvironment(GymEnvironment):
-    def __init__(self, config: DMCSConfig) -> None:
-        super().__init__(config)
+    def __init__(self, config: DMCSConfig, seed: int) -> None:
+        super().__init__(config, seed)
         logging.info(f"Training on Domain {config.domain}")
 
         self.domain = config.domain
-        self.env = suite.load(self.domain, self.task)
+        self.env = suite.load(self.domain, self.task, task_kwargs={"random": self.seed})
 
     @cached_property
     def min_action_value(self) -> np.ndarray:

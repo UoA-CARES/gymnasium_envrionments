@@ -8,8 +8,8 @@ from pyboy_environment import suite
 
 
 class PyboyEnvironment(GymEnvironment):
-    def __init__(self, config: PyBoyConfig) -> None:
-        super().__init__(config)
+    def __init__(self, config: PyBoyConfig, seed: int) -> None:
+        super().__init__(config, seed)
 
         self.env = suite.make(
             config.domain,
@@ -18,6 +18,8 @@ class PyboyEnvironment(GymEnvironment):
             config.emulation_speed,
             config.headless,
         )
+
+        self.set_seed(self.seed)
 
     @cached_property
     def min_action_value(self) -> float:

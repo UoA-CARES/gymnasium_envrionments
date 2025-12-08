@@ -11,8 +11,10 @@ from util.configurations import ShowdownConfig
 
 
 class ShowdownEnvironment(GymEnvironment):
-    def __init__(self, config: ShowdownConfig, evaluation: bool = False) -> None:
-        super().__init__(config)
+    def __init__(
+        self, config: ShowdownConfig, seed: int, evaluation: bool = False
+    ) -> None:
+        super().__init__(config, seed)
 
         # "random", "uber", "ou", "uu", "ru", "nu"
         team_type: str = config.domain
@@ -25,8 +27,9 @@ class ShowdownEnvironment(GymEnvironment):
             opponent_type=opponent_type,
             evaluation=evaluation,
         )
-
         time.sleep(3)  # Allow the environment to initialize properly
+
+        self.set_seed(self.seed)
 
     def set_log_path(self, log_path: str, step_count: int) -> None:
         path = f"{log_path}/replays/{step_count}"
