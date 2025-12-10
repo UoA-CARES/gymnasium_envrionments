@@ -3,6 +3,7 @@ from functools import cached_property
 import cv2
 import gymnasium as gym
 import numpy as np
+from cares_reinforcement_learning.util import helpers as hlp
 from environments.gym_environment import GymEnvironment
 from gymnasium import spaces
 from util.configurations import OpenAIConfig
@@ -43,7 +44,10 @@ class OpenAIEnvironment(GymEnvironment):
         return action_num
 
     def sample_action(self) -> int:
-        return self.env.action_space.sample()
+        action = self.env.action_space.sample()
+        if self.apply_action_normalization:
+            action = hlp.normalize(action, self.max_action_value, self.min_action_value)
+        return action
 
     def set_seed(self, seed: int) -> None:
         _, _ = self.env.reset(seed=seed)
@@ -55,6 +59,11 @@ class OpenAIEnvironment(GymEnvironment):
         return state
 
     def _step(self, action: int) -> tuple:
+        if self.apply_action_normalization:
+            action = hlp.denormalize(
+                action, self.max_action_value, self.min_action_value
+            )
+
         state, reward, done, truncated, info = self.env.step(action)
         return state, reward, done, truncated, info
 

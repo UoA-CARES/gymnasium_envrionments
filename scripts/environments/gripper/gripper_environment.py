@@ -2,6 +2,7 @@ from functools import cached_property
 
 import cv2
 import numpy as np
+from cares_reinforcement_learning.util import helpers as hlp
 from environments.gym_environment import GymEnvironment
 from gripper_gym.environments.environment_factory import EnvironmentFactory
 from util.configurations import GripperConfig
@@ -38,7 +39,8 @@ class GripperEnvironment(GymEnvironment):
         return action_num
 
     def sample_action(self):
-        return self.env.sample_action()
+        action = self.env.sample_action()
+        return hlp.normalize(action, self.max_action_value, self.min_action_value)
 
     def set_seed(self, seed: int) -> None:
         if hasattr(self.env, "set_seed"):
@@ -48,6 +50,7 @@ class GripperEnvironment(GymEnvironment):
         return self.env.reset()
 
     def _step(self, action):
+        action = hlp.denormalize(action, self.max_action_value, self.min_action_value)
         return self.env.step(action)
 
     def grab_frame(self, height: int = 240, width: int = 300) -> np.ndarray:
