@@ -170,7 +170,7 @@ def train(
             training_config,
             alg_config,
             display=env_config.display,
-            apply_action_normalisation=False,
+            apply_action_normalisation=True,
         )
     else:
         raise ValueError(f"Agent type is unknown: {agent.policy_type}")

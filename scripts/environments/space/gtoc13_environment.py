@@ -3,14 +3,18 @@ from functools import cached_property
 import numpy as np
 from environments.gym_environment import GymEnvironment
 from util.configurations import GTOC13Config
-from gtoc13_violet.GA_environment import GravityAssistSequenceEnvironment
+from gtoc13_violet.environments.GA_environment import GravityAssistSequenceEnvironment
+from gtoc13_violet.environments.BS_environment import BeamSearchEnvironment
 
 
 class GTOC13Environment(GymEnvironment):
     def __init__(self, config: GTOC13Config) -> None:
         super().__init__(config)
 
-        self.env = GravityAssistSequenceEnvironment(config)
+        if config.task == "GA":
+            self.env = GravityAssistSequenceEnvironment(config)
+        elif config.task == "BS":
+            self.env = BeamSearchEnvironment(config)
 
     @cached_property
     def min_action_value(self) -> float:

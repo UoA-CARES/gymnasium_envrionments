@@ -227,6 +227,7 @@ def train_agent(
         else:
             # algorithm range [-1, 1])
             normalised_action = agent.select_action_from_policy(state)
+            print(f"TEST: {normalised_action}")
 
             # mapping to env range [e.g. -2 , 2 for pendulum] - note for DMCS this is redudenant but required for openai
             denormalised_action = normalised_action
@@ -234,6 +235,7 @@ def train_agent(
                 denormalised_action = hlp.denormalize(
                     normalised_action, env.max_action_value, env.min_action_value
                 )
+                print(f"D-TEST: {denormalised_action}")
 
         next_state, reward_extrinsic, done, truncated, env_info = env.step(
             denormalised_action
