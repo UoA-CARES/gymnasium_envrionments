@@ -71,21 +71,13 @@ def main_with_runner():
     if is_batch:
         batch_coordinators = get_batch_coordinators()
 
-        # Support negative indexing (default: [b_start, b_end] = [0, -1])
-        b_start = configurations.get("env_config").b_start  # type: ignore
-        b_end = configurations.get("env_config").b_end  # type: ignore
-        if b_start < 0:
-            b_start = len(batch_coordinators) + b_start + 1
-        if b_end < 0:
-            b_end = len(batch_coordinators) + b_end + 1
-
         # User confirmation
         print("---------------------------------------------------")
         print("BATCH RUNS")
         print("---------------------------------------------------")
         for i, (batch_coordinator, batch_run_name) in enumerate(batch_coordinators):
             print(
-                f"[{i+1}/{len(batch_coordinators)}] {batch_run_name}{' <- SKIPPED' if i+1 < b_start or i+1 > b_end else ''}"
+                f"[{i+1}/{len(batch_coordinators)}] {batch_run_name}{' <- SKIPPED' if batch_coordinator.env_config.is_out_of_range() else ''}"
             )
         batch_confirmation = input(
             f"Running batch of {len(batch_coordinators)} experiments. Do you want to continue? [y/n]\n"
@@ -97,7 +89,7 @@ def main_with_runner():
         # Execute batch runs
         for i, (batch_coordinator, batch_run_name) in enumerate(batch_coordinators):
             # Enable running only a range
-            if i+1 < b_start or i+1 > b_end:
+            if batch_coordinator.env_config.is_out_of_range():
                 logger.info(
                     f"[{i+1}/{len(batch_coordinators)}] Skipping {batch_run_name}"
                 )

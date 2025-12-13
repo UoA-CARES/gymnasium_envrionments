@@ -193,15 +193,29 @@ def get_batch_coordinators() -> list[tuple[ExecutionCoordinator, str]]:
     i = 0
     for config in configs:
         # Certain combinations may be invalid - skip these
+        # These are DIFFERENT from the [b_start, b_end] range filtering and don't show up at all
         if _skip(config):
             continue
         i += 1
 
         # Setup specific name and coordinator
         coordinator = _config_to_coordinator(config)
-        run_name = _get_name_from_config(config, i)
         _replace_configurations(coordinator, config)
+        run_name = _get_name_from_config(config, i)
+        coordinator.env_config.index = i  # Set index for range filtering
         coordinators.append((coordinator, run_name))
+
+    # Support negative indexing (i.e. replace -1 with last index)
+    num_coordinators = len(coordinators)
+    b_start = coordinators[0][0].env_config.b_start
+    b_end = coordinators[0][0].env_config.b_end
+    if b_start < 0:
+        b_start = num_coordinators + b_start + 1
+    if b_end < 0:
+        b_end = num_coordinators + b_end + 1
+    for coordinator, _ in coordinators:
+        coordinator.env_config.b_start = b_start
+        coordinator.env_config.b_end = b_end
 
     return coordinators
 

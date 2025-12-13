@@ -33,6 +33,7 @@ class GymEnvironmentConfig(SubscriptableClass):
     batch: int = 0
     b_start: int = 0
     b_end: int = -1
+    index: int = -1 # Index in batch mode
 
     # stochastic noise configuration
     state_std: float = 0.0
@@ -50,6 +51,9 @@ class GymEnvironmentConfig(SubscriptableClass):
         data = super().model_dump(*args, **kwargs)
         data["gym"] = self.__class__.gym
         return data
+
+    def is_out_of_range(self) -> bool:
+        return self.index < self.b_start or self.index > self.b_end
 
 
 class OpenAIConfig(GymEnvironmentConfig):
