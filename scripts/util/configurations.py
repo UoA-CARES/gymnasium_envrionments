@@ -33,7 +33,7 @@ class GymEnvironmentConfig(SubscriptableClass):
     batch: int = 0
     b_start: int = 0
     b_end: int = -1
-    index: int = -1 # Index in batch mode
+    index: int = -1  # Index in batch mode
 
     # stochastic noise configuration
     state_std: float = 0.0
