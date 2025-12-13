@@ -97,7 +97,7 @@ def main_with_runner():
         # Execute batch runs
         for i, (batch_coordinator, batch_run_name) in enumerate(batch_coordinators):
             # Enable running only a range
-            if i < b_start or i >= b_end:
+            if i+1 < b_start or i+1 > b_end:
                 logger.info(
                     f"[{i+1}/{len(batch_coordinators)}] Skipping {batch_run_name}"
                 )
