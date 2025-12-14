@@ -211,22 +211,10 @@ class BaseRunner(ABC):
             action_context = ActionContext(
                 state=state, evaluation=True, available_actions=available_actions
             )
-            normalised_action = self.agent.select_action_from_policy(action_context)
-
-            denormalised_action = (
-                hlp.denormalize(
-                    normalised_action,
-                    self.env_eval.max_action_value,
-                    self.env_eval.min_action_value,
-                )
-                if self.apply_action_normalisation
-                else normalised_action
-            )
+            action = self.agent.select_action_from_policy(action_context)
 
             # Step environment
-            state, reward, done, truncated, env_info = self.env_eval.step(
-                denormalised_action
-            )
+            state, reward, done, truncated, env_info = self.env_eval.step(action)
 
             all_done = all(done) if isinstance(done, list) else done
             all_truncated = all(truncated) if isinstance(truncated, list) else truncated
@@ -236,7 +224,7 @@ class BaseRunner(ABC):
 
             # Collect data for bias calculation
             episode_states.append(state)
-            episode_actions.append(normalised_action)
+            episode_actions.append(action)
 
             # Just taking the sum reward for processing bias
             episode_rewards.append(episode_stats.get_episode_reward())

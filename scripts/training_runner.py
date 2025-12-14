@@ -5,7 +5,6 @@ from typing import Any
 
 from base_runner import BaseRunner, EpisodeStats
 from cares_reinforcement_learning.memory.memory_buffer import MemoryBuffer
-from cares_reinforcement_learning.util import helpers as hlp
 from cares_reinforcement_learning.util.training_context import (
     ActionContext,
     TrainingContext,
@@ -164,72 +163,39 @@ class TrainingRunner(BaseRunner):
                 }
             )
 
-    def _select_exploration_action(self, train_step_counter: int) -> tuple:
+    def _select_exploration_action(self, train_step_counter: int) -> Any:
         """Handle exploration phase action selection."""
         self.logger.info(
             f"Running Exploration Steps {train_step_counter + 1}/{self.max_steps_exploration}"
         )
 
-        denormalised_action = self.env.sample_action()
-        normalised_action = denormalised_action
+        return self.env.sample_action()
 
-        if self.apply_action_normalisation:
-            normalised_action = hlp.normalize(
-                denormalised_action,
-                self.env.max_action_value,
-                self.env.min_action_value,
-            )
-
-        return normalised_action, denormalised_action
-
-    def _select_repetition_action(self, episode_timesteps: int) -> tuple:
+    def _select_repetition_action(self, episode_timesteps: int) -> Any:
         """Handle episode repetition action selection."""
-        denormalised_action = self.repetition_manager.get_repetition_action(
-            episode_timesteps
-        )
+        action = self.repetition_manager.get_repetition_action(episode_timesteps)
 
-        # For repetition, assume we stored denormalized actions
-        normalised_action = denormalised_action
-        if self.apply_action_normalisation:
-            normalised_action = hlp.normalize(
-                denormalised_action,
-                self.env.max_action_value,
-                self.env.min_action_value,
-            )
+        return action
 
-        return normalised_action, denormalised_action
-
-    def _select_policy_action(self, state) -> tuple:
+    def _select_policy_action(self, state) -> Any:
         """Handle policy-based action selection."""
         available_actions = self.env.get_available_actions()
         action_context = ActionContext(
             state=state, evaluation=False, available_actions=available_actions
         )
-        normalised_action = self.agent.select_action_from_policy(action_context)
+        action = self.agent.select_action_from_policy(action_context)
 
-        denormalised_action = normalised_action
-        if self.apply_action_normalisation:
-            denormalised_action = hlp.denormalize(
-                normalised_action, self.env.max_action_value, self.env.min_action_value
-            )
+        return action
 
-        return normalised_action, denormalised_action
-
-    def _select_action(
-        self, train_step_counter: int, episode_step: int, state
-    ) -> tuple:
+    def _select_action(self, train_step_counter: int, episode_step: int, state) -> Any:
         if train_step_counter < self.max_steps_exploration:
-            normalised_action, denormalised_action = self._select_exploration_action(
-                train_step_counter
-            )
+            action = self._select_exploration_action(train_step_counter)
         elif self.repetition_manager.should_repeat(episode_step):
-            normalised_action, denormalised_action = self._select_repetition_action(
-                episode_step
-            )
+            action = self._select_repetition_action(episode_step)
         else:
-            normalised_action, denormalised_action = self._select_policy_action(state)
+            action = self._select_policy_action(state)
 
-        return normalised_action, denormalised_action
+        return action
 
     def _update_policy(
         self,
@@ -320,17 +286,15 @@ class TrainingRunner(BaseRunner):
             self._report_progress(episode_num + 1, train_step_counter + 1, status)
 
             # Determine action based on training phase
-            normalised_action, denormalised_action = self._select_action(
-                train_step_counter, episode_stats.steps, state
-            )
+            action = self._select_action(train_step_counter, episode_stats.steps, state)
 
             # Record action and execute step
-            self.repetition_manager.record_action(denormalised_action)
+            self.repetition_manager.record_action(action)
             info |= self.repetition_manager.get_status_info()
 
             # TODO handle done or truncated per agent
             next_state, reward_extrinsic, done, truncated, env_info = self.env.step(
-                denormalised_action
+                action
             )
 
             all_done = all(done) if isinstance(done, list) else done
@@ -346,13 +310,13 @@ class TrainingRunner(BaseRunner):
             # TODO bring back for intrinsic rewards and modify for MARL
             # if train_step_counter > self.max_steps_exploration:
             #     intrinsic_reward = self.agent.get_intrinsic_reward(
-            #         state, normalised_action, next_state
+            #         state, action, next_state
             #     )
             #     total_reward += intrinsic_reward
             #     info["intrinsic_reward"] = intrinsic_reward
 
             # Store experience in memory
-            self.memory.add(state, normalised_action, total_reward, next_state, done)
+            self.memory.add(state, action, total_reward, next_state, done)
 
             state = next_state
 

@@ -1,6 +1,7 @@
 from functools import cached_property
 
 import numpy as np
+from cares_reinforcement_learning.util import helpers as hlp
 from drone_gym import move_to_position
 from environments.gym_environment import GymEnvironment
 from util.configurations import GymEnvironmentConfig
@@ -18,7 +19,8 @@ class DroneEnvironment(GymEnvironment):
         return self.env.reset(training)
 
     def sample_action(self):
-        return self.env.sample_action()
+        action = self.env.sample_action()
+        return hlp.normalize(action, self.max_action_value, self.min_action_value)
 
     def set_seed(self, seed: int) -> None:
         self.env.set_seed(seed)
@@ -27,6 +29,7 @@ class DroneEnvironment(GymEnvironment):
         return self.env.get_overlay_info()
 
     def _step(self, action):
+        action = hlp.denormalize(action, self.max_action_value, self.min_action_value)
         return self.env.step(action)
 
     @cached_property
