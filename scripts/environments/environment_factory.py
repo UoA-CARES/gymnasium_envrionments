@@ -35,8 +35,9 @@ class EnvironmentFactory:
         elif isinstance(config, cfg.PyBoyConfig):
             from environments.pyboy.pyboy_environment import PyboyEnvironment
 
-            env = PyboyEnvironment(config)
-            eval_env = PyboyEnvironment(config)
+            env = PyboyEnvironment(config, image_observation)
+            eval_env = PyboyEnvironment(config, image_observation)
+            image_observation = False
         elif isinstance(config, cfg.ShowdownConfig):
             from environments.showdown.showdown_environment import ShowdownEnvironment
 
