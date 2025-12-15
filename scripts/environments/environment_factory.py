@@ -14,7 +14,11 @@ class EnvironmentFactory:
         pass
 
     def create_environment(
-        self, config: GymEnvironmentConfig, image_observation, train_seed: int, eval_seed: int
+        self,
+        config: GymEnvironmentConfig,
+        image_observation,
+        train_seed: int,
+        eval_seed: int,
     ) -> tuple[
         BaseEnvironment | MultiModalWrapper,
         BaseEnvironment | MultiModalWrapper,
