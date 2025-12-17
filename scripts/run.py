@@ -35,9 +35,9 @@ def main_with_runner():
     logger.info(f"Device: {device}")
 
     # Interactive prompts
-    run_name = input(
-        "Double check your experiment configurations :) Press ENTER to continue. (Optional - Enter a name for this run)\n"
-    )
+    # run_name = input(
+    #     "Double check your experiment configurations :) Press ENTER to continue. (Optional - Enter a name for this run)\n"
+    # )
 
     if device.type == "cpu":
         no_gpu_answer = input(
@@ -63,7 +63,7 @@ def main_with_runner():
                 coordinator.env_config.save_train_checkpoints = False
 
     # Setup directories and logging
-    coordinator.setup_logging_and_directories(run_name)
+    coordinator.setup_logging_and_directories()
 
     logger.info(f"Command: {coordinator.run_config.command}")
     logger.info(f"Data Path: {coordinator.run_config.data_path}")

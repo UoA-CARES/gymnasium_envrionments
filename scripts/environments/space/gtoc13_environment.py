@@ -52,3 +52,6 @@ class GTOC13Environment(GymEnvironment):
         if hasattr(self.env, "get_overlay_info"):
             return self.env.get_overlay_info()
         return {}
+
+    def _step(self, action: int) -> tuple:
+        return self.env.step(action)
