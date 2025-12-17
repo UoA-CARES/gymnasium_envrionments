@@ -70,7 +70,7 @@ class ShowdownEnvironment(GymEnvironment):
         state, _ = self.env.reset()
         return state
 
-    def step(self, action: int) -> tuple:
+    def _step(self, action: int) -> tuple:
         state, reward, done, truncated, info = self.env.step(np.int64(action))
         return state, reward, done, truncated, info
 

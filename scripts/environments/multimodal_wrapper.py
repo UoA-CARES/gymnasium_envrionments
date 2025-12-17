@@ -4,10 +4,11 @@ from functools import cached_property
 
 import cv2
 import numpy as np
-from environments.gym_environment import GymEnvironment, GymEnvironmentConfig
+from environments.gym_environment import GymEnvironment
+from util.configurations import GymEnvironmentConfig
 
 
-class ImageWrapper:
+class MultiModalWrapper:
     def __init__(self, config: GymEnvironmentConfig, gym: GymEnvironment):
         self.gym = gym
 
@@ -20,13 +21,16 @@ class ImageWrapper:
 
         self.frame_width = config.frame_width
         self.frame_height = config.frame_height
-        logging.info("Image Observation is on")
+        logging.info("Multi-modal Observation is on")
 
     def set_log_path(self, log_path: str, step_count: int) -> None:
         self.gym.set_log_path(log_path, step_count)
 
     def get_overlay_info(self):
         return self.gym.get_overlay_info()
+
+    def get_available_actions(self) -> np.ndarray:
+        return self.gym.get_available_actions()
 
     @cached_property
     def observation_space(self):
@@ -43,12 +47,16 @@ class ImageWrapper:
         return self.gym.action_num
 
     @cached_property
-    def min_action_value(self) -> float:
+    def min_action_value(self) -> np.ndarray:
         return self.gym.min_action_value
 
     @cached_property
-    def max_action_value(self) -> float:
+    def max_action_value(self) -> np.ndarray:
         return self.gym.max_action_value
+
+    @cached_property
+    def num_agents(self) -> int:
+        return self.gym.num_agents
 
     def render(self):
         self.gym.render()
@@ -78,10 +86,14 @@ class ImageWrapper:
 
         state = {"image": stacked_frames, "vector": vector_state}
 
+        multi_modal = self.gym.get_multimodal_observation()
+
+        state.update(multi_modal)
+
         return state
 
     def step(self, action):
-        vector_state, reward, done, truncated, info = self.gym.step(action)
+        vector_state, reward, done, truncated, info = self.gym._step(action)
         frame = self.grab_frame(
             height=self.frame_height, width=self.frame_width, grey_scale=self.grey_scale
         )
@@ -90,5 +102,9 @@ class ImageWrapper:
         stacked_frames = np.concatenate(list(self.frames_stacked), axis=0)
 
         state = {"image": stacked_frames, "vector": vector_state}
+
+        multi_modal = self.gym.get_multimodal_observation()
+
+        state.update(multi_modal)
 
         return state, reward, done, truncated, info
