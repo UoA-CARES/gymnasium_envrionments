@@ -11,109 +11,18 @@ from execution_coordinator import ExecutionCoordinator
 import execution_logger as logs
 from util.rl_parser import RLParser
 
-from cares_reinforcement_learning.util.configurations import (
-    FunctionLayer,
-    MLPConfig,
-    TrainableLayer,
-)
-
-# MARK: ACTIVATION LAYERS
-
-# GoLU
-golu_a: MLPConfig = MLPConfig(
-    layers=[
-        TrainableLayer(layer_type="Linear", out_features=256),
-        FunctionLayer(layer_type="GoLU"),
-    ]
-)
-golu_c: MLPConfig = MLPConfig(
-    layers=[
-        TrainableLayer(layer_type="Linear", out_features=256),
-        FunctionLayer(layer_type="GoLU"),
-        TrainableLayer(layer_type="Linear", in_features=256, out_features=1),
-    ]
-)
-
-# GELU
-gelu_a: MLPConfig = MLPConfig(
-    layers=[
-        TrainableLayer(layer_type="Linear", out_features=256),
-        FunctionLayer(layer_type="GELU"),
-    ]
-)
-gelu_c: MLPConfig = MLPConfig(
-    layers=[
-        TrainableLayer(layer_type="Linear", out_features=256),
-        FunctionLayer(layer_type="GELU"),
-        TrainableLayer(layer_type="Linear", in_features=256, out_features=1),
-    ]
-)
-
-# ReLU
-relu_a: MLPConfig = MLPConfig(
-    layers=[
-        TrainableLayer(layer_type="Linear", out_features=256),
-        FunctionLayer(layer_type="ReLU"),
-    ]
-)
-relu_c: MLPConfig = MLPConfig(
-    layers=[
-        TrainableLayer(layer_type="Linear", out_features=256),
-        FunctionLayer(layer_type="ReLU"),
-        TrainableLayer(layer_type="Linear", in_features=256, out_features=1),
-    ]
-)
-
-# Leaky ReLU
-leaky_a: MLPConfig = MLPConfig(
-    layers=[
-        TrainableLayer(layer_type="Linear", out_features=256),
-        FunctionLayer(layer_type="LeakyReLU"),
-    ]
-)
-leaky_c: MLPConfig = MLPConfig(
-    layers=[
-        TrainableLayer(layer_type="Linear", out_features=256),
-        FunctionLayer(layer_type="LeakyReLU"),
-        TrainableLayer(layer_type="Linear", in_features=256, out_features=1),
-    ]
-)
-
-# PReLU
-prelu_a: MLPConfig = MLPConfig(
-    layers=[
-        TrainableLayer(layer_type="Linear", out_features=256),
-        FunctionLayer(layer_type="PReLU"),
-    ]
-)
-prelu_c: MLPConfig = MLPConfig(
-    layers=[
-        TrainableLayer(layer_type="Linear", out_features=256),
-        FunctionLayer(layer_type="PReLU"),
-        TrainableLayer(layer_type="Linear", in_features=256, out_features=1),
-    ]
-)
-
 # MARK: BATCH CONFIG
 # Configure batch parameters here. The cross-product of these lists will be used
 # to create multiple experiment configurations.
 
-# python3 run.py train cli --gym dmcs --domain cartpole --task swingup --batch 1 SAC --seeds 10 20 30 40 50 --max_workers 5
+# Example: this will create 16 experiments for the 4 domains and 4 tasks.
+# The _skip function skips invalid combinations for 4 experiments total.
 batch_config: dict[str, list[Any | tuple[Any, str]]] = {
-    "alg_config.actor_config": [(leaky_a, "leaky"), (prelu_a, "prelu")],
-    "alg_config.critic_config": [(leaky_c, "leaky"), (prelu_c, "prelu")],
     "env_config.domain": ["cheetah", "cartpole", "finger", "walker"],
-    "env_config.task": ["run", "swingup", "spin", "walk"],
+    "env_config.task": ["run", "swingup", "spin", ("walk", "CUSTOM NAME")], # Can also use (value, name) tuples - useful when value is an object
 }
 
-# python3 run.py train cli --gym openai --task HalfCheetah-v4 --batch 1 SAC --seeds 10 20 30 40 50 --max_workers 5
-# batch_config: dict[str, list[Any | tuple[Any, str]]] = {
-#     "alg_config.actor_config": [(leaky_a, "leaky"), (prelu_a, "prelu")],
-#     "alg_config.critic_config": [(leaky_c, "leaky"), (prelu_c, "prelu")],
-#     "env_config.task": ["HalfCheetah-v4", "Humanoid-v4", "Ant-v4", "Hopper-v4"],
-# }
-
-
+# This function can be customized to skip certain invalid or undesired configurations.
 def _skip(config: dict[str, tuple[Any, str]]) -> bool:
     """Determine if a given configuration combination should be skipped.
     E.g., task walker.catch doesn't exist.
@@ -125,18 +34,7 @@ def _skip(config: dict[str, tuple[Any, str]]) -> bool:
     Returns:
         bool: True if the configuration should be skipped, False otherwise.
     """
-    # Homogeneous activations for actor and critic
-    if (
-        config.get("alg_config.actor_config", (None, "A"))[1]
-        != config.get("alg_config.critic_config", (None, "B"))[1]
-    ):
-        return True
-
-    # OpenAI Gym tasks have no domain, only task
-    if config.get("env_config.domain") is None:
-        return False  # Do not skip
-
-    # Match domain to task
+    # Example: match domain to task
     return not (
         (
             config.get("env_config.domain", (None,))[0] == "cartpole"
