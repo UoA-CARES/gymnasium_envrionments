@@ -6,7 +6,8 @@ from pathlib import Path
 from typing import ClassVar
 
 from cares_reinforcement_learning.util.configurations import SubscriptableClass
-from rl_corrective_gym.space_env_config import SpaceEnvironmentConfig
+
+# from rl_corrective_gym.space_env_config import SpaceEnvironmentConfig
 from gtoc13_violet.GA_config import GAConfig
 
 file_path = Path(__file__).parent.resolve()
@@ -96,7 +97,7 @@ class SMACConfig(GymEnvironmentConfig):
 # TODO: for now separate but clean up later
 # multi-inheritance may not work as it requires external dependencies to run
 # unrelated enviornments...
-class SpaceConfig(SpaceEnvironmentConfig, GymEnvironmentConfig):
+class SpaceConfig(GymEnvironmentConfig):
     gym: ClassVar[str] = "space"
 
 
