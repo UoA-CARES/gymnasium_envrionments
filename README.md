@@ -158,7 +158,7 @@ python3 plotter.py -s ~/cares_rl_logs -d ~/cares_rl_logs/ALGORITHM_A/ALGORITHM_A
 ```
 
 # Running in Batch Mode
-A set of different training instances (e.g. comparing different algorithms or environments) can be run in series using batch mode.
+A set of different training instances (e.g. comparing different algorithms or environments) can be run in series using batch mode. This is compatible with running seeds in parrallel.
 
 To use batch mode, append `--batch 1` to any train command, e.g.
 ```
@@ -187,3 +187,10 @@ python run.py train cli --gym dmcs --domain humanoid --task walk TD3 --batch 1 -
 <p align="center">
     <img src="./media/batch-range.png" style="width: 80%;"/>
 </p>
+
+# Using Docker
+This repository can be run in a docker container using `docker run -it --gpus all oculux314/cares:base`. This will download an image of this repository, start it, and open up a bash terminal inside to run commands as usual. The `gymnasium_envrionments` `cares_reinforcement_learning` and `cares_rl_logs` folders are located in the `/app` directory within the container.
+
+To open another terminal inside the same running docker container use `docker ps -a` to find the name of the container, then `docker exec -it <container> bash`. To copy files out of the docker container, use `docker cp <container>:<path> <host-path>` from the host.
+
+In some situations, you may want to build your own version of the image (e.g. to modify some build steps). To do this run `docker build -t oculux314/cares:base .` from the root of this repository, overwriting any existing image, and then run the image as usual.
