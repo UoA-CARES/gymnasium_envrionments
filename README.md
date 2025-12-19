@@ -156,3 +156,34 @@ Plot and compare the results of two or more training instances
 ```sh
 python3 plotter.py -s ~/cares_rl_logs -d ~/cares_rl_logs/ALGORITHM_A/ALGORITHM_A-TASK-YY_MM_DD:HH:MM:SS ~/cares_rl_logs/ALGORITHM_B/ALGORITHM_B-TASK-YY_MM_DD:HH:MM:SS
 ```
+
+# Running in Batch Mode
+A set of different training instances (e.g. comparing different algorithms or environments) can be run in series using batch mode.
+
+To use batch mode, append `--batch 1` to any train command, e.g.
+```
+python run.py train cli --gym dmcs --domain humanoid --task walk TD3 --batch 1
+```
+
+The specific instances to run can be configured in the `BATCH CONFIG` section of `scripts/batch_coordinator.py`. The cross product of these lists is used to create the set of instances to be run.
+<p align="center">
+    <img src="./media/batch-config.png" style="width: 80%;"/>
+</p>
+
+The format is `field: [instances]` and mirrors the configuration object used in non-batched runs. It can be useful to set a breakpoint in `run.py` to view the configuration object when editing this file.
+<p align="center">
+    <img src="./media/config-breakpoint.png" style="width: 80%;"/>
+</p>
+
+The `_skip()` function in `scripts/batch_coordinator.py` can be used to filter out undesired combinations - e.g. here, invalid domain-task pairings are skipped.
+<p align="center">
+    <img src="./media/skip-function.png" style="width: 80%;"/>
+</p>
+
+Finally, a specific range of instances can be run by specifying `--b_start` and/or `--b_end`. The run order is deterministic.
+```
+python run.py train cli --gym dmcs --domain humanoid --task walk TD3 --batch 1 --b_start 2 --b_end -2
+```
+<p align="center">
+    <img src="./media/batch-range.png" style="width: 80%;"/>
+</p>
