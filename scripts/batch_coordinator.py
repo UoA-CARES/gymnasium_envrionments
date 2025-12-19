@@ -19,8 +19,14 @@ from util.rl_parser import RLParser
 # The _skip function skips invalid combinations for 4 experiments total.
 batch_config: dict[str, list[Any | tuple[Any, str]]] = {
     "env_config.domain": ["cheetah", "cartpole", "finger", "walker"],
-    "env_config.task": ["run", "swingup", "spin", ("walk", "CUSTOM NAME")], # Can also use (value, name) tuples - useful when value is an object
+    "env_config.task": [
+        "run",
+        "swingup",
+        "spin",
+        ("walk", "CUSTOM NAME"),
+    ],  # Can also use (value, name) tuples - useful when value is an object
 }
+
 
 # This function can be customized to skip certain invalid or undesired configurations.
 def _skip(config: dict[str, tuple[Any, str]]) -> bool:
