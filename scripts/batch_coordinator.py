@@ -147,7 +147,7 @@ def _get_name_from_config(config: dict[str, tuple[Any, str]], index: int) -> str
 def _config_to_coordinator(config: dict[str, tuple[Any, str]]) -> ExecutionCoordinator:
     parser = RLParser()
     base_configs = parser.parse_args()
-    coordinator = ExecutionCoordinator(base_configs)
+    coordinator = ExecutionCoordinator(base_configs, options={"noprint": True})
     _replace_configurations(coordinator, config)
     return coordinator
 

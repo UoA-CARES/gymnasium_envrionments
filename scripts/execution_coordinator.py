@@ -41,7 +41,7 @@ class ExecutionCoordinator:
     - Testing: Testing final models only with specified episodes
     """
 
-    def __init__(self, configurations: dict[str, Any]):
+    def __init__(self, configurations: dict[str, Any], options: dict[str, Any] = {}):
         """
         Initialize the ExecutionCoordinator with parsed configurations.
 
@@ -63,7 +63,8 @@ class ExecutionCoordinator:
         self.base_log_dir: str | None = None
 
         # Log all configurations for debugging
-        self._print_configurations()
+        if not options.get("noprint", False):
+            self._print_configurations()
 
     def _print_configurations(self) -> None:
         """Log all configurations for debugging and reproducibility."""
