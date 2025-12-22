@@ -8,6 +8,8 @@ import concurrent.futures
 import logging
 import multiprocessing
 import time
+import gc
+import torch
 from multiprocessing.queues import Queue
 from queue import Empty
 from typing import Any
@@ -487,3 +489,7 @@ class ExecutionCoordinator:
             self._test()
         else:
             raise ValueError(f"Unknown command: {self.run_config.command}")
+
+        # Clean up resources after execution
+        # gc.collect()
+        # torch.cuda.empty_cache()
