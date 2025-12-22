@@ -98,7 +98,7 @@ prelu_a_sac: MLPConfig = MLPConfig(
 )
 prelu_a_td3: MLPConfig = MLPConfig(
     layers=[
-        TrainableLayer(layer_type="Linear", out_features=256),
+        TrainableLayer(layer_type="Linear"),
         FunctionLayer(layer_type="Tanh"),
     ]
 )
@@ -127,7 +127,7 @@ all_both_leaky_a_td3: MLPConfig = MLPConfig(
     layers=[
         TrainableLayer(layer_type="Linear", out_features=256),
         FunctionLayer(layer_type="LeakyReLU"),
-        TrainableLayer(layer_type="Linear", in_features=256, out_features=256),
+        TrainableLayer(layer_type="Linear", in_features=256),
         FunctionLayer(layer_type="Tanh"),
     ]
 )
@@ -153,7 +153,7 @@ all_both_prelu_a_td3: MLPConfig = MLPConfig(
     layers=[
         TrainableLayer(layer_type="Linear", out_features=256),
         FunctionLayer(layer_type="PReLU"),
-        TrainableLayer(layer_type="Linear", in_features=256, out_features=256),
+        TrainableLayer(layer_type="Linear", in_features=256),
         FunctionLayer(layer_type="Tanh"),
     ]
 )
@@ -180,7 +180,7 @@ all_actor_leaky_a_td3: MLPConfig = MLPConfig(
     layers=[
         TrainableLayer(layer_type="Linear", out_features=256),
         FunctionLayer(layer_type="LeakyReLU"),
-        TrainableLayer(layer_type="Linear", in_features=256, out_features=256),
+        TrainableLayer(layer_type="Linear", in_features=256),
         FunctionLayer(layer_type="Tanh"),
     ]
 )
@@ -206,7 +206,7 @@ all_actor_prelu_a_td3: MLPConfig = MLPConfig(
     layers=[
         TrainableLayer(layer_type="Linear", out_features=256),
         FunctionLayer(layer_type="PReLU"),
-        TrainableLayer(layer_type="Linear", in_features=256, out_features=256),
+        TrainableLayer(layer_type="Linear", in_features=256),
         FunctionLayer(layer_type="Tanh"),
     ]
 )
@@ -233,7 +233,7 @@ all_critic_leaky_a_td3: MLPConfig = MLPConfig(
     layers=[
         TrainableLayer(layer_type="Linear", out_features=256),
         FunctionLayer(layer_type="ReLU"),
-        TrainableLayer(layer_type="Linear", in_features=256, out_features=256),
+        TrainableLayer(layer_type="Linear", in_features=256),
         FunctionLayer(layer_type="Tanh"),
     ]
 )
@@ -259,7 +259,7 @@ all_critic_prelu_a_td3: MLPConfig = MLPConfig(
     layers=[
         TrainableLayer(layer_type="Linear", out_features=256),
         FunctionLayer(layer_type="ReLU"),
-        TrainableLayer(layer_type="Linear", in_features=256, out_features=256),
+        TrainableLayer(layer_type="Linear", in_features=256),
         FunctionLayer(layer_type="Tanh"),
     ]
 )
@@ -286,7 +286,7 @@ first_both_leaky_a_td3: MLPConfig = MLPConfig(
     layers=[
         TrainableLayer(layer_type="Linear", out_features=256),
         FunctionLayer(layer_type="LeakyReLU"),
-        TrainableLayer(layer_type="Linear", in_features=256, out_features=256),
+        TrainableLayer(layer_type="Linear", in_features=256),
         FunctionLayer(layer_type="Tanh"),
     ]
 )
@@ -312,7 +312,7 @@ first_both_prelu_a_td3: MLPConfig = MLPConfig(
     layers=[
         TrainableLayer(layer_type="Linear", out_features=256),
         FunctionLayer(layer_type="PReLU"),
-        TrainableLayer(layer_type="Linear", in_features=256, out_features=256),
+        TrainableLayer(layer_type="Linear", in_features=256),
         FunctionLayer(layer_type="Tanh"),
     ]
 )
@@ -339,7 +339,7 @@ first_actor_leaky_a_td3: MLPConfig = MLPConfig(
     layers=[
         TrainableLayer(layer_type="Linear", out_features=256),
         FunctionLayer(layer_type="LeakyReLU"),
-        TrainableLayer(layer_type="Linear", in_features=256, out_features=256),
+        TrainableLayer(layer_type="Linear", in_features=256),
         FunctionLayer(layer_type="Tanh"),
     ]
 )
@@ -365,7 +365,7 @@ first_actor_prelu_a_td3: MLPConfig = MLPConfig(
     layers=[
         TrainableLayer(layer_type="Linear", out_features=256),
         FunctionLayer(layer_type="PReLU"),
-        TrainableLayer(layer_type="Linear", in_features=256, out_features=256),
+        TrainableLayer(layer_type="Linear", in_features=256),
         FunctionLayer(layer_type="Tanh"),
     ]
 )
@@ -392,7 +392,7 @@ first_critic_leaky_a_td3: MLPConfig = MLPConfig(
     layers=[
         TrainableLayer(layer_type="Linear", out_features=256),
         FunctionLayer(layer_type="ReLU"),
-        TrainableLayer(layer_type="Linear", in_features=256, out_features=256),
+        TrainableLayer(layer_type="Linear", in_features=256),
         FunctionLayer(layer_type="Tanh"),
     ]
 )
@@ -418,7 +418,7 @@ first_critic_prelu_a_td3: MLPConfig = MLPConfig(
     layers=[
         TrainableLayer(layer_type="Linear", out_features=256),
         FunctionLayer(layer_type="ReLU"),
-        TrainableLayer(layer_type="Linear", in_features=256, out_features=256),
+        TrainableLayer(layer_type="Linear", in_features=256),
         FunctionLayer(layer_type="Tanh"),
     ]
 )
