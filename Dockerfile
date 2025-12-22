@@ -52,7 +52,7 @@ RUN pip install -e .
 # -------------------------------------------------------------------
 
 WORKDIR /app/gymnasium_envrionments
-RUN git checkout main
+RUN git checkout nwil508-hoda-test
 RUN git pull
 RUN pip install -r requirements.txt
 
