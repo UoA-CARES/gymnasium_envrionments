@@ -27,7 +27,7 @@ def main_with_runner():
     # Parse configurations (same as before)
     parser = RLParser()
     configurations = parser.parse_args()
-    is_batch_training = configurations.get("env_config").batch == 1 and configurations.get("run_config").command == 'train'  # type: ignore
+    is_batch_training = configurations.get("env_config").batch == 1 and configurations.get("run_config").command == "train"  # type: ignore
 
     # Create the execution coordinator
     coordinator = ExecutionCoordinator(configurations)
