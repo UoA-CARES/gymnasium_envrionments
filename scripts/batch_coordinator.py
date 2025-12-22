@@ -98,7 +98,7 @@ prelu_a_sac: MLPConfig = MLPConfig(
 )
 prelu_a_td3: MLPConfig = MLPConfig(
     layers=[
-        TrainableLayer(layer_type="Linear"),
+        TrainableLayer(layer_type="Linear", out_features=1),
         FunctionLayer(layer_type="Tanh"),
     ]
 )
@@ -439,17 +439,17 @@ first_critic_prelu_c: MLPConfig = MLPConfig(
 # Configure batch parameters here. The cross-product of these lists will be used
 # to create multiple experiment configurations.
 
-# python3 run.py train cli --gym dmcs --domain cartpole --task swingup --batch 1 SAC --seeds 10 20 30 40 50 --max_workers 5
+# python3 run.py train cli --gym dmcs --domain cartpole --task swingup --batch 1 TD3 --seeds 10 20 30 40 50 --max_workers 5
 batch_config: dict[str, list[Any | tuple[Any, str]]] = {
-    "alg_config.actor_config": [(leaky_a_sac, "leaky"), (prelu_a_sac, "prelu")],
+    "alg_config.actor_config": [(leaky_a_td3, "leaky"), (prelu_a_td3, "prelu")],
     "alg_config.critic_config": [(leaky_c, "leaky"), (prelu_c, "prelu")],
     "env_config.domain": ["cheetah", "cartpole", "finger", "walker"],
     "env_config.task": ["run", "swingup", "spin", "walk"],
 }
 
-# python3 run.py train cli --gym openai --task HalfCheetah-v4 --batch 1 SAC --seeds 10 20 30 40 50 --max_workers 5
+# python3 run.py train cli --gym openai --task HalfCheetah-v4 --batch 1 TD3 --seeds 10 20 30 40 50 --max_workers 5
 # batch_config: dict[str, list[Any | tuple[Any, str]]] = {
-#     "alg_config.actor_config": [(leaky_a, "leaky"), (prelu_a, "prelu")],
+#     "alg_config.actor_config": [(leaky_a_td3, "leaky"), (prelu_a_td3, "prelu")],
 #     "alg_config.critic_config": [(leaky_c, "leaky"), (prelu_c, "prelu")],
 #     "env_config.task": ["HalfCheetah-v4", "Humanoid-v4", "Ant-v4", "Hopper-v4"],
 # }
