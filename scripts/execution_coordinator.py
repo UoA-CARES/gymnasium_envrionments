@@ -491,5 +491,5 @@ class ExecutionCoordinator:
             raise ValueError(f"Unknown command: {self.run_config.command}")
 
         # Clean up resources after execution
-        # gc.collect()
-        # torch.cuda.empty_cache()
+        gc.collect()
+        torch.cuda.empty_cache()
