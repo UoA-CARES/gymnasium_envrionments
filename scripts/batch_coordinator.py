@@ -444,12 +444,7 @@ batch_config: dict[str, list[Any | tuple[Any, str]]] = {
     "alg_config.actor_config": [(leaky_a_td3, "leaky"), (prelu_a_td3, "prelu")],
     "alg_config.critic_config": [(leaky_c, "leaky"), (prelu_c, "prelu")],
     "env_config.domain": ["cheetah", "cartpole", "finger", "walker"],
-    "env_config.task": [
-        "run",
-        "swingup",
-        "spin",
-        ("walk", "CUSTOM NAME"),
-    ],  # Can also use (value, name) tuples - useful when value is an object
+    "env_config.task": ["run", "swingup", "spin", "walk"],
 }
 
 # python3 run.py train cli --gym openai --task HalfCheetah-v4 --batch 1 TD3 --seeds 10 20 30 40 50 --max_workers 5
@@ -472,7 +467,18 @@ def _skip(config: dict[str, tuple[Any, str]]) -> bool:
     Returns:
         bool: True if the configuration should be skipped, False otherwise.
     """
-    # Example: match domain to task
+    # Homogeneous activations for actor and critic
+    if (
+        config.get("alg_config.actor_config", (None, "A"))[1]
+        != config.get("alg_config.critic_config", (None, "B"))[1]
+    ):
+        return True
+
+    # OpenAI Gym tasks have no domain, only task
+    if config.get("env_config.domain") is None:
+        return False  # Do not skip
+
+    # Match domain to task
     return not (
         (
             config.get("env_config.domain", (None,))[0] == "cartpole"
