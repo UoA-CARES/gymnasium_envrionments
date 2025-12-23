@@ -9,8 +9,23 @@ WORKDIR /app
 # Installation
 # -------------------------------------------------------------------
 
-RUN apt-get update
-RUN apt-get install -y python-is-python3 python3-venv python3-pip git libgl1 libglib2.0-0 libsm6 libxext6 libxrender1
+RUN apt-get update && apt-get install -y \
+    python-is-python3 \
+    python3-venv \
+    python3-pip \
+    git \
+    # This is needed for mujoco
+    libgl1 \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender1 \
+    libosmesa6 \
+    libosmesa6-dev \
+    mesa-utils \
+    libgl1-mesa-glx \
+    libgl1-mesa-dri \
+    nano
 
 # -------------------------------------------------------------------
 # Clone repos
@@ -27,7 +42,7 @@ RUN git clone https://github.com/UoA-CARES/cares_reinforcement_learning.git
 # -------------------------------------------------------------------
 
 WORKDIR /app/cares_reinforcement_learning
-RUN git checkout nwil508
+RUN git checkout main
 RUN git pull
 RUN pip install -r requirements.txt
 RUN pip install -e .
@@ -37,7 +52,7 @@ RUN pip install -e .
 # -------------------------------------------------------------------
 
 WORKDIR /app/gymnasium_envrionments
-RUN git checkout nwil508
+RUN git checkout main
 RUN git pull
 RUN pip install -r requirements.txt
 

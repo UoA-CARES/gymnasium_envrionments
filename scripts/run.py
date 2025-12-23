@@ -27,7 +27,7 @@ def main_with_runner():
     # Parse configurations (same as before)
     parser = RLParser()
     configurations = parser.parse_args()
-    is_batch = configurations.get("env_config").batch == 1  # type: ignore
+    is_batch_training = configurations.get("env_config").batch == 1 and configurations.get("run_config").command == "train"  # type: ignore
 
     # Create the execution coordinator
     coordinator = ExecutionCoordinator(configurations)
@@ -38,7 +38,7 @@ def main_with_runner():
 
     # Interactive prompts
     run_name = input(
-        f"Double check your experiment configurations :) Press ENTER to continue. {'' if is_batch else '(Optional - Enter a name for this run)'}\n"
+        f"Double check your experiment configurations :) Press ENTER to continue. {'' if is_batch_training else '(Optional - Enter a name for this run)'}\n"
     )
 
     if device.type == "cpu":
@@ -68,7 +68,7 @@ def main_with_runner():
     logger.info(f"Command: {coordinator.run_config.command}")
     logger.info(f"Data Path: {coordinator.run_config.data_path}")
 
-    if is_batch:
+    if is_batch_training:
         batch_coordinators = get_batch_coordinators()
 
         # User confirmation
