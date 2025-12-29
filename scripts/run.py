@@ -5,6 +5,8 @@ This demonstrates how to replace the main() function logic with the new runner.
 
 import multiprocessing
 import sys
+import torch
+import subprocess
 
 from execution_coordinator import ExecutionCoordinator
 import execution_logger as logs
@@ -96,6 +98,7 @@ def main_with_runner():
                 continue
 
             logger.info(f"[{i+1}/{len(batch_coordinators)}] Running {batch_run_name}")
+            logger.info(f"CUDA available: {torch.cuda.is_available()}")
             batch_coordinator.setup_logging_and_directories(batch_run_name)
             batch_coordinator.run()
         logger.info(f"Completed all {len(batch_coordinators)} batch experiments.")
