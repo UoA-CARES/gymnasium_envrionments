@@ -60,5 +60,6 @@ RUN pip install -r requirements.txt
 # Runtime
 # -------------------------------------------------------------------
 
+ENV CARES_LOG_PATH_TEMPLATE="{algorithm}/{domain_task}-{algorithm}-{date}"
 WORKDIR /app/gymnasium_envrionments/scripts
 CMD [ "bash" ]
