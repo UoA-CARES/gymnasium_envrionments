@@ -354,7 +354,9 @@ class TrainingRunner(BaseRunner):
             # Store experience in memory
 
             extras = self.agent.get_extras()
-            self.memory.add(state, normalised_action, total_reward, next_state, done, extras)
+            self.memory.add(
+                state, normalised_action, total_reward, next_state, done, extras
+            )
 
             state = next_state
 
