@@ -303,13 +303,13 @@ class TrainingRunner(BaseRunner):
         state = self.env.reset()
         episode_start = time.time()
 
+        info: dict = {}
+
         # Main training loop
         train_step_counter = self.start_training_step
         for train_step_counter in range(
             self.start_training_step, int(self.max_steps_training)
         ):
-            info: dict = {}
-
             episode_stats.step()
 
             status = (
