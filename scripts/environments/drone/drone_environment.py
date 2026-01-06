@@ -1,7 +1,7 @@
 from functools import cached_property
 
 import numpy as np
-from drone_gym import move_to_position
+from drone_gym import move_to_random_3d_position
 from environments.gym_environment import GymEnvironment
 from util.configurations import GymEnvironmentConfig
 
@@ -10,7 +10,7 @@ class DroneEnvironment(GymEnvironment):
     def __init__(self, config: GymEnvironmentConfig, evaluation: bool = False) -> None:
         super().__init__(config)
 
-        self.env = move_to_position.MoveToPosition()
+        self.env = move_to_random_3d_position.MoveToRandom3DPosition()
 
     def reset(self, training: bool = True):
         return self.env.reset(training)
