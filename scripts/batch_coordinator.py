@@ -24,7 +24,7 @@ from cares_reinforcement_learning.util.configurations import (
 # ---------------------------------------------------------------------
 
 # geluReLU -> GELU
-# PReLU -> GoLU
+# GoLU -> GoLU
 
 # GELU
 gelu_a_sac: MLPConfig = MLPConfig(
@@ -47,23 +47,23 @@ gelu_c: MLPConfig = MLPConfig(
     ]
 )
 
-# PReLU
-prelu_a_sac: MLPConfig = MLPConfig(
+# GoLU
+golu_a_sac: MLPConfig = MLPConfig(
     layers=[
         TrainableLayer(layer_type="Linear", out_features=256),
-        FunctionLayer(layer_type="PReLU"),
+        FunctionLayer(layer_type="GoLU"),
     ]
 )
-prelu_a_td3: MLPConfig = MLPConfig(
+golu_a_td3: MLPConfig = MLPConfig(
     layers=[
         TrainableLayer(layer_type="Linear"),
         FunctionLayer(layer_type="Tanh"),
     ]
 )
-prelu_c: MLPConfig = MLPConfig(
+golu_c: MLPConfig = MLPConfig(
     layers=[
         TrainableLayer(layer_type="Linear", out_features=256),
-        FunctionLayer(layer_type="PReLU"),
+        FunctionLayer(layer_type="GoLU"),
         TrainableLayer(layer_type="Linear", in_features=256, out_features=1),
     ]
 )
@@ -99,28 +99,28 @@ all_both_gelu_c: MLPConfig = MLPConfig(
     ]
 )
 
-all_both_prelu_a_sac: MLPConfig = MLPConfig(
+all_both_golu_a_sac: MLPConfig = MLPConfig(
     layers=[
         TrainableLayer(layer_type="Linear", out_features=256),
-        FunctionLayer(layer_type="PReLU"),
+        FunctionLayer(layer_type="GoLU"),
         TrainableLayer(layer_type="Linear", in_features=256, out_features=256),
-        FunctionLayer(layer_type="PReLU"),
+        FunctionLayer(layer_type="GoLU"),
     ]
 )
-all_both_prelu_a_td3: MLPConfig = MLPConfig(
+all_both_golu_a_td3: MLPConfig = MLPConfig(
     layers=[
         TrainableLayer(layer_type="Linear", out_features=256),
-        FunctionLayer(layer_type="PReLU"),
+        FunctionLayer(layer_type="GoLU"),
         TrainableLayer(layer_type="Linear", in_features=256),
         FunctionLayer(layer_type="Tanh"),
     ]
 )
-all_both_prelu_c: MLPConfig = MLPConfig(
+all_both_golu_c: MLPConfig = MLPConfig(
     layers=[
         TrainableLayer(layer_type="Linear", out_features=256),
-        FunctionLayer(layer_type="PReLU"),
+        FunctionLayer(layer_type="GoLU"),
         TrainableLayer(layer_type="Linear", in_features=256, out_features=256),
-        FunctionLayer(layer_type="PReLU"),
+        FunctionLayer(layer_type="GoLU"),
         TrainableLayer(layer_type="Linear", in_features=256, out_features=1),
     ]
 )
@@ -152,23 +152,23 @@ all_actor_gelu_c: MLPConfig = MLPConfig(
     ]
 )
 
-all_actor_prelu_a_sac: MLPConfig = MLPConfig(
+all_actor_golu_a_sac: MLPConfig = MLPConfig(
     layers=[
         TrainableLayer(layer_type="Linear", out_features=256),
-        FunctionLayer(layer_type="PReLU"),
+        FunctionLayer(layer_type="GoLU"),
         TrainableLayer(layer_type="Linear", in_features=256, out_features=256),
-        FunctionLayer(layer_type="PReLU"),
+        FunctionLayer(layer_type="GoLU"),
     ]
 )
-all_actor_prelu_a_td3: MLPConfig = MLPConfig(
+all_actor_golu_a_td3: MLPConfig = MLPConfig(
     layers=[
         TrainableLayer(layer_type="Linear", out_features=256),
-        FunctionLayer(layer_type="PReLU"),
+        FunctionLayer(layer_type="GoLU"),
         TrainableLayer(layer_type="Linear", in_features=256),
         FunctionLayer(layer_type="Tanh"),
     ]
 )
-all_actor_prelu_c: MLPConfig = MLPConfig(
+all_actor_golu_c: MLPConfig = MLPConfig(
     layers=[
         TrainableLayer(layer_type="Linear", out_features=256),
         FunctionLayer(layer_type="ReLU"),
@@ -205,7 +205,7 @@ all_critic_gelu_c: MLPConfig = MLPConfig(
     ]
 )
 
-all_critic_prelu_a_sac: MLPConfig = MLPConfig(
+all_critic_golu_a_sac: MLPConfig = MLPConfig(
     layers=[
         TrainableLayer(layer_type="Linear", out_features=256),
         FunctionLayer(layer_type="ReLU"),
@@ -213,7 +213,7 @@ all_critic_prelu_a_sac: MLPConfig = MLPConfig(
         FunctionLayer(layer_type="ReLU"),
     ]
 )
-all_critic_prelu_a_td3: MLPConfig = MLPConfig(
+all_critic_golu_a_td3: MLPConfig = MLPConfig(
     layers=[
         TrainableLayer(layer_type="Linear", out_features=256),
         FunctionLayer(layer_type="ReLU"),
@@ -221,12 +221,12 @@ all_critic_prelu_a_td3: MLPConfig = MLPConfig(
         FunctionLayer(layer_type="Tanh"),
     ]
 )
-all_critic_prelu_c: MLPConfig = MLPConfig(
+all_critic_golu_c: MLPConfig = MLPConfig(
     layers=[
         TrainableLayer(layer_type="Linear", out_features=256),
-        FunctionLayer(layer_type="PReLU"),
+        FunctionLayer(layer_type="GoLU"),
         TrainableLayer(layer_type="Linear", in_features=256, out_features=256),
-        FunctionLayer(layer_type="PReLU"),
+        FunctionLayer(layer_type="GoLU"),
         TrainableLayer(layer_type="Linear", in_features=256, out_features=1),
     ]
 )
@@ -258,26 +258,26 @@ first_both_gelu_c: MLPConfig = MLPConfig(
     ]
 )
 
-first_both_prelu_a_sac: MLPConfig = MLPConfig(
+first_both_golu_a_sac: MLPConfig = MLPConfig(
     layers=[
         TrainableLayer(layer_type="Linear", out_features=256),
-        FunctionLayer(layer_type="PReLU"),
+        FunctionLayer(layer_type="GoLU"),
         TrainableLayer(layer_type="Linear", in_features=256, out_features=256),
         FunctionLayer(layer_type="ReLU"),
     ]
 )
-first_both_prelu_a_td3: MLPConfig = MLPConfig(
+first_both_golu_a_td3: MLPConfig = MLPConfig(
     layers=[
         TrainableLayer(layer_type="Linear", out_features=256),
-        FunctionLayer(layer_type="PReLU"),
+        FunctionLayer(layer_type="GoLU"),
         TrainableLayer(layer_type="Linear", in_features=256),
         FunctionLayer(layer_type="Tanh"),
     ]
 )
-first_both_prelu_c: MLPConfig = MLPConfig(
+first_both_golu_c: MLPConfig = MLPConfig(
     layers=[
         TrainableLayer(layer_type="Linear", out_features=256),
-        FunctionLayer(layer_type="PReLU"),
+        FunctionLayer(layer_type="GoLU"),
         TrainableLayer(layer_type="Linear", in_features=256, out_features=256),
         FunctionLayer(layer_type="ReLU"),
         TrainableLayer(layer_type="Linear", in_features=256, out_features=1),
@@ -311,23 +311,23 @@ first_actor_gelu_c: MLPConfig = MLPConfig(
     ]
 )
 
-first_actor_prelu_a_sac: MLPConfig = MLPConfig(
+first_actor_golu_a_sac: MLPConfig = MLPConfig(
     layers=[
         TrainableLayer(layer_type="Linear", out_features=256),
-        FunctionLayer(layer_type="PReLU"),
+        FunctionLayer(layer_type="GoLU"),
         TrainableLayer(layer_type="Linear", in_features=256, out_features=256),
         FunctionLayer(layer_type="ReLU"),
     ]
 )
-first_actor_prelu_a_td3: MLPConfig = MLPConfig(
+first_actor_golu_a_td3: MLPConfig = MLPConfig(
     layers=[
         TrainableLayer(layer_type="Linear", out_features=256),
-        FunctionLayer(layer_type="PReLU"),
+        FunctionLayer(layer_type="GoLU"),
         TrainableLayer(layer_type="Linear", in_features=256),
         FunctionLayer(layer_type="Tanh"),
     ]
 )
-first_actor_prelu_c: MLPConfig = MLPConfig(
+first_actor_golu_c: MLPConfig = MLPConfig(
     layers=[
         TrainableLayer(layer_type="Linear", out_features=256),
         FunctionLayer(layer_type="ReLU"),
@@ -364,7 +364,7 @@ first_critic_gelu_c: MLPConfig = MLPConfig(
     ]
 )
 
-first_critic_prelu_a_sac: MLPConfig = MLPConfig(
+first_critic_golu_a_sac: MLPConfig = MLPConfig(
     layers=[
         TrainableLayer(layer_type="Linear", out_features=256),
         FunctionLayer(layer_type="ReLU"),
@@ -372,7 +372,7 @@ first_critic_prelu_a_sac: MLPConfig = MLPConfig(
         FunctionLayer(layer_type="ReLU"),
     ]
 )
-first_critic_prelu_a_td3: MLPConfig = MLPConfig(
+first_critic_golu_a_td3: MLPConfig = MLPConfig(
     layers=[
         TrainableLayer(layer_type="Linear", out_features=256),
         FunctionLayer(layer_type="ReLU"),
@@ -380,10 +380,10 @@ first_critic_prelu_a_td3: MLPConfig = MLPConfig(
         FunctionLayer(layer_type="Tanh"),
     ]
 )
-first_critic_prelu_c: MLPConfig = MLPConfig(
+first_critic_golu_c: MLPConfig = MLPConfig(
     layers=[
         TrainableLayer(layer_type="Linear", out_features=256),
-        FunctionLayer(layer_type="PReLU"),
+        FunctionLayer(layer_type="GoLU"),
         TrainableLayer(layer_type="Linear", in_features=256, out_features=256),
         FunctionLayer(layer_type="ReLU"),
         TrainableLayer(layer_type="Linear", in_features=256, out_features=1),
@@ -392,7 +392,7 @@ first_critic_prelu_c: MLPConfig = MLPConfig(
 
 # cd /app/gymnasium_envrionments/scripts && nano batch_coordinator.py
 # bash ../strip_logs.sh /app/cares_rl_logs
-# scp -r /app/cares_rl_logs/TD3 anyone@130.216.238.228:/home/anyone/Documents/nwil508/logs/saved/gelu-prelu
+# scp -r /app/cares_rl_logs/TD3 anyone@130.216.238.228:/home/anyone/Documents/nwil508/logs/saved/gelu-GoLU
 # sed -i 's/_td3,/_sac,/g' ./batch_coordinator.py && python3 run.py train cli --gym dmcs --domain cartpole --task swingup --batch 1 SAC --seeds 10 20 30 40 50 --max_workers 5
 # sed -i 's/_td3,/_sac,/g' ./batch_coordinator.py && python3 run.py train cli --gym openai --task HalfCheetah-v4 --batch 1 SAC --seeds 10 20 30 40 50 --max_workers 5
 
@@ -402,16 +402,16 @@ first_critic_prelu_c: MLPConfig = MLPConfig(
 
 # python3 run.py train cli --gym dmcs --domain cartpole --task swingup --batch 1 TD3 --seeds 10 20 30 40 50 --max_workers 5
 batch_config: dict[str, list[Any | tuple[Any, str]]] = {
-    "alg_config.actor_config": [(gelu_a_td3, "gelu"), (prelu_a_td3, "prelu")],
-    "alg_config.critic_config": [(gelu_c, "gelu"), (prelu_c, "prelu")],
+    "alg_config.actor_config": [(gelu_a_td3, "gelu"), (golu_a_td3, "golu")],
+    "alg_config.critic_config": [(gelu_c, "gelu"), (golu_c, "golu")],
     "env_config.domain": ["cheetah", "cartpole", "finger", "walker"],
     "env_config.task": ["run", "swingup", "spin", "walk"],
 }
 
 # python3 run.py train cli --gym openai --task HalfCheetah-v4 --batch 1 TD3 --seeds 10 20 30 40 50 --max_workers 5
 # batch_config: dict[str, list[Any | tuple[Any, str]]] = {
-#     "alg_config.actor_config": [(gelu_a_td3, "gelu"), (prelu_a_td3, "prelu")],
-#     "alg_config.critic_config": [(gelu_c, "gelu"), (prelu_c, "prelu")],
+#     "alg_config.actor_config": [(gelu_a_td3, "gelu"), (golu_a_td3, "golu")],
+#     "alg_config.critic_config": [(gelu_c, "gelu"), (golu_c, "golu")],
 #     "env_config.task": ["HalfCheetah-v4", "Humanoid-v4", "Ant-v4", "Hopper-v4"],
 # }
 
