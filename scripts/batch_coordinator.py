@@ -19,54 +19,12 @@ from cares_reinforcement_learning.util.configurations import (
 
 # MARK: ACTIVATION LAYERS
 
-# GoLU
-golu_a: MLPConfig = MLPConfig(
-    layers=[
-        TrainableLayer(layer_type="Linear", out_features=256),
-        FunctionLayer(layer_type="GoLU"),
-    ]
-)
-golu_c: MLPConfig = MLPConfig(
-    layers=[
-        TrainableLayer(layer_type="Linear", out_features=256),
-        FunctionLayer(layer_type="GoLU"),
-        TrainableLayer(layer_type="Linear", in_features=256, out_features=1),
-    ]
-)
-
-# GELU
-gelu_a: MLPConfig = MLPConfig(
-    layers=[
-        TrainableLayer(layer_type="Linear", out_features=256),
-        FunctionLayer(layer_type="GELU"),
-    ]
-)
-gelu_c: MLPConfig = MLPConfig(
-    layers=[
-        TrainableLayer(layer_type="Linear", out_features=256),
-        FunctionLayer(layer_type="GELU"),
-        TrainableLayer(layer_type="Linear", in_features=256, out_features=1),
-    ]
-)
-
-# ReLU
-relu_a: MLPConfig = MLPConfig(
-    layers=[
-        TrainableLayer(layer_type="Linear", out_features=256),
-        FunctionLayer(layer_type="ReLU"),
-    ]
-)
-relu_c: MLPConfig = MLPConfig(
-    layers=[
-        TrainableLayer(layer_type="Linear", out_features=256),
-        FunctionLayer(layer_type="ReLU"),
-        TrainableLayer(layer_type="Linear", in_features=256, out_features=1),
-    ]
-)
-
 # ---------------------------------------------------------------------
 # MARK: 1 Layer
 # ---------------------------------------------------------------------
+
+# LeakyReLU -> GELU
+# PReLU -> GoLU
 
 # Leaky ReLU
 leaky_a_sac: MLPConfig = MLPConfig(
