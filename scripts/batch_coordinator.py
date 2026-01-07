@@ -401,19 +401,19 @@ first_critic_golu_c: MLPConfig = MLPConfig(
 # to create multiple experiment configurations.
 
 # python3 run.py train cli --gym dmcs --domain cartpole --task swingup --batch 1 TD3 --seeds 10 20 30 40 50 --max_workers 5
-batch_config: dict[str, list[Any | tuple[Any, str]]] = {
-    "alg_config.actor_config": [(gelu_a_td3, "gelu"), (golu_a_td3, "golu")],
-    "alg_config.critic_config": [(gelu_c, "gelu"), (golu_c, "golu")],
-    "env_config.domain": ["cheetah", "cartpole", "finger", "walker"],
-    "env_config.task": ["run", "swingup", "spin", "walk"],
-}
-
-# python3 run.py train cli --gym openai --task HalfCheetah-v4 --batch 1 TD3 --seeds 10 20 30 40 50 --max_workers 5
 # batch_config: dict[str, list[Any | tuple[Any, str]]] = {
 #     "alg_config.actor_config": [(gelu_a_td3, "gelu"), (golu_a_td3, "golu")],
 #     "alg_config.critic_config": [(gelu_c, "gelu"), (golu_c, "golu")],
-#     "env_config.task": ["HalfCheetah-v4", "Humanoid-v4", "Ant-v4", "Hopper-v4"],
+#     "env_config.domain": ["cheetah", "cartpole", "finger", "walker"],
+#     "env_config.task": ["run", "swingup", "spin", "walk"],
 # }
+
+# python3 run.py train cli --gym openai --task HalfCheetah-v4 --batch 1 TD3 --seeds 10 20 30 40 50 --max_workers 5
+batch_config: dict[str, list[Any | tuple[Any, str]]] = {
+    "alg_config.actor_config": [(gelu_a_td3, "gelu"), (golu_a_td3, "golu")],
+    "alg_config.critic_config": [(gelu_c, "gelu"), (golu_c, "golu")],
+    "env_config.task": ["HalfCheetah-v4", "Humanoid-v4", "Ant-v4", "Hopper-v4"],
+}
 
 
 # This function can be customized to skip certain invalid or undesired configurations.
