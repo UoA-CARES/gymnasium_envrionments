@@ -1,7 +1,7 @@
 from functools import cached_property
 
 import numpy as np
-from drone_gym import move_to_random_3d_position
+from drone_gym import move_to_2d_position, move_to_random_2d_position, move_to_3d_position, move_to_random_3d_position
 from environments.gym_environment import GymEnvironment
 from util.configurations import GymEnvironmentConfig
 
@@ -10,7 +10,15 @@ class DroneEnvironment(GymEnvironment):
     def __init__(self, config: GymEnvironmentConfig, evaluation: bool = False) -> None:
         super().__init__(config)
 
-        self.env = move_to_random_3d_position.MoveToRandom3DPosition()
+        task_map = {
+            "move_to_2d_position": move_to_2d_position.MoveToPosition,
+            "move_to_random_2d_position": move_to_random_2d_position.MoveToRandomPosition,
+            "move_to_3d_position": move_to_3d_position.MoveTo3DPosition,
+            "move_to_random_3d_position": move_to_random_3d_position.MoveToRandom3DPosition,
+        }
+
+        # self.env = move_to_random_3d_position.MoveToRandom3DPosition()
+        self.env = task_map[config.task]()
 
     def reset(self, training: bool = True):
         return self.env.reset(training)

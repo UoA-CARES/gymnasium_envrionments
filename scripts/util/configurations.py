@@ -71,6 +71,7 @@ class ShowdownConfig(GymEnvironmentConfig):
 
 class DroneConfig(GymEnvironmentConfig):
     gym: ClassVar[str] = "drone"
+    task: str = "move_to_3d_position"
 
 
 class GripperConfig(GymEnvironmentConfig):
