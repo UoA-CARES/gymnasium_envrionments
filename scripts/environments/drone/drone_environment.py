@@ -1,7 +1,12 @@
 from functools import cached_property
 
 import numpy as np
-from drone_gym import move_to_2d_position, move_to_random_2d_position, move_to_3d_position, move_to_random_3d_position
+from drone_gym import (
+    move_to_2d_position,
+    move_to_random_2d_position,
+    move_to_3d_position,
+    move_to_random_3d_position,
+)
 from environments.gym_environment import GymEnvironment
 from util.configurations import GymEnvironmentConfig
 
