@@ -2,6 +2,8 @@ from functools import cached_property
 
 import numpy as np
 from drone_gym import move_to_2d_position, move_to_random_2d_position, move_to_3d_position, move_to_random_3d_position
+from drone_gym.drone_sim import DroneSim
+from drone_gym.drone import Drone
 from environments.gym_environment import GymEnvironment
 from util.configurations import GymEnvironmentConfig
 
@@ -17,8 +19,19 @@ class DroneEnvironment(GymEnvironment):
             "move_to_random_3d_position": move_to_random_3d_position.MoveToRandom3DPosition,
         }
 
-        # self.env = move_to_random_3d_position.MoveToRandom3DPosition()
+        # Instantiate the task
         self.env = task_map[config.task]()
+        
+        # Set the appropriate drone instance based on use_simulator flag
+        use_simulator = getattr(config, 'use_simulator', 1)  # Default to simulator
+        print(f"[DroneEnvironment] config.use_simulator = {getattr(config, 'use_simulator', 'NOT FOUND')}, use_simulator = {use_simulator}")
+        print(f"[DroneEnvironment] config type = {type(config)}, config = {config}")
+        if bool(use_simulator):
+            print("[DroneEnvironment] Instantiating DroneSim...")
+            self.env.drone = DroneSim()
+        else:
+            print("[DroneEnvironment] Instantiating Drone (real hardware)...")
+            self.env.drone = Drone()
 
     def reset(self, training: bool = True):
         return self.env.reset(training)
