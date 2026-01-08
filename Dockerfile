@@ -65,6 +65,6 @@ RUN git fetch && git checkout nwil508
 WORKDIR /app/gymnasium_envrionments
 RUN git fetch && git checkout nwil508-hoda-gelugolu
 
-ENV CARES_LOG_PATH_TEMPLATE="{algorithm}/{domain_task}-{algorithm}-{date}"
+ENV CARES_LOG_PATH_TEMPLATE="{algorithm}/{run_name}{algorithm}-{date}"
 WORKDIR /app/gymnasium_envrionments/scripts
 CMD [ "bash" ]
