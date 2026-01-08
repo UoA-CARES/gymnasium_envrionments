@@ -52,13 +52,18 @@ RUN pip install -e .
 # -------------------------------------------------------------------
 
 WORKDIR /app/gymnasium_envrionments
-RUN git checkout nwil508-hoda-test
+RUN git checkout nwil508
 RUN git pull
 RUN pip install -r requirements.txt
 
 # -------------------------------------------------------------------
 # Runtime
 # -------------------------------------------------------------------
+
+WORKDIR /app/cares_reinforcement_learning
+RUN git fetch && git checkout nwil508
+WORKDIR /app/gymnasium_envrionments
+RUN git fetch && git checkout nwil508-hoda-gelugolu
 
 ENV CARES_LOG_PATH_TEMPLATE="{algorithm}/{domain_task}-{algorithm}-{date}"
 WORKDIR /app/gymnasium_envrionments/scripts
