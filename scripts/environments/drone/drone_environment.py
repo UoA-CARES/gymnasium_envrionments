@@ -10,11 +10,11 @@ from drone_gym import (
 from drone_gym.drone_sim import DroneSim
 from drone_gym.drone import Drone
 from environments.gym_environment import GymEnvironment
-from util.configurations import GymEnvironmentConfig
+from util.configurations import DroneConfig
 
 
 class DroneEnvironment(GymEnvironment):
-    def __init__(self, config: GymEnvironmentConfig, evaluation: bool = False) -> None:
+    def __init__(self, config: DroneConfig, evaluation: bool = False) -> None:
         super().__init__(config)
 
         task_map = {
@@ -26,13 +26,6 @@ class DroneEnvironment(GymEnvironment):
 
         # Instantiate the task
         self.env = task_map[config.task]()
-
-        # Set the appropriate drone instance based on use_simulator flag
-        use_simulator = getattr(config, "use_simulator", 1)  # Default to simulator
-        if bool(use_simulator):
-            self.env.drone = DroneSim()
-        else:
-            self.env.drone = Drone()
 
     def reset(self, training: bool = True):
         return self.env.reset(training)
