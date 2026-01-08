@@ -194,3 +194,14 @@ This repository can be run in a docker container using `docker run -it --gpus al
 To open another terminal inside the same running docker container use `docker ps -a` to find the name of the container, then `docker exec -it <container> bash`. To copy files out of the docker container, use `docker cp <container>:<path> <host-path>` from the host.
 
 In some situations, you may want to build your own version of the image (e.g. to modify some build steps). To do this run `docker build -t oculux314/cares:base .` from the root of this repository, overwriting any existing image, and then run the image as usual.
+
+### Failed to initialize NVML: Unknown Error
+
+There is a known bug where long-running Docker containers lose their nvidia session. If you see `Failed to initialize NVML: Unknown Error` (or similar), restart the docker container and resume training.
+
+```
+docker ps
+docker stop <container>
+docker start <container>
+docker exec -it <container> bash
+```
