@@ -29,15 +29,9 @@ class DroneEnvironment(GymEnvironment):
 
         # Set the appropriate drone instance based on use_simulator flag
         use_simulator = getattr(config, "use_simulator", 1)  # Default to simulator
-        print(
-            f"[DroneEnvironment] config.use_simulator = {getattr(config, 'use_simulator', 'NOT FOUND')}, use_simulator = {use_simulator}"
-        )
-        print(f"[DroneEnvironment] config type = {type(config)}, config = {config}")
         if bool(use_simulator):
-            print("[DroneEnvironment] Instantiating DroneSim...")
             self.env.drone = DroneSim()
         else:
-            print("[DroneEnvironment] Instantiating Drone (real hardware)...")
             self.env.drone = Drone()
 
     def reset(self, training: bool = True):
