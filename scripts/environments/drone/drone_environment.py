@@ -17,7 +17,9 @@ class DroneEnvironment(GymEnvironment):
 
         # Instantiate the task
 
-        self.env = task_factory.make(config.task, use_simulator = cast(Literal[0,1], config.use_simulator))
+        self.env = task_factory.make(
+            config.task, use_simulator=cast(Literal[0, 1], config.use_simulator)
+        )
 
     def reset(self, training: bool = True):
         return self.env.reset(training)
