@@ -1,4 +1,6 @@
 from functools import cached_property
+from typing import cast
+from typing_extensions import Literal
 
 import numpy as np
 from environments.gym_environment import GymEnvironment
@@ -10,8 +12,11 @@ class DroneEnvironment(GymEnvironment):
     def __init__(self, config: DroneConfig, evaluation: bool = False) -> None:
         super().__init__(config)
 
+        if config.use_simulator not in [0,1]:
+            raise ValueError("use_simulator must be 0 (real drone) or 1 (simulator)")
+        
         # Instantiate the task
-        self.env = task_map[config.task]()
+        self.env = task_map[config.task](use_simulator = cast(Literal[0,1], config.use_simulator))
 
     def reset(self, training: bool = True):
         return self.env.reset(training)
