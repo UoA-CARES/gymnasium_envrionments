@@ -393,8 +393,8 @@ first_critic_golu_c: MLPConfig = MLPConfig(
 # cd /app/gymnasium_envrionments/scripts && nano batch_coordinator.py
 # bash ../strip_logs.sh /app/cares_rl_logs
 # scp -r /app/cares_rl_logs anyone@130.216.238.228:/home/anyone/Documents/nwil508/logs/tmp/R8
-# sed -i 's/_td3,/_sac,/g' ./batch_coordinator.py && python3 run.py train cli --gym dmcs --domain cartpole --task swingup --batch 1 SAC --seeds 10 20 30 40 50 --max_workers 5
-# sed -i 's/_td3,/_sac,/g' ./batch_coordinator.py && python3 run.py train cli --gym openai --task HalfCheetah-v4 --batch 1 SAC --seeds 10 20 30 40 50 --max_workers 5
+# sed -i 's/_td3,/_sac,/g' ./batch_coordinator.py
+# sed -i 's/_sac,/_td3,/g' ./batch_coordinator.py
 
 # MARK: BATCH CONFIG
 # Configure batch parameters here. The cross-product of these lists will be used
