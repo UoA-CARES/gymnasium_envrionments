@@ -5,7 +5,7 @@ from typing_extensions import Literal
 import numpy as np
 from environments.gym_environment import GymEnvironment
 from util.configurations import DroneConfig
-from drone_gym import task_map
+from drone_gym import task_factory
 
 
 class DroneEnvironment(GymEnvironment):
@@ -16,9 +16,8 @@ class DroneEnvironment(GymEnvironment):
             raise ValueError("use_simulator must be 0 (real drone) or 1 (simulator)")
 
         # Instantiate the task
-        self.env = task_map[config.task](
-            use_simulator=cast(Literal[0, 1], config.use_simulator)
-        )
+
+        self.env = task_factory.make(config.task, use_simulator = cast(Literal[0,1], config.use_simulator))
 
     def reset(self, training: bool = True):
         return self.env.reset(training)
