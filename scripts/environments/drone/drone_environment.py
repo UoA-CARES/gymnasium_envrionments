@@ -3,19 +3,21 @@ from functools import cached_property
 import numpy as np
 from cares_reinforcement_learning.util import helpers as hlp
 from drone_gym import move_to_position
-from environments.gym_environment import GymEnvironment
+from environments.sarl_environment import SARLEnvironment
 from util.configurations import GymEnvironmentConfig
 
 
-class DroneEnvironment(GymEnvironment):
-    def __init__(self, config: GymEnvironmentConfig, seed: int) -> None:
-        super().__init__(config, seed)
+class DroneEnvironment(SARLEnvironment):
+    def __init__(
+        self, config: GymEnvironmentConfig, seed: int, image_observation: bool
+    ) -> None:
+        super().__init__(config, seed, image_observation)
 
         self.env = move_to_position.MoveToPosition()
 
         self.set_seed(self.seed)
 
-    def reset(self, training: bool = True):
+    def _reset(self, training: bool = True):
         return self.env.reset(training)
 
     def sample_action(self):
@@ -41,7 +43,7 @@ class DroneEnvironment(GymEnvironment):
         return self.env.min_action_value
 
     @cached_property
-    def observation_space(self) -> int:
+    def _vector_space(self) -> int:
         return self.env.observation_space
 
     @cached_property

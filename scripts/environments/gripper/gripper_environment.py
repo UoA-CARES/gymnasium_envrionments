@@ -3,14 +3,16 @@ from functools import cached_property
 import cv2
 import numpy as np
 from cares_reinforcement_learning.util import helpers as hlp
-from environments.gym_environment import GymEnvironment
+from environments.sarl_environment import SARLEnvironment
 from gripper_gym.environments.environment_factory import EnvironmentFactory
 from util.configurations import GripperConfig
 
 
-class GripperEnvironment(GymEnvironment):
-    def __init__(self, config: GripperConfig, seed: int) -> None:
-        super().__init__(config, seed)
+class GripperEnvironment(SARLEnvironment):
+    def __init__(
+        self, config: GripperConfig, seed: int, image_observation: bool
+    ) -> None:
+        super().__init__(config, seed, image_observation)
 
         factory = EnvironmentFactory()
         self.domain = config.domain
@@ -29,7 +31,7 @@ class GripperEnvironment(GymEnvironment):
         return self.env.max_action_value
 
     @cached_property
-    def observation_space(self) -> int:
+    def _vector_space(self) -> int:
         observation_space = len(self.env.reset())
         return observation_space
 
@@ -46,7 +48,7 @@ class GripperEnvironment(GymEnvironment):
         if hasattr(self.env, "set_seed"):
             self.env.set_seed(seed)
 
-    def reset(self, training: bool = True):
+    def _reset(self, training: bool = True):
         return self.env.reset()
 
     def _step(self, action):

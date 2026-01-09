@@ -5,6 +5,10 @@ from typing import Any
 
 import cv2
 import numpy as np
+from cares_reinforcement_learning.util.training_context import (
+    SingleAgentExperience,
+    Observation,
+)
 from environments.base_environment import BaseEnvironment
 from util.configurations import GymEnvironmentConfig
 
@@ -63,7 +67,7 @@ class MARLEnvironment(BaseEnvironment):
         raise NotImplementedError("Override this method")
 
     @abc.abstractmethod
-    def reset(self, training: bool = True) -> dict[str, Any]:
+    def reset(self, training: bool = True) -> Observation:
         """
         Reset environment and return initial global state.
         Returns: Initial global state
@@ -71,29 +75,8 @@ class MARLEnvironment(BaseEnvironment):
         raise NotImplementedError("Override this method")
 
     @abc.abstractmethod
-    def _step(self, actions: list[Any]) -> tuple:
-        """
-        Internal step function that executes actions for all agents.
-        Args:
-            actions: List of actions, one per agent
-        Returns:
-            Tuple of (next_state, reward, done, truncated, info)
-        """
-        raise NotImplementedError("Override this method")
-
     def step(self, action: list[Any]) -> tuple:
-        """
-        Execute one step with actions from all agents.
-        Args:
-            actions: List of actions, one per agent
-        Returns:
-            Tuple of (next_state, reward, done, truncated, info)
-        """
-
-        state, reward, done, truncated, info = self._step(action)
-
-        return state, reward, done, truncated, info
-
-    @abc.abstractmethod
-    def grab_frame(self, height: int = 240, width: int = 300) -> np.ndarray:
         raise NotImplementedError("Override this method")
+
+    def grab_frame(self, height: int = 240, width: int = 300) -> np.ndarray:
+        return np.zeros((height, width, 3), dtype=np.uint8)

@@ -4,17 +4,21 @@ from functools import cached_property
 
 import cv2
 import numpy as np
-from environments.gym_environment import GymEnvironment
+from environments.sarl_environment import SARLEnvironment
 from gymnasium import spaces
 from showdown_gym.showdown_environment import SingleShowdownWrapper
 from util.configurations import ShowdownConfig
 
 
-class ShowdownEnvironment(GymEnvironment):
+class ShowdownEnvironment(SARLEnvironment):
     def __init__(
-        self, config: ShowdownConfig, seed: int, evaluation: bool = False
+        self,
+        config: ShowdownConfig,
+        seed: int,
+        image_observation: bool,
+        evaluation: bool = False,
     ) -> None:
-        super().__init__(config, seed)
+        super().__init__(config, seed, image_observation)
 
         # "random", "uber", "ou", "uu", "ru", "nu"
         team_type: str = config.domain
@@ -46,7 +50,7 @@ class ShowdownEnvironment(GymEnvironment):
         return self.env.action_space.low[0]
 
     @cached_property
-    def observation_space(self) -> int:
+    def _vector_space(self) -> int:
         return self.env.observation_space.shape[0]
 
     @cached_property
@@ -69,7 +73,7 @@ class ShowdownEnvironment(GymEnvironment):
         # Note issues: https://github.com/rail-berkeley/softlearning/issues/75
         self.env.action_space.seed(seed)
 
-    def reset(self, training: bool = True) -> np.ndarray:
+    def _reset(self, training: bool = True) -> np.ndarray:
         state, _ = self.env.reset()
         return state
 

@@ -1,15 +1,15 @@
 from functools import cached_property
 
 import numpy as np
-from environments.gym_environment import GymEnvironment
+from environments.sarl_environment import SARLEnvironment
 from util.configurations import PyBoyConfig
 
 from pyboy_environment import suite
 
 
-class PyboyEnvironment(GymEnvironment):
-    def __init__(self, config: PyBoyConfig, seed: int) -> None:
-        super().__init__(config, seed)
+class PyboyEnvironment(SARLEnvironment):
+    def __init__(self, config: PyBoyConfig, seed: int, image_observation: bool) -> None:
+        super().__init__(config, seed, image_observation)
 
         self.env = suite.make(
             config.domain,
@@ -30,7 +30,7 @@ class PyboyEnvironment(GymEnvironment):
         return self.env.max_action_value
 
     @cached_property
-    def observation_space(self) -> int:
+    def _vector_space(self) -> int:
         return self.env.observation_space
 
     @cached_property
@@ -43,7 +43,7 @@ class PyboyEnvironment(GymEnvironment):
     def set_seed(self, seed: int) -> None:
         self.env.set_seed(seed)
 
-    def reset(self, training: bool = True) -> np.ndarray:
+    def _reset(self, training: bool = True) -> np.ndarray:
         return self.env.reset(training=training)
 
     def _step(self, action: int) -> tuple:

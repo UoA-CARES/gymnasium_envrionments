@@ -3,6 +3,10 @@ from typing import Any
 
 import cv2
 import numpy as np
+from cares_reinforcement_learning.util.training_context import (
+    Observation,
+    SingleAgentExperience,
+)
 from environments.marl_environment import MARLEnvironment
 from smacv2.env.starcraft2.wrapper import StarCraftCapabilityEnvWrapper
 from util.configurations import SMAC2Config
@@ -116,30 +120,36 @@ class SMAC2Environment(MARLEnvironment):
 
         self.reset()
 
-    def reset(self, training: bool = True) -> dict[str, Any]:
+    def reset(self, training: bool = True) -> Observation:
         marl_state = {}
         obs, state = self.env.reset()
 
         # Convert obs list → dict[str -> obs_i]
         obs_dict = {agent_id: obs[i] for i, agent_id in enumerate(self.agent_ids)}
 
-        marl_state["state"] = state
-        marl_state["obs"] = obs_dict
-        marl_state["avail_actions"] = self.env.get_avail_actions()
+        marl_state = Observation(
+            vector_state=state,
+            image_state=None,
+            agent_states=obs_dict,
+            avail_actions=self.env.get_avail_actions(),
+        )
 
         return marl_state
 
-    def _step(self, actions: list[int]) -> tuple:
+    def step(self, action: list[int]) -> tuple:
         marl_state = {}
-        reward, done, info = self.env.step(actions)
+        reward, done, info = self.env.step(action)
 
         obs = self.env.get_obs()
         # Convert obs list → dict[str -> obs_i]
         obs_dict = {agent_id: obs[i] for i, agent_id in enumerate(self.agent_ids)}
 
-        marl_state["state"] = self.env.get_state()
-        marl_state["obs"] = obs_dict
-        marl_state["avail_actions"] = self.env.get_avail_actions()
+        marl_state = Observation(
+            vector_state=self.env.get_state(),
+            image_state=None,
+            agent_states=obs_dict,
+            avail_actions=self.env.get_avail_actions(),
+        )
 
         rewards = [0] * self.env_info["n_agents"]
         rewards[0] = reward  # Assuming reward is for all agents equally

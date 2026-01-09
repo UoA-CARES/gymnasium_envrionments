@@ -5,6 +5,7 @@ from typing import Any
 
 import cv2
 import numpy as np
+from cares_reinforcement_learning.util.training_context import Experience, Observation
 from util.configurations import GymEnvironmentConfig
 
 
@@ -21,8 +22,7 @@ class BaseEnvironment(metaclass=abc.ABCMeta):
         logging.info(f"Training with Task {config.task}")
 
         self.task = config.task
-        self.state_std = config.state_std
-        self.action_std = config.action_std
+
         self.seed = seed
 
     def render(self):
@@ -60,7 +60,7 @@ class BaseEnvironment(metaclass=abc.ABCMeta):
 
     @cached_property
     @abc.abstractmethod
-    def observation_space(self) -> Any:
+    def observation_space(self) -> dict[str, Any]:
         raise NotImplementedError("Override this method")
 
     @cached_property
@@ -77,7 +77,7 @@ class BaseEnvironment(metaclass=abc.ABCMeta):
         raise NotImplementedError("Override this method")
 
     @abc.abstractmethod
-    def reset(self, training: bool = True) -> Any:
+    def reset(self, training: bool = True) -> Observation:
         raise NotImplementedError("Override this method")
 
     @abc.abstractmethod

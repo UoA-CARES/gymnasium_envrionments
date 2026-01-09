@@ -209,7 +209,7 @@ class BaseRunner(ABC):
             # Action selection
             available_actions = self.env_eval.get_available_actions()
             action_context = ActionContext(
-                state=state, evaluation=True, available_actions=available_actions
+                observation=state, evaluation=True, available_actions=available_actions
             )
             action = self.agent.select_action_from_policy(action_context)
 

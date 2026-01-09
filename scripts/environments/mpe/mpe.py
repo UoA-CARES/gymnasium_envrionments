@@ -4,6 +4,10 @@ from typing import Any
 import cv2
 import numpy as np
 from cares_reinforcement_learning.util import helpers as hlp
+from cares_reinforcement_learning.util.training_context import (
+    Observation,
+    SingleAgentExperience,
+)
 from environments.marl_environment import MARLEnvironment
 from gymnasium import spaces
 from mpe2 import all_modules as mpe_all
@@ -49,14 +53,20 @@ class MPE2Environment(MARLEnvironment):
     def max_action_value(self) -> list[np.ndarray]:
         max_action_values = []
         for agent in self.env.agents:
-            max_action_values.append(self.env.action_space(agent).high)
+            if isinstance(self.env.action_space(agent), spaces.Box):
+                max_action_values.append(self.env.action_space(agent).high)
+            else:
+                raise ValueError("Action space is not continuous")
         return max_action_values
 
     @cached_property
     def min_action_value(self) -> list[np.ndarray]:
         min_action_values = []
         for agent in self.env.agents:
-            min_action_values.append(self.env.action_space(agent).low)
+            if isinstance(self.env.action_space(agent), spaces.Box):
+                min_action_values.append(self.env.action_space(agent).low)
+            else:
+                raise ValueError("Action space is not continuous")
         return min_action_values
 
     @cached_property
@@ -103,7 +113,12 @@ class MPE2Environment(MARLEnvironment):
         return np.ones((len(self.agents), self.action_num), dtype=np.int32)
 
     def sample_action(self) -> list[int | np.ndarray]:
-        actions = [self.env.action_space(agent).sample() for agent in self.agents]
+        actions = []
+        for agent in self.agents:
+            space = self.env.action_space(agent)
+            action = space.sample()
+            actions.append(action)
+
         if self.apply_action_normalization:
             actions = hlp.normalize(
                 actions, self.max_action_value, self.min_action_value
@@ -115,42 +130,42 @@ class MPE2Environment(MARLEnvironment):
 
         self.env.reset(seed=self.seed)
 
-        # Seed action and observation spaces
-        for agent in self.env.agents:
-            self.env.action_space(agent).seed(self.seed)
-            self.env.observation_space(agent).seed(self.seed)
+        # Seed action and observation spaces - different seed per agent to avoid produciong the same values
+        for i, agent in enumerate(self.env.agents):
+            self.env.action_space(agent).seed(self.seed + i)
+            self.env.observation_space(agent).seed(self.seed + i)
 
-    def reset(self, training: bool = True) -> dict[str, Any]:
+    def reset(self, training: bool = True) -> Observation:
         """Reset PettingZoo parallel env and return MARL-compatible state dict."""
-        obs_dict, info = self.env.reset()
+        obs_dict, _ = self.env.reset()
 
         self.agents = self.env.agents
 
-        marl_state = {
-            "obs": obs_dict,
-            "state": self.env.state(),
-            "avail_actions": self.get_available_actions(),
-        }
+        marl_state = Observation(
+            vector_state=self.env.state(),
+            image_state=None,
+            agent_states=obs_dict,
+            avail_actions=self.get_available_actions(),
+        )
         return marl_state
 
-    def _step(self, actions: list[int | np.ndarray]) -> tuple:
+    def step(self, action: list[int | np.ndarray]) -> tuple:
         if self.apply_action_normalization:
-            actions = hlp.denormalize(
-                actions, self.max_action_value, self.min_action_value
+            action = hlp.denormalize(
+                action, self.max_action_value, self.min_action_value
             )
 
         # Convert list of actions to dict for PettingZoo
-        action_dict = {agent: act for agent, act in zip(self.agents, actions)}
+        action_dict = {agent: act for agent, act in zip(self.agents, action)}
 
         obs_dict, rewards, terminations, truncations, infos = self.env.step(action_dict)
 
-        avail_actions = self.get_available_actions()
-
-        marl_state = {
-            "obs": obs_dict,
-            "state": self.env.state(),
-            "avail_actions": avail_actions,
-        }
+        marl_state = Observation(
+            vector_state=self.env.state(),
+            image_state=None,
+            agent_states=obs_dict,
+            avail_actions=self.get_available_actions(),
+        )
 
         # Convert rewards, terminations, truncations to arrays
         rewards = [rewards[a] for a in self.agents]
