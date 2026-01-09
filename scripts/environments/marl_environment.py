@@ -5,10 +5,7 @@ from typing import Any
 
 import cv2
 import numpy as np
-from cares_reinforcement_learning.util.training_context import (
-    SingleAgentExperience,
-    Observation,
-)
+from cares_reinforcement_learning.util.training_context import Observation
 from environments.base_environment import BaseEnvironment
 from util.configurations import GymEnvironmentConfig
 

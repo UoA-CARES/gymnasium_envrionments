@@ -3,10 +3,7 @@ from typing import Any
 
 import cv2
 import numpy as np
-from cares_reinforcement_learning.util.training_context import (
-    Observation,
-    SingleAgentExperience,
-)
+from cares_reinforcement_learning.util.training_context import Observation
 from environments.marl_environment import MARLEnvironment
 from smacv2.env.starcraft2.wrapper import StarCraftCapabilityEnvWrapper
 from util.configurations import SMAC2Config
