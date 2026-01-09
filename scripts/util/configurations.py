@@ -3,7 +3,7 @@ Configuration class for Gym Environments.
 """
 
 from pathlib import Path
-from typing import ClassVar, Literal
+from typing import ClassVar
 
 from cares_reinforcement_learning.util.configurations import SubscriptableClass
 
