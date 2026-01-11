@@ -1,16 +1,25 @@
 from functools import cached_property
+from typing import cast
+from typing_extensions import Literal
 
 import numpy as np
-from drone_gym import move_to_position
 from environments.gym_environment import GymEnvironment
-from util.configurations import GymEnvironmentConfig
+from util.configurations import DroneConfig
+from drone_gym import task_factory
 
 
 class DroneEnvironment(GymEnvironment):
-    def __init__(self, config: GymEnvironmentConfig, evaluation: bool = False) -> None:
+    def __init__(self, config: DroneConfig, evaluation: bool = False) -> None:
         super().__init__(config)
 
-        self.env = move_to_position.MoveToPosition()
+        if config.use_simulator not in [0, 1]:
+            raise ValueError("use_simulator must be 0 (real drone) or 1 (simulator)")
+
+        # Instantiate the task
+
+        self.env = task_factory.make(
+            config.task, use_simulator=cast(Literal[0, 1], config.use_simulator)
+        )
 
     def reset(self, training: bool = True):
         return self.env.reset(training)
