@@ -1,5 +1,5 @@
-# docker build -t oculux314/cares:base .
-# docker run -it --gpus all oculux314/cares:base
+# docker build -t oculux314/cares:hoda-v2 .
+# docker run -it --gpus all oculux314/cares:hoda-v2
 FROM nvidia/cuda:12.1.1-cudnn8-runtime-ubuntu22.04
 ENV MUJOCO_GL=osmesa
 ENV CARES_LOG_BASE_DIR=/app/cares_rl_logs
@@ -65,6 +65,6 @@ RUN git fetch && git checkout nwil508
 WORKDIR /app/gymnasium_envrionments
 RUN git fetch && git checkout nwil508-hoda-gelugolu
 
-ENV CARES_LOG_PATH_TEMPLATE="{algorithm}/{run_name}{algorithm}-{date}"
+ENV CARES_LOG_PATH_TEMPLATE="{algorithm}/{gym}/{run_name}{algorithm}-{date}"
 WORKDIR /app/gymnasium_envrionments/scripts
 CMD [ "bash" ]
