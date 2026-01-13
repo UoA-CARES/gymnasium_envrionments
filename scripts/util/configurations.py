@@ -79,6 +79,8 @@ class ShowdownConfig(GymEnvironmentConfig):
 
 class DroneConfig(GymEnvironmentConfig):
     gym: ClassVar[str] = "drone"
+    task: str = "move_3d"
+    use_simulator: int = 1  # 1 for simulator (DroneSim), 0 for real drone (Drone)
 
 
 class GripperConfig(GymEnvironmentConfig):
