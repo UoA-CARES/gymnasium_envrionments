@@ -5,10 +5,8 @@ from typing import Any
 
 from base_runner import BaseRunner, EpisodeStats
 from cares_reinforcement_learning.memory.memory_buffer import MemoryBuffer
-from cares_reinforcement_learning.util.training_context import (
-    ActionContext,
-    TrainingContext,
-)
+from cares_reinforcement_learning.types.interaction import ActionContext
+from cares_reinforcement_learning.types.training import TrainingContext
 from util.repetition_manager import RepetitionManager
 
 

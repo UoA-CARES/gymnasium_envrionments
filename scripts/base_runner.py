@@ -13,13 +13,13 @@ import execution_logger as logs
 import numpy as np
 from cares_reinforcement_learning.algorithm.algorithm import Algorithm
 from cares_reinforcement_learning.memory.memory_factory import MemoryFactory
+from cares_reinforcement_learning.types.interaction import ActionContext
 from cares_reinforcement_learning.util import helpers as hlp
 from cares_reinforcement_learning.util.configurations import (
     AlgorithmConfig,
     TrainingConfig,
 )
 from cares_reinforcement_learning.util.network_factory import NetworkFactory
-from cares_reinforcement_learning.util.training_context import ActionContext
 from environments.environment_factory import EnvironmentFactory
 from util.configurations import GymEnvironmentConfig
 from util.overlay import overlay_info

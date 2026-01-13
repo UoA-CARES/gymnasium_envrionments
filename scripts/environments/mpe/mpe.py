@@ -3,8 +3,8 @@ from typing import Any
 
 import cv2
 import numpy as np
+from cares_reinforcement_learning.types.observation import Observation
 from cares_reinforcement_learning.util import helpers as hlp
-from cares_reinforcement_learning.util.training_context import Observation
 from environments.marl_environment import MARLEnvironment
 from gymnasium import spaces
 from mpe2 import all_modules as mpe_all

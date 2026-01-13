@@ -3,7 +3,7 @@ from typing import Any
 
 import cv2
 import numpy as np
-from cares_reinforcement_learning.util.training_context import Observation
+from cares_reinforcement_learning.types.observation import Observation
 from environments.marl_environment import MARLEnvironment
 from smac.env import StarCraft2Env
 from util.configurations import SMACConfig
