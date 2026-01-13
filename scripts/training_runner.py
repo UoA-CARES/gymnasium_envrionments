@@ -303,6 +303,8 @@ class TrainingRunner(BaseRunner):
         state = self.env.reset()
         episode_start = time.time()
 
+        train_info: dict = {}
+
         # Main training loop
         train_step_counter = self.start_training_step
         for train_step_counter in range(
@@ -351,7 +353,10 @@ class TrainingRunner(BaseRunner):
             #     total_reward += intrinsic_reward
             #     info["intrinsic_reward"] = intrinsic_reward
 
+            # entropy = self.agent.get_action_entropy(state)
+
             # Store experience in memory
+            # self.memory.add(state, normalised_action, total_reward, next_state, done, entropy)
             self.memory.add(state, normalised_action, total_reward, next_state, done)
 
             state = next_state
@@ -370,7 +375,6 @@ class TrainingRunner(BaseRunner):
                     episode_stats.get_episode_reward(),
                     episode_end,
                 )
-                info |= train_info
 
             # Evaluate agent periodically
             if (train_step_counter + 1) % self.number_steps_per_evaluation == 0:
@@ -382,6 +386,7 @@ class TrainingRunner(BaseRunner):
             # Handle episode completion
             if episode_end:
                 episode_time = time.time() - episode_start
+                info |= train_info
 
                 info.update(episode_stats.summary())
 

@@ -3,6 +3,7 @@ gymnasium==1.1.1
 gymnasium[classic-control]==1.1.1
 gymnasium[mujoco]==1.1.1
 mujoco==3.2.6
+envpool==0.8.4
 
 mediapy==1.1.9
 natsort==8.4.0

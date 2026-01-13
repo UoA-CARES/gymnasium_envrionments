@@ -48,6 +48,11 @@ class GymEnvironmentConfig(SubscriptableClass):
         return data
 
 
+class AtariConfig(GymEnvironmentConfig):
+    gym: ClassVar[str] = "atari"
+    frames_to_stack: int = 4
+
+
 class OpenAIConfig(GymEnvironmentConfig):
     gym: ClassVar[str] = "openai"
 
