@@ -23,26 +23,26 @@ from cares_reinforcement_learning.util.configurations import (
 # MARK: 1 Layer
 # ---------------------------------------------------------------------
 
-# geluReLU -> GELU
+# LeakyReLU -> GELU
 # PReLU -> GoLU
 
-# GELU
-gelu_a_sac: MLPConfig = MLPConfig(
+# Leaky ReLU
+leaky_a_sac: MLPConfig = MLPConfig(
     layers=[
         TrainableLayer(layer_type="Linear", out_features=256),
-        FunctionLayer(layer_type="GELU"),
+        FunctionLayer(layer_type="LeakyReLU"),
     ]
 )
-gelu_a_td3: MLPConfig = MLPConfig(
+leaky_a_td3: MLPConfig = MLPConfig(
     layers=[
         TrainableLayer(layer_type="Linear"),
         FunctionLayer(layer_type="Tanh"),
     ]
 )
-gelu_c: MLPConfig = MLPConfig(
+leaky_c: MLPConfig = MLPConfig(
     layers=[
         TrainableLayer(layer_type="Linear", out_features=256),
-        FunctionLayer(layer_type="GELU"),
+        FunctionLayer(layer_type="LeakyReLU"),
         TrainableLayer(layer_type="Linear", in_features=256, out_features=1),
     ]
 )
@@ -73,28 +73,28 @@ prelu_c: MLPConfig = MLPConfig(
 # ---------------------------------------------------------------------
 
 # All - both
-all_both_gelu_a_sac: MLPConfig = MLPConfig(
+all_both_leaky_a_sac: MLPConfig = MLPConfig(
     layers=[
         TrainableLayer(layer_type="Linear", out_features=256),
-        FunctionLayer(layer_type="GELU"),
+        FunctionLayer(layer_type="LeakyReLU"),
         TrainableLayer(layer_type="Linear", in_features=256, out_features=256),
-        FunctionLayer(layer_type="GELU"),
+        FunctionLayer(layer_type="LeakyReLU"),
     ]
 )
-all_both_gelu_a_td3: MLPConfig = MLPConfig(
+all_both_leaky_a_td3: MLPConfig = MLPConfig(
     layers=[
         TrainableLayer(layer_type="Linear", out_features=256),
-        FunctionLayer(layer_type="GELU"),
+        FunctionLayer(layer_type="LeakyReLU"),
         TrainableLayer(layer_type="Linear", in_features=256),
         FunctionLayer(layer_type="Tanh"),
     ]
 )
-all_both_gelu_c: MLPConfig = MLPConfig(
+all_both_leaky_c: MLPConfig = MLPConfig(
     layers=[
         TrainableLayer(layer_type="Linear", out_features=256),
-        FunctionLayer(layer_type="GELU"),
+        FunctionLayer(layer_type="LeakyReLU"),
         TrainableLayer(layer_type="Linear", in_features=256, out_features=256),
-        FunctionLayer(layer_type="GELU"),
+        FunctionLayer(layer_type="LeakyReLU"),
         TrainableLayer(layer_type="Linear", in_features=256, out_features=1),
     ]
 )
@@ -126,23 +126,23 @@ all_both_prelu_c: MLPConfig = MLPConfig(
 )
 
 # All - actor
-all_actor_gelu_a_sac: MLPConfig = MLPConfig(
+all_actor_leaky_a_sac: MLPConfig = MLPConfig(
     layers=[
         TrainableLayer(layer_type="Linear", out_features=256),
-        FunctionLayer(layer_type="GELU"),
+        FunctionLayer(layer_type="LeakyReLU"),
         TrainableLayer(layer_type="Linear", in_features=256, out_features=256),
-        FunctionLayer(layer_type="GELU"),
+        FunctionLayer(layer_type="LeakyReLU"),
     ]
 )
-all_actor_gelu_a_td3: MLPConfig = MLPConfig(
+all_actor_leaky_a_td3: MLPConfig = MLPConfig(
     layers=[
         TrainableLayer(layer_type="Linear", out_features=256),
-        FunctionLayer(layer_type="GELU"),
+        FunctionLayer(layer_type="LeakyReLU"),
         TrainableLayer(layer_type="Linear", in_features=256),
         FunctionLayer(layer_type="Tanh"),
     ]
 )
-all_actor_gelu_c: MLPConfig = MLPConfig(
+all_actor_leaky_c: MLPConfig = MLPConfig(
     layers=[
         TrainableLayer(layer_type="Linear", out_features=256),
         FunctionLayer(layer_type="ReLU"),
@@ -179,7 +179,7 @@ all_actor_prelu_c: MLPConfig = MLPConfig(
 )
 
 # All - critic
-all_critic_gelu_a_sac: MLPConfig = MLPConfig(
+all_critic_leaky_a_sac: MLPConfig = MLPConfig(
     layers=[
         TrainableLayer(layer_type="Linear", out_features=256),
         FunctionLayer(layer_type="ReLU"),
@@ -187,7 +187,7 @@ all_critic_gelu_a_sac: MLPConfig = MLPConfig(
         FunctionLayer(layer_type="ReLU"),
     ]
 )
-all_critic_gelu_a_td3: MLPConfig = MLPConfig(
+all_critic_leaky_a_td3: MLPConfig = MLPConfig(
     layers=[
         TrainableLayer(layer_type="Linear", out_features=256),
         FunctionLayer(layer_type="ReLU"),
@@ -195,12 +195,12 @@ all_critic_gelu_a_td3: MLPConfig = MLPConfig(
         FunctionLayer(layer_type="Tanh"),
     ]
 )
-all_critic_gelu_c: MLPConfig = MLPConfig(
+all_critic_leaky_c: MLPConfig = MLPConfig(
     layers=[
         TrainableLayer(layer_type="Linear", out_features=256),
-        FunctionLayer(layer_type="GELU"),
+        FunctionLayer(layer_type="LeakyReLU"),
         TrainableLayer(layer_type="Linear", in_features=256, out_features=256),
-        FunctionLayer(layer_type="GELU"),
+        FunctionLayer(layer_type="LeakyReLU"),
         TrainableLayer(layer_type="Linear", in_features=256, out_features=1),
     ]
 )
@@ -232,26 +232,26 @@ all_critic_prelu_c: MLPConfig = MLPConfig(
 )
 
 # First - both
-first_both_gelu_a_sac: MLPConfig = MLPConfig(
+first_both_leaky_a_sac: MLPConfig = MLPConfig(
     layers=[
         TrainableLayer(layer_type="Linear", out_features=256),
-        FunctionLayer(layer_type="GELU"),
+        FunctionLayer(layer_type="LeakyReLU"),
         TrainableLayer(layer_type="Linear", in_features=256, out_features=256),
         FunctionLayer(layer_type="ReLU"),
     ]
 )
-first_both_gelu_a_td3: MLPConfig = MLPConfig(
+first_both_leaky_a_td3: MLPConfig = MLPConfig(
     layers=[
         TrainableLayer(layer_type="Linear", out_features=256),
-        FunctionLayer(layer_type="GELU"),
+        FunctionLayer(layer_type="LeakyReLU"),
         TrainableLayer(layer_type="Linear", in_features=256),
         FunctionLayer(layer_type="Tanh"),
     ]
 )
-first_both_gelu_c: MLPConfig = MLPConfig(
+first_both_leaky_c: MLPConfig = MLPConfig(
     layers=[
         TrainableLayer(layer_type="Linear", out_features=256),
-        FunctionLayer(layer_type="GELU"),
+        FunctionLayer(layer_type="LeakyReLU"),
         TrainableLayer(layer_type="Linear", in_features=256, out_features=256),
         FunctionLayer(layer_type="ReLU"),
         TrainableLayer(layer_type="Linear", in_features=256, out_features=1),
@@ -285,23 +285,23 @@ first_both_prelu_c: MLPConfig = MLPConfig(
 )
 
 # First - actor
-first_actor_gelu_a_sac: MLPConfig = MLPConfig(
+first_actor_leaky_a_sac: MLPConfig = MLPConfig(
     layers=[
         TrainableLayer(layer_type="Linear", out_features=256),
-        FunctionLayer(layer_type="GELU"),
+        FunctionLayer(layer_type="LeakyReLU"),
         TrainableLayer(layer_type="Linear", in_features=256, out_features=256),
         FunctionLayer(layer_type="ReLU"),
     ]
 )
-first_actor_gelu_a_td3: MLPConfig = MLPConfig(
+first_actor_leaky_a_td3: MLPConfig = MLPConfig(
     layers=[
         TrainableLayer(layer_type="Linear", out_features=256),
-        FunctionLayer(layer_type="GELU"),
+        FunctionLayer(layer_type="LeakyReLU"),
         TrainableLayer(layer_type="Linear", in_features=256),
         FunctionLayer(layer_type="Tanh"),
     ]
 )
-first_actor_gelu_c: MLPConfig = MLPConfig(
+first_actor_leaky_c: MLPConfig = MLPConfig(
     layers=[
         TrainableLayer(layer_type="Linear", out_features=256),
         FunctionLayer(layer_type="ReLU"),
@@ -338,7 +338,7 @@ first_actor_prelu_c: MLPConfig = MLPConfig(
 )
 
 # First - critic
-first_critic_gelu_a_sac: MLPConfig = MLPConfig(
+first_critic_leaky_a_sac: MLPConfig = MLPConfig(
     layers=[
         TrainableLayer(layer_type="Linear", out_features=256),
         FunctionLayer(layer_type="ReLU"),
@@ -346,7 +346,7 @@ first_critic_gelu_a_sac: MLPConfig = MLPConfig(
         FunctionLayer(layer_type="ReLU"),
     ]
 )
-first_critic_gelu_a_td3: MLPConfig = MLPConfig(
+first_critic_leaky_a_td3: MLPConfig = MLPConfig(
     layers=[
         TrainableLayer(layer_type="Linear", out_features=256),
         FunctionLayer(layer_type="ReLU"),
@@ -354,10 +354,10 @@ first_critic_gelu_a_td3: MLPConfig = MLPConfig(
         FunctionLayer(layer_type="Tanh"),
     ]
 )
-first_critic_gelu_c: MLPConfig = MLPConfig(
+first_critic_leaky_c: MLPConfig = MLPConfig(
     layers=[
         TrainableLayer(layer_type="Linear", out_features=256),
-        FunctionLayer(layer_type="GELU"),
+        FunctionLayer(layer_type="LeakyReLU"),
         TrainableLayer(layer_type="Linear", in_features=256, out_features=256),
         FunctionLayer(layer_type="ReLU"),
         TrainableLayer(layer_type="Linear", in_features=256, out_features=1),
@@ -396,15 +396,15 @@ first_critic_prelu_c: MLPConfig = MLPConfig(
 
 # python3 run.py train cli --gym dmcs --domain cartpole --task swingup --batch 1 TD3 --seeds 10 20 30 40 50 --max_workers 5
 batch_config_dmcs: dict[str, list[Any | tuple[Any, str]]] = {
-    "alg_config.actor_config": [(gelu_a_td3, "gelu"), (golu_a_td3, "golu")],
-    "alg_config.critic_config": [(gelu_c, "gelu"), (golu_c, "golu")],
+    "alg_config.actor_config": [(leaky_a_td3, "leaky"), (prelu_a_td3, "prelu")],
+    "alg_config.critic_config": [(leaky_c, "leaky"), (prelu_c, "prelu")],
     "env_config.domain": ["cheetah", "cartpole", "finger", "walker"],
     "env_config.task": ["run", "swingup", "spin", "walk"],
 }
 # python3 run.py train cli --gym openai --task HalfCheetah-v4 --batch 1 TD3 --seeds 10 20 30 40 50 --max_workers 5
 batch_config_openai: dict[str, list[Any | tuple[Any, str]]] = {
-    "alg_config.actor_config": [(gelu_a_td3, "gelu"), (golu_a_td3, "golu")],
-    "alg_config.critic_config": [(gelu_c, "gelu"), (golu_c, "golu")],
+    "alg_config.actor_config": [(leaky_a_td3, "leaky"), (prelu_a_td3, "prelu")],
+    "alg_config.critic_config": [(leaky_c, "leaky"), (prelu_c, "prelu")],
     "env_config.task": ["HalfCheetah-v4", "Humanoid-v4", "Ant-v4", "Hopper-v4"],
 }
 batch_config = batch_config_openai
