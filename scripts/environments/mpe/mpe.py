@@ -146,7 +146,7 @@ class MPE2Environment(MARLEnvironment):
         )
         return marl_state
 
-    def step(self, action: list[int | np.ndarray]) -> tuple:
+    def step(self, action: list[int] | list[np.ndarray]) -> tuple:
         if self.apply_action_normalization:
             action = hlp.denormalize(
                 action, self.max_action_value, self.min_action_value
