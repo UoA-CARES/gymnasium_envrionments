@@ -24,7 +24,7 @@ from cares_reinforcement_learning.util.configurations import (
 # ---------------------------------------------------------------------
 
 # geluReLU -> GELU
-# GoLU -> GoLU
+# PReLU -> GoLU
 
 # GELU
 gelu_a_sac: MLPConfig = MLPConfig(
@@ -47,23 +47,23 @@ gelu_c: MLPConfig = MLPConfig(
     ]
 )
 
-# GoLU
-golu_a_sac: MLPConfig = MLPConfig(
+# PReLU
+prelu_a_sac: MLPConfig = MLPConfig(
     layers=[
         TrainableLayer(layer_type="Linear", out_features=256),
-        FunctionLayer(layer_type="GoLU"),
+        FunctionLayer(layer_type="PReLU"),
     ]
 )
-golu_a_td3: MLPConfig = MLPConfig(
+prelu_a_td3: MLPConfig = MLPConfig(
     layers=[
         TrainableLayer(layer_type="Linear"),
         FunctionLayer(layer_type="Tanh"),
     ]
 )
-golu_c: MLPConfig = MLPConfig(
+prelu_c: MLPConfig = MLPConfig(
     layers=[
         TrainableLayer(layer_type="Linear", out_features=256),
-        FunctionLayer(layer_type="GoLU"),
+        FunctionLayer(layer_type="PReLU"),
         TrainableLayer(layer_type="Linear", in_features=256, out_features=1),
     ]
 )
@@ -99,28 +99,28 @@ all_both_gelu_c: MLPConfig = MLPConfig(
     ]
 )
 
-all_both_golu_a_sac: MLPConfig = MLPConfig(
+all_both_prelu_a_sac: MLPConfig = MLPConfig(
     layers=[
         TrainableLayer(layer_type="Linear", out_features=256),
-        FunctionLayer(layer_type="GoLU"),
+        FunctionLayer(layer_type="PReLU"),
         TrainableLayer(layer_type="Linear", in_features=256, out_features=256),
-        FunctionLayer(layer_type="GoLU"),
+        FunctionLayer(layer_type="PReLU"),
     ]
 )
-all_both_golu_a_td3: MLPConfig = MLPConfig(
+all_both_prelu_a_td3: MLPConfig = MLPConfig(
     layers=[
         TrainableLayer(layer_type="Linear", out_features=256),
-        FunctionLayer(layer_type="GoLU"),
+        FunctionLayer(layer_type="PReLU"),
         TrainableLayer(layer_type="Linear", in_features=256),
         FunctionLayer(layer_type="Tanh"),
     ]
 )
-all_both_golu_c: MLPConfig = MLPConfig(
+all_both_prelu_c: MLPConfig = MLPConfig(
     layers=[
         TrainableLayer(layer_type="Linear", out_features=256),
-        FunctionLayer(layer_type="GoLU"),
+        FunctionLayer(layer_type="PReLU"),
         TrainableLayer(layer_type="Linear", in_features=256, out_features=256),
-        FunctionLayer(layer_type="GoLU"),
+        FunctionLayer(layer_type="PReLU"),
         TrainableLayer(layer_type="Linear", in_features=256, out_features=1),
     ]
 )
@@ -152,23 +152,23 @@ all_actor_gelu_c: MLPConfig = MLPConfig(
     ]
 )
 
-all_actor_golu_a_sac: MLPConfig = MLPConfig(
+all_actor_prelu_a_sac: MLPConfig = MLPConfig(
     layers=[
         TrainableLayer(layer_type="Linear", out_features=256),
-        FunctionLayer(layer_type="GoLU"),
+        FunctionLayer(layer_type="PReLU"),
         TrainableLayer(layer_type="Linear", in_features=256, out_features=256),
-        FunctionLayer(layer_type="GoLU"),
+        FunctionLayer(layer_type="PReLU"),
     ]
 )
-all_actor_golu_a_td3: MLPConfig = MLPConfig(
+all_actor_prelu_a_td3: MLPConfig = MLPConfig(
     layers=[
         TrainableLayer(layer_type="Linear", out_features=256),
-        FunctionLayer(layer_type="GoLU"),
+        FunctionLayer(layer_type="PReLU"),
         TrainableLayer(layer_type="Linear", in_features=256),
         FunctionLayer(layer_type="Tanh"),
     ]
 )
-all_actor_golu_c: MLPConfig = MLPConfig(
+all_actor_prelu_c: MLPConfig = MLPConfig(
     layers=[
         TrainableLayer(layer_type="Linear", out_features=256),
         FunctionLayer(layer_type="ReLU"),
@@ -205,7 +205,7 @@ all_critic_gelu_c: MLPConfig = MLPConfig(
     ]
 )
 
-all_critic_golu_a_sac: MLPConfig = MLPConfig(
+all_critic_prelu_a_sac: MLPConfig = MLPConfig(
     layers=[
         TrainableLayer(layer_type="Linear", out_features=256),
         FunctionLayer(layer_type="ReLU"),
@@ -213,7 +213,7 @@ all_critic_golu_a_sac: MLPConfig = MLPConfig(
         FunctionLayer(layer_type="ReLU"),
     ]
 )
-all_critic_golu_a_td3: MLPConfig = MLPConfig(
+all_critic_prelu_a_td3: MLPConfig = MLPConfig(
     layers=[
         TrainableLayer(layer_type="Linear", out_features=256),
         FunctionLayer(layer_type="ReLU"),
@@ -221,12 +221,12 @@ all_critic_golu_a_td3: MLPConfig = MLPConfig(
         FunctionLayer(layer_type="Tanh"),
     ]
 )
-all_critic_golu_c: MLPConfig = MLPConfig(
+all_critic_prelu_c: MLPConfig = MLPConfig(
     layers=[
         TrainableLayer(layer_type="Linear", out_features=256),
-        FunctionLayer(layer_type="GoLU"),
+        FunctionLayer(layer_type="PReLU"),
         TrainableLayer(layer_type="Linear", in_features=256, out_features=256),
-        FunctionLayer(layer_type="GoLU"),
+        FunctionLayer(layer_type="PReLU"),
         TrainableLayer(layer_type="Linear", in_features=256, out_features=1),
     ]
 )
@@ -258,26 +258,26 @@ first_both_gelu_c: MLPConfig = MLPConfig(
     ]
 )
 
-first_both_golu_a_sac: MLPConfig = MLPConfig(
+first_both_prelu_a_sac: MLPConfig = MLPConfig(
     layers=[
         TrainableLayer(layer_type="Linear", out_features=256),
-        FunctionLayer(layer_type="GoLU"),
+        FunctionLayer(layer_type="PReLU"),
         TrainableLayer(layer_type="Linear", in_features=256, out_features=256),
         FunctionLayer(layer_type="ReLU"),
     ]
 )
-first_both_golu_a_td3: MLPConfig = MLPConfig(
+first_both_prelu_a_td3: MLPConfig = MLPConfig(
     layers=[
         TrainableLayer(layer_type="Linear", out_features=256),
-        FunctionLayer(layer_type="GoLU"),
+        FunctionLayer(layer_type="PReLU"),
         TrainableLayer(layer_type="Linear", in_features=256),
         FunctionLayer(layer_type="Tanh"),
     ]
 )
-first_both_golu_c: MLPConfig = MLPConfig(
+first_both_prelu_c: MLPConfig = MLPConfig(
     layers=[
         TrainableLayer(layer_type="Linear", out_features=256),
-        FunctionLayer(layer_type="GoLU"),
+        FunctionLayer(layer_type="PReLU"),
         TrainableLayer(layer_type="Linear", in_features=256, out_features=256),
         FunctionLayer(layer_type="ReLU"),
         TrainableLayer(layer_type="Linear", in_features=256, out_features=1),
@@ -311,23 +311,23 @@ first_actor_gelu_c: MLPConfig = MLPConfig(
     ]
 )
 
-first_actor_golu_a_sac: MLPConfig = MLPConfig(
+first_actor_prelu_a_sac: MLPConfig = MLPConfig(
     layers=[
         TrainableLayer(layer_type="Linear", out_features=256),
-        FunctionLayer(layer_type="GoLU"),
+        FunctionLayer(layer_type="PReLU"),
         TrainableLayer(layer_type="Linear", in_features=256, out_features=256),
         FunctionLayer(layer_type="ReLU"),
     ]
 )
-first_actor_golu_a_td3: MLPConfig = MLPConfig(
+first_actor_prelu_a_td3: MLPConfig = MLPConfig(
     layers=[
         TrainableLayer(layer_type="Linear", out_features=256),
-        FunctionLayer(layer_type="GoLU"),
+        FunctionLayer(layer_type="PReLU"),
         TrainableLayer(layer_type="Linear", in_features=256),
         FunctionLayer(layer_type="Tanh"),
     ]
 )
-first_actor_golu_c: MLPConfig = MLPConfig(
+first_actor_prelu_c: MLPConfig = MLPConfig(
     layers=[
         TrainableLayer(layer_type="Linear", out_features=256),
         FunctionLayer(layer_type="ReLU"),
@@ -364,7 +364,7 @@ first_critic_gelu_c: MLPConfig = MLPConfig(
     ]
 )
 
-first_critic_golu_a_sac: MLPConfig = MLPConfig(
+first_critic_prelu_a_sac: MLPConfig = MLPConfig(
     layers=[
         TrainableLayer(layer_type="Linear", out_features=256),
         FunctionLayer(layer_type="ReLU"),
@@ -372,7 +372,7 @@ first_critic_golu_a_sac: MLPConfig = MLPConfig(
         FunctionLayer(layer_type="ReLU"),
     ]
 )
-first_critic_golu_a_td3: MLPConfig = MLPConfig(
+first_critic_prelu_a_td3: MLPConfig = MLPConfig(
     layers=[
         TrainableLayer(layer_type="Linear", out_features=256),
         FunctionLayer(layer_type="ReLU"),
@@ -380,10 +380,10 @@ first_critic_golu_a_td3: MLPConfig = MLPConfig(
         FunctionLayer(layer_type="Tanh"),
     ]
 )
-first_critic_golu_c: MLPConfig = MLPConfig(
+first_critic_prelu_c: MLPConfig = MLPConfig(
     layers=[
         TrainableLayer(layer_type="Linear", out_features=256),
-        FunctionLayer(layer_type="GoLU"),
+        FunctionLayer(layer_type="PReLU"),
         TrainableLayer(layer_type="Linear", in_features=256, out_features=256),
         FunctionLayer(layer_type="ReLU"),
         TrainableLayer(layer_type="Linear", in_features=256, out_features=1),
