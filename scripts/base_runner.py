@@ -13,7 +13,6 @@ import execution_logger as logs
 import numpy as np
 from cares_reinforcement_learning.algorithm.algorithm import Algorithm
 from cares_reinforcement_learning.memory.memory_factory import MemoryFactory
-from cares_reinforcement_learning.types.interaction import ActionContext
 from cares_reinforcement_learning.util import helpers as hlp
 from cares_reinforcement_learning.util.configurations import (
     AlgorithmConfig,
@@ -207,11 +206,7 @@ class BaseRunner(ABC):
             episode_stats.step()
 
             # Action selection
-            available_actions = self.env_eval.get_available_actions()
-            action_context = ActionContext(
-                observation=state, evaluation=True, available_actions=available_actions
-            )
-            action = self.agent.select_action_from_policy(action_context)
+            action = self.agent.select_action_from_policy(state, evaluation=True)
 
             # Step environment
             state, reward, done, truncated, env_info = self.env_eval.step(action)

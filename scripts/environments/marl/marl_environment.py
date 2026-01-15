@@ -4,12 +4,12 @@ from typing import Any
 
 import cv2
 import numpy as np
-from cares_reinforcement_learning.types.observation import Observation
+from cares_reinforcement_learning.types.observation import MARLObservation
 from environments.base_environment import BaseEnvironment
 from util.configurations import GymEnvironmentConfig
 
 
-class MARLEnvironment(BaseEnvironment):
+class MARLEnvironment(BaseEnvironment[MARLObservation]):
     """
     Multi-Agent Reinforcement Learning Environment Base Class
 
@@ -51,7 +51,7 @@ class MARLEnvironment(BaseEnvironment):
         raise NotImplementedError("Override this method")
 
     @abc.abstractmethod
-    def sample_action(self) -> list[Any]:
+    def sample_action(self) -> list[int] | list[np.ndarray]:
         """
         Sample random actions for all agents.
         Returns: List of actions, one per agent
@@ -63,7 +63,7 @@ class MARLEnvironment(BaseEnvironment):
         raise NotImplementedError("Override this method")
 
     @abc.abstractmethod
-    def reset(self, training: bool = True) -> Observation:
+    def reset(self, training: bool = True) -> MARLObservation:
         """
         Reset environment and return initial global state.
         Returns: Initial global state
@@ -71,7 +71,7 @@ class MARLEnvironment(BaseEnvironment):
         raise NotImplementedError("Override this method")
 
     @abc.abstractmethod
-    def step(self, action: list[Any]) -> tuple:
+    def step(self, action: list[int] | list[np.ndarray]) -> tuple:
         raise NotImplementedError("Override this method")
 
     def grab_frame(self, height: int = 240, width: int = 300) -> np.ndarray:

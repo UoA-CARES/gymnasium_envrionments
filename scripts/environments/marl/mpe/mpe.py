@@ -3,9 +3,9 @@ from typing import Any
 
 import cv2
 import numpy as np
-from cares_reinforcement_learning.types.observation import Observation
+from cares_reinforcement_learning.types.observation import MARLObservation
 from cares_reinforcement_learning.util import helpers as hlp
-from environments.marl_environment import MARLEnvironment
+from environments.marl.marl_environment import MARLEnvironment
 from gymnasium import spaces
 from mpe2 import all_modules as mpe_all
 from pettingzoo.utils.env import AgentID, ParallelEnv
@@ -109,7 +109,7 @@ class MPE2Environment(MARLEnvironment):
     def get_available_actions(self) -> np.ndarray:
         return np.ones((len(self.agents), self.action_num), dtype=np.int32)
 
-    def sample_action(self) -> list[int | np.ndarray]:
+    def sample_action(self) -> list[int] | list[np.ndarray]:
         actions = []
         for agent in self.agents:
             space = self.env.action_space(agent)
@@ -132,15 +132,14 @@ class MPE2Environment(MARLEnvironment):
             self.env.action_space(agent).seed(self.seed + i)
             self.env.observation_space(agent).seed(self.seed + i)
 
-    def reset(self, training: bool = True) -> Observation:
+    def reset(self, training: bool = True) -> MARLObservation:
         """Reset PettingZoo parallel env and return MARL-compatible state dict."""
         obs_dict, _ = self.env.reset()
 
         self.agents = self.env.agents
 
-        marl_state = Observation(
-            vector_state=self.env.state(),
-            image_state=None,
+        marl_state = MARLObservation(
+            global_state=self.env.state(),
             agent_states=obs_dict,
             avail_actions=self.get_available_actions(),
         )
@@ -157,9 +156,8 @@ class MPE2Environment(MARLEnvironment):
 
         obs_dict, rewards, terminations, truncations, infos = self.env.step(action_dict)
 
-        marl_state = Observation(
-            vector_state=self.env.state(),
-            image_state=None,
+        marl_state = MARLObservation(
+            global_state=self.env.state(),
             agent_states=obs_dict,
             avail_actions=self.get_available_actions(),
         )

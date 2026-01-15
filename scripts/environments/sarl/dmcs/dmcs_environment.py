@@ -4,7 +4,7 @@ from functools import cached_property
 import cv2
 import numpy as np
 from dm_control import suite
-from environments.sarl_environment import SARLEnvironment
+from environments.sarl.sarl_environment import SARLEnvironment
 from util.configurations import DMCSConfig
 
 

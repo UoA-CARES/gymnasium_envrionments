@@ -3,7 +3,7 @@ from functools import cached_property
 import cv2
 import numpy as np
 from cares_reinforcement_learning.util import helpers as hlp
-from environments.sarl_environment import SARLEnvironment
+from environments.sarl.sarl_environment import SARLEnvironment
 from gripper_gym.environments.environment_factory import EnvironmentFactory
 from util.configurations import GripperConfig
 

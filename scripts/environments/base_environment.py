@@ -1,15 +1,17 @@
-import abc
+from abc import ABC, abstractmethod
 import logging
 from functools import cached_property
-from typing import Any
+from typing import Any, TypeVar, Generic
 
 import cv2
 import numpy as np
 from cares_reinforcement_learning.types.observation import Observation
 from util.configurations import GymEnvironmentConfig
 
+ObsType = TypeVar("ObsType", bound=Observation)
 
-class BaseEnvironment(metaclass=abc.ABCMeta):
+
+class BaseEnvironment(ABC, Generic[ObsType]):
     """
     Base Environment class for both single-agent and multi-agent environments.
 
@@ -44,46 +46,46 @@ class BaseEnvironment(metaclass=abc.ABCMeta):
     def num_agents(self) -> int:
         return 1
 
-    @abc.abstractmethod
+    @abstractmethod
     def get_overlay_info(self) -> dict:
         raise NotImplementedError("Override this method")
 
     @cached_property
-    @abc.abstractmethod
+    @abstractmethod
     def min_action_value(self) -> Any:
         raise NotImplementedError("Override this method")
 
     @cached_property
-    @abc.abstractmethod
+    @abstractmethod
     def max_action_value(self) -> Any:
         raise NotImplementedError("Override this method")
 
     @cached_property
-    @abc.abstractmethod
+    @abstractmethod
     def observation_space(self) -> dict[str, Any]:
         raise NotImplementedError("Override this method")
 
     @cached_property
-    @abc.abstractmethod
+    @abstractmethod
     def action_num(self) -> int:
         raise NotImplementedError("Override this method")
 
-    @abc.abstractmethod
+    @abstractmethod
     def sample_action(self) -> Any:
         raise NotImplementedError("Override this method")
 
-    @abc.abstractmethod
+    @abstractmethod
     def set_seed(self, seed: int) -> None:
         raise NotImplementedError("Override this method")
 
-    @abc.abstractmethod
-    def reset(self, training: bool = True) -> Observation:
+    @abstractmethod
+    def reset(self, training: bool = True) -> ObsType:
         raise NotImplementedError("Override this method")
 
-    @abc.abstractmethod
+    @abstractmethod
     def step(self, action: Any) -> tuple:
         raise NotImplementedError("Override this method")
 
-    @abc.abstractmethod
+    @abstractmethod
     def grab_frame(self, height: int = 240, width: int = 300) -> np.ndarray:
         raise NotImplementedError("Override this method")

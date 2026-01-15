@@ -4,7 +4,7 @@ import cv2
 import gymnasium as gym
 import numpy as np
 from cares_reinforcement_learning.util import helpers as hlp
-from environments.sarl_environment import SARLEnvironment
+from environments.sarl.sarl_environment import SARLEnvironment
 from gymnasium import spaces
 from util.configurations import OpenAIConfig
 

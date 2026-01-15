@@ -1,10 +1,9 @@
 from functools import cached_property
 
 import numpy as np
-from environments.sarl_environment import SARLEnvironment
-from util.configurations import PyBoyConfig
-
+from environments.sarl.sarl_environment import SARLEnvironment
 from pyboy_environment import suite
+from util.configurations import PyBoyConfig
 
 
 class PyboyEnvironment(SARLEnvironment):

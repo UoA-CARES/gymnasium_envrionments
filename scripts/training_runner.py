@@ -5,7 +5,6 @@ from typing import Any
 
 from base_runner import BaseRunner, EpisodeStats
 from cares_reinforcement_learning.memory.memory_buffer import MemoryBuffer
-from cares_reinforcement_learning.types.interaction import ActionContext
 from cares_reinforcement_learning.types.training import TrainingContext
 from util.repetition_manager import RepetitionManager
 
@@ -177,11 +176,7 @@ class TrainingRunner(BaseRunner):
 
     def _select_policy_action(self, state) -> Any:
         """Handle policy-based action selection."""
-        available_actions = self.env.get_available_actions()
-        action_context = ActionContext(
-            observation=state, evaluation=False, available_actions=available_actions
-        )
-        action = self.agent.select_action_from_policy(action_context)
+        action = self.agent.select_action_from_policy(state, evaluation=False)
 
         return action
 

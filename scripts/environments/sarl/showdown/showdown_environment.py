@@ -4,7 +4,7 @@ from functools import cached_property
 
 import cv2
 import numpy as np
-from environments.sarl_environment import SARLEnvironment
+from environments.sarl.sarl_environment import SARLEnvironment
 from gymnasium import spaces
 from showdown_gym.showdown_environment import SingleShowdownWrapper
 from util.configurations import ShowdownConfig

@@ -21,49 +21,51 @@ class EnvironmentFactory:
         env: BaseEnvironment
         eval_env: BaseEnvironment
         if isinstance(config, cfg.DMCSConfig):
-            from environments.dmcs.dmcs_environment import DMCSEnvironment
+            from environments.sarl.dmcs.dmcs_environment import DMCSEnvironment
 
             env = DMCSEnvironment(config, train_seed, image_observation)
             eval_env = DMCSEnvironment(config, eval_seed, image_observation)
         elif isinstance(config, cfg.OpenAIConfig):
-            from environments.openai.openai_environment import OpenAIEnvironment
+            from environments.sarl.openai.openai_environment import OpenAIEnvironment
 
             env = OpenAIEnvironment(config, train_seed, image_observation)
             eval_env = OpenAIEnvironment(config, eval_seed, image_observation)
         elif isinstance(config, cfg.PyBoyConfig):
-            from environments.pyboy.pyboy_environment import PyboyEnvironment
+            from environments.sarl.pyboy.pyboy_environment import PyboyEnvironment
 
             env = PyboyEnvironment(config, train_seed, image_observation)
             eval_env = PyboyEnvironment(config, eval_seed, image_observation)
         elif isinstance(config, cfg.ShowdownConfig):
-            from environments.showdown.showdown_environment import ShowdownEnvironment
+            from environments.sarl.showdown.showdown_environment import (
+                ShowdownEnvironment,
+            )
 
             env = ShowdownEnvironment(config, train_seed, image_observation)
             eval_env = ShowdownEnvironment(config, eval_seed, image_observation)
 
         elif isinstance(config, cfg.DroneConfig):
-            from environments.drone.drone_environment import DroneEnvironment
+            from environments.sarl.drone.drone_environment import DroneEnvironment
 
             env = DroneEnvironment(config, train_seed, image_observation)
             eval_env = env
         elif isinstance(config, cfg.GripperConfig):
-            from environments.gripper.gripper_environment import GripperEnvironment
+            from environments.sarl.gripper.gripper_environment import GripperEnvironment
 
             env = GripperEnvironment(config, train_seed, image_observation)
             eval_env = env
         elif isinstance(config, cfg.MPEConfig):
-            from environments.mpe.mpe import MPE2Environment
+            from environments.marl.mpe.mpe import MPE2Environment
 
             env = MPE2Environment(config, train_seed)
             eval_env = MPE2Environment(config, eval_seed)
 
         elif isinstance(config, cfg.SMACConfig):
-            from environments.smac.smac import SMACEnvironment
+            from environments.marl.smac.smac import SMACEnvironment
 
             env = SMACEnvironment(config, train_seed)
             eval_env = SMACEnvironment(config, eval_seed)
         elif isinstance(config, cfg.SMAC2Config):
-            from environments.smac2.smac2 import SMAC2Environment
+            from environments.marl.smac2.smac2 import SMAC2Environment
 
             env = SMAC2Environment(config, train_seed)
             eval_env = SMAC2Environment(config, eval_seed)

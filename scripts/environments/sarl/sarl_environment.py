@@ -5,12 +5,12 @@ from typing import Any
 
 import cv2
 import numpy as np
-from cares_reinforcement_learning.types.observation import Observation
+from cares_reinforcement_learning.types.observation import SARLObservation
 from environments.base_environment import BaseEnvironment
 from util.configurations import GymEnvironmentConfig
 
 
-class SARLEnvironment(BaseEnvironment):
+class SARLEnvironment(BaseEnvironment[SARLObservation]):
     def __init__(
         self, config: GymEnvironmentConfig, seed: int, image_observation: bool
     ) -> None:
@@ -112,12 +112,12 @@ class SARLEnvironment(BaseEnvironment):
     def _reset(self, training: bool = True) -> np.ndarray:
         raise NotImplementedError("Override this method")
 
-    def reset(self, training: bool = True) -> Observation:
+    def reset(self, training: bool = True) -> SARLObservation:
         state = self._reset(training=training)
 
         image_state = self._image_state(reset=True) if self.image_observation else None
 
-        return Observation(vector_state=state, image_state=image_state)
+        return SARLObservation(vector_state=state, image_state=image_state)
 
     @abc.abstractmethod
     def _step(self, action):
@@ -138,7 +138,7 @@ class SARLEnvironment(BaseEnvironment):
         if self.state_std > 0:
             vector_state = self._add_relative_noise(vector_state, self.state_std)
 
-        state = Observation(vector_state=vector_state, image_state=image_state)
+        state = SARLObservation(vector_state=vector_state, image_state=image_state)
 
         return state, reward, done, truncated, info
 
