@@ -1,5 +1,5 @@
 import sys
-from run import main as run_main
+from run import main_with_runner as run_main
 from io import StringIO
 from typing import List
 
