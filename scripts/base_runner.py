@@ -135,6 +135,7 @@ class BaseRunner(ABC):
         self.logger.info(
             f"[SEED {self.train_seed} | {self.eval_seed}] Loading Environment: {self.env_config.gym}"
         )
+
         self.env, self.env_eval = self.env_factory.create_environment(
             self.env_config,
             self.train_seed,

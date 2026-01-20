@@ -2,7 +2,6 @@ import abc
 from functools import cached_property
 from typing import Any
 
-import cv2
 import numpy as np
 from cares_reinforcement_learning.types.observation import MARLObservation
 from environments.base_environment import BaseEnvironment
@@ -19,11 +18,6 @@ class MARLEnvironment(BaseEnvironment[MARLObservation]):
 
     def __init__(self, config: GymEnvironmentConfig, seed: int) -> None:
         super().__init__(config, seed)
-
-    def render(self):
-        frame = self.grab_frame()
-        cv2.imshow(f"{self.task}", frame)
-        cv2.waitKey(10)
 
     @cached_property
     @abc.abstractmethod

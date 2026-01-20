@@ -29,11 +29,6 @@ class SARLEnvironment(BaseEnvironment[SARLObservation]):
         self.frame_width = config.frame_width
         self.frame_height = config.frame_height
 
-    def render(self):
-        frame = self.grab_frame()
-        cv2.imshow(f"{self.task}", frame)
-        cv2.waitKey(10)
-
     @abc.abstractmethod
     def get_overlay_info(self) -> dict:
         raise NotImplementedError("Override this method")
@@ -57,7 +52,7 @@ class SARLEnvironment(BaseEnvironment[SARLObservation]):
     def observation_space(self) -> dict[str, Any]:
         channels = 1 if self.grey_scale else 3
         channels *= self.frames_to_stack
-        image_space = (channels, self.frame_width, self.frame_height)
+        image_space = (channels, self.frame_height, self.frame_width)
 
         vector_space = self._vector_space
 

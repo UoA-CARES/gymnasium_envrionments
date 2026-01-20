@@ -1,7 +1,7 @@
-from abc import ABC, abstractmethod
 import logging
+from abc import ABC, abstractmethod
 from functools import cached_property
-from typing import Any, TypeVar, Generic
+from typing import Any, Generic, TypeVar
 
 import cv2
 import numpy as np
