@@ -5,7 +5,7 @@ from typing import Any
 
 from base_runner import BaseRunner, EpisodeStats
 from cares_reinforcement_learning.memory.memory_buffer import MemoryBuffer
-from cares_reinforcement_learning.types.training import TrainingContext
+from cares_reinforcement_learning.types.episode import EpisodeContext
 from util.repetition_manager import RepetitionManager
 
 
@@ -56,18 +56,18 @@ class TrainingRunner(BaseRunner):
         self.display = bool(self.env_config.display)
 
         # Create memory (needed for training)
-        self.memory = self.memory_factory.create_memory(self.alg_config)
+        self.memory_buffer = self.memory_factory.create_memory(self.alg_config)
 
         # Handle resume logic - this must modify our local variables
         self.start_training_step = 0
         if resume_path is not None:
-            self.start_training_step, self.memory = self._handle_resume(
+            self.start_training_step, self.memory_buffer = self._handle_resume(
                 resume_path,
                 self.alg_config.algorithm,
             )
 
         # Set up memory in record
-        self.record.set_memory_buffer(self.memory)
+        self.record.set_memory_buffer(self.memory_buffer)
 
         # Algorithm Training parameters
         self.max_steps_training = self.alg_config.max_steps_training
@@ -112,7 +112,7 @@ class TrainingRunner(BaseRunner):
             self.logger.warning(
                 f"[SEED {self.train_seed}] No checkpoint found at {restart_path}, starting fresh training"
             )
-            return 0, self.memory
+            return 0, self.memory_buffer
 
         self.logger.info(
             f"[SEED {self.train_seed}] Restarting from path: {restart_path}"
@@ -130,7 +130,7 @@ class TrainingRunner(BaseRunner):
             self.logger.warning(
                 f"[SEED {self.train_seed}] No memory buffer found at {restart_path / 'memory'}, starting with empty memory"
             )
-            loaded_memory = self.memory
+            loaded_memory = self.memory_buffer
 
         self.logger.info(f"[SEED {self.train_seed}] Loading agent models")
         try:
@@ -199,9 +199,7 @@ class TrainingRunner(BaseRunner):
         episode_done: bool,
     ) -> dict:
         """Execute policy training step."""
-        training_context = TrainingContext(
-            memory=self.memory,
-            batch_size=self.batch_size,
+        episode_context = EpisodeContext(
             training_step=train_step_counter,
             episode=episode_num + 1,
             episode_steps=episode_timesteps,
@@ -211,7 +209,7 @@ class TrainingRunner(BaseRunner):
 
         train_info = {}
         for _ in range(self.G):
-            train_info = self.agent.train_policy(training_context)
+            train_info = self.agent.train_policy(self.memory_buffer, episode_context)
 
         return train_info
 
@@ -309,7 +307,7 @@ class TrainingRunner(BaseRunner):
             #     info["intrinsic_reward"] = intrinsic_reward
 
             # Store experience in memory
-            self.memory.add(state, action, total_reward, next_state, done)
+            self.memory_buffer.add(state, action, total_reward, next_state, done)
 
             state = next_state
 
