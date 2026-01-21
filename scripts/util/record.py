@@ -230,6 +230,11 @@ class Record:
             return 0
         return int(self.train_data["total_steps"].iloc[-1])
 
+    def get_last_logged_episode(self) -> int:
+        if self.train_data.empty:
+            return 0
+        return int(self.train_data["episode"].iloc[-1])
+
     def log_eval(self, display: bool = False, **logs) -> None:
         if display:
             self._print_log(**logs)

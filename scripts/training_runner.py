@@ -64,10 +64,13 @@ class TrainingRunner(BaseRunner):
 
         # Handle resume logic - this must modify our local variables
         self.start_training_step = 0
+        self.start_episode_num = 0
         if resume_path is not None:
-            self.start_training_step, self.memory = self._handle_resume(
-                resume_path,
-                self.alg_config.algorithm,
+            self.start_training_step, self.start_episode_num, self.memory = (
+                self._handle_resume(
+                    resume_path,
+                    self.alg_config.algorithm,
+                )
             )
 
         # Set up memory in record
@@ -98,16 +101,16 @@ class TrainingRunner(BaseRunner):
         self,
         data_path: str,
         algorithm: str,
-    ) -> tuple[int, MemoryBuffer]:
+    ) -> tuple[int, int, MemoryBuffer]:
         """
-        Handle all resume logic and return starting step and loaded memory.
+        Handle all resume logic and return starting step, episode, and loaded memory.
 
         Args:
             data_path: Path to the checkpoint data
             algorithm: Algorithm name for loading models
 
         Returns:
-            Tuple of (starting_training_step, loaded_memory)
+            Tuple of (starting_training_step, starting_episode_num, loaded_memory)
         """
         restart_path = Path(data_path) / str(self.train_seed)
 
@@ -116,7 +119,7 @@ class TrainingRunner(BaseRunner):
             self.logger.warning(
                 f"[SEED {self.train_seed}] No checkpoint found at {restart_path}, starting fresh training"
             )
-            return 0, self.memory
+            return 0, 0, self.memory
 
         self.logger.info(
             f"[SEED {self.train_seed}] Restarting from path: {restart_path}"
@@ -145,11 +148,12 @@ class TrainingRunner(BaseRunner):
             )
 
         start_training_step = self.record.get_last_logged_step()
+        start_episode_num = self.record.get_last_logged_episode()
         self.logger.info(
-            f"[SEED {self.train_seed}] Resuming from step: {start_training_step}"
+            f"[SEED {self.train_seed}] Resuming from step: {start_training_step}, episode: {start_episode_num}"
         )
 
-        return start_training_step, loaded_memory
+        return start_training_step, start_episode_num, loaded_memory
 
     def _report_progress(self, episode: int, step: int, status: str) -> None:
         """Report progress to the main thread if a queue is provided."""
@@ -297,7 +301,7 @@ class TrainingRunner(BaseRunner):
         start_time = time.time()
 
         # Initialize training state
-        episode_num = 0
+        episode_num = self.start_episode_num
         episode_stats = EpisodeStats(n_agents=self.env.num_agents)
 
         state = self.env.reset()
