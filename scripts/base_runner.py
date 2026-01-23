@@ -209,6 +209,7 @@ class BaseRunner(ABC):
 
             # Step environment
             experience = self.env_eval.step(action)
+            state = experience.next_observation
 
             episode_end = experience.done_flag | experience.truncated_flag
 

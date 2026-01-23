@@ -277,6 +277,7 @@ class TrainingRunner(BaseRunner):
             self._report_progress(episode_num + 1, train_step_counter + 1, status)
 
             # Determine action based on training phase
+            # TODO state is nevber uypdated to the latest observation from experience fucking d'oh
             action = self._select_action(train_step_counter, episode_stats.steps, state)
 
             # Record action and execute step
@@ -284,6 +285,7 @@ class TrainingRunner(BaseRunner):
             info |= self.repetition_manager.get_status_info()
 
             experience = self.env.step(action)
+            state = experience.next_observation
 
             episode_end = experience.done_flag | experience.truncated_flag
 
