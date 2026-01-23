@@ -5,6 +5,7 @@ from typing import Any, Generic, TypeVar
 
 import cv2
 import numpy as np
+from cares_reinforcement_learning.types.experience import Experience
 from cares_reinforcement_learning.types.observation import Observation
 from util.configurations import GymEnvironmentConfig
 
@@ -83,7 +84,7 @@ class BaseEnvironment(ABC, Generic[ObsType]):
         raise NotImplementedError("Override this method")
 
     @abstractmethod
-    def step(self, action: Any) -> tuple:
+    def step(self, action: Any) -> Experience[ObsType]:
         raise NotImplementedError("Override this method")
 
     @abstractmethod

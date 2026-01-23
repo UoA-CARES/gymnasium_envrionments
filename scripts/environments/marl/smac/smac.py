@@ -3,6 +3,7 @@ from typing import Any
 
 import cv2
 import numpy as np
+from cares_reinforcement_learning.types.experience import MultiAgentExperience
 from cares_reinforcement_learning.types.observation import MARLObservation
 from environments.marl.marl_environment import MARLEnvironment
 from smac.env import StarCraft2Env
@@ -17,7 +18,9 @@ class SMACEnvironment(MARLEnvironment):
 
         self.env_info = self.env.get_env_info()
 
-        self.agent_ids = [f"agent_{i}" for i in range(self.env_info["n_agents"])]
+        self.possible_agents = [f"agent_{i}" for i in range(self.env_info["n_agents"])]
+
+        self.observation: MARLObservation
 
         self.reset()
 
@@ -40,7 +43,7 @@ class SMACEnvironment(MARLEnvironment):
         observation_space: dict[str, Any] = {}
 
         obs_dict = {}
-        for agent_id in self.agent_ids:
+        for agent_id in self.possible_agents:
             obs_dict[agent_id] = self.env_info["obs_shape"]
 
         observation_space["obs"] = obs_dict
@@ -82,29 +85,27 @@ class SMACEnvironment(MARLEnvironment):
         self.reset()
 
     def reset(self, training: bool = True) -> MARLObservation:
-        marl_state = {}
         obs, state = self.env.reset()
 
         # Convert obs list → dict[str -> obs_i]
-        obs_dict = {agent_id: obs[i] for i, agent_id in enumerate(self.agent_ids)}
+        obs_dict = {agent_id: obs[i] for i, agent_id in enumerate(self.possible_agents)}
 
-        marl_state = MARLObservation(
+        self.observation = MARLObservation(
             global_state=state,
             agent_states=obs_dict,
             avail_actions=self.env.get_avail_actions(),
         )
 
-        return marl_state
+        return self.observation
 
-    def step(self, action: list[int]) -> tuple:  # type: ignore[override]
-        marl_state = {}
+    def step(self, action: list[int]) -> MultiAgentExperience:  # type: ignore[override]
         reward, done, info = self.env.step(action)
 
         obs = self.env.get_obs()
         # Convert obs list → dict[str -> obs_i]
-        obs_dict = {agent_id: obs[i] for i, agent_id in enumerate(self.agent_ids)}
+        obs_dict = {agent_id: obs[i] for i, agent_id in enumerate(self.possible_agents)}
 
-        marl_state = MARLObservation(
+        next_observation = MARLObservation(
             global_state=self.env.get_state(),
             agent_states=obs_dict,
             avail_actions=self.env.get_avail_actions(),
@@ -114,7 +115,19 @@ class SMACEnvironment(MARLEnvironment):
         rewards[0] = reward  # Assuming reward is for all agents equally
         dones = [done] * self.env_info["n_agents"]
 
-        return marl_state, rewards, dones, dones, info
+        experience = MultiAgentExperience(
+            observation=self.observation,
+            action=action,
+            reward=rewards,
+            next_observation=next_observation,
+            done=dones,
+            truncated=dones,
+            info=info,
+        )
+
+        self.observation = next_observation
+
+        return experience
 
     def grab_frame(self, height: int = 240, width: int = 300) -> np.ndarray:
         frame = self.env.render(mode="rgb_array")

@@ -3,6 +3,7 @@ from typing import Any
 
 import cv2
 import numpy as np
+from cares_reinforcement_learning.types.experience import MultiAgentExperience
 from cares_reinforcement_learning.types.observation import MARLObservation
 from cares_reinforcement_learning.util import helpers as hlp
 from environments.marl.marl_environment import MARLEnvironment
@@ -40,11 +41,13 @@ class MPE2Environment(MARLEnvironment):
             continuous_actions=self.continuous_actions,
         )
 
-        self.agents: list[AgentID] = []
+        self.possible_agents: list[AgentID] = self.env.possible_agents
 
         self.set_seed(self.seed)
 
         self.apply_action_normalization = self.continuous_actions
+
+        self.observation: MARLObservation
 
     @cached_property
     def max_action_value(self) -> list[np.ndarray]:
@@ -82,7 +85,7 @@ class MPE2Environment(MARLEnvironment):
         state_shape = self.env.state_space.shape[0]
 
         # 3. Number of agents
-        num_agents = self.env.num_agents
+        num_agents = self.env.max_num_agents
 
         return {
             "obs": obs_spaces,  # dict[str → obs_dim_i]
@@ -107,11 +110,11 @@ class MPE2Environment(MARLEnvironment):
         return action_num
 
     def get_available_actions(self) -> np.ndarray:
-        return np.ones((len(self.agents), self.action_num), dtype=np.int32)
+        return np.ones((len(self.possible_agents), self.action_num), dtype=np.int32)
 
     def sample_action(self) -> list[int] | list[np.ndarray]:
         actions = []
-        for agent in self.agents:
+        for agent in self.possible_agents:
             space = self.env.action_space(agent)
             action = space.sample()
             actions.append(action)
@@ -136,8 +139,6 @@ class MPE2Environment(MARLEnvironment):
         """Reset PettingZoo parallel env and return MARL-compatible state dict."""
         obs_dict, _ = self.env.reset()
 
-        self.agents = self.env.agents
-
         marl_state = MARLObservation(
             global_state=self.env.state(),
             agent_states=obs_dict,
@@ -145,29 +146,41 @@ class MPE2Environment(MARLEnvironment):
         )
         return marl_state
 
-    def step(self, action: list[int] | list[np.ndarray]) -> tuple:
+    def step(self, action: list[int] | list[np.ndarray]) -> MultiAgentExperience:
         if self.apply_action_normalization:
             action = hlp.denormalize(
                 action, self.max_action_value, self.min_action_value
             )
 
         # Convert list of actions to dict for PettingZoo
-        action_dict = {agent: act for agent, act in zip(self.agents, action)}
+        action_dict = {agent: act for agent, act in zip(self.possible_agents, action)}
 
-        obs_dict, rewards, terminations, truncations, infos = self.env.step(action_dict)
+        obs_dict, rewards, dones, truncations, infos = self.env.step(action_dict)
 
-        marl_state = MARLObservation(
+        next_observation = MARLObservation(
             global_state=self.env.state(),
             agent_states=obs_dict,
             avail_actions=self.get_available_actions(),
         )
 
-        # Convert rewards, terminations, truncations to arrays
-        rewards = [rewards[a] for a in self.agents]
-        terminations = [terminations[a] for a in self.agents]
-        truncations = [truncations[a] for a in self.agents]
+        # Convert rewards, dones, truncations to arrays
+        rewards = [rewards[a] for a in self.possible_agents]
+        dones = [dones[a] for a in self.possible_agents]
+        truncations = [truncations[a] for a in self.possible_agents]
 
-        return marl_state, rewards, terminations, truncations, infos
+        experience = MultiAgentExperience(
+            observation=self.observation,
+            action=action,
+            reward=rewards,
+            next_observation=next_observation,
+            done=dones,
+            truncated=truncations,
+            info=infos,
+        )
+
+        self.observation = next_observation
+
+        return experience
 
     def grab_frame(self, height: int = 240, width: int = 300) -> np.ndarray:
         frame = self.env.render()

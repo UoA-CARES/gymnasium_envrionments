@@ -5,6 +5,7 @@ from typing import Any
 
 import cv2
 import numpy as np
+from cares_reinforcement_learning.types.experience import SingleAgentExperience
 from cares_reinforcement_learning.types.observation import SARLObservation
 from environments.base_environment import BaseEnvironment
 from util.configurations import GymEnvironmentConfig
@@ -28,6 +29,8 @@ class SARLEnvironment(BaseEnvironment[SARLObservation]):
 
         self.frame_width = config.frame_width
         self.frame_height = config.frame_height
+
+        self.observation: SARLObservation
 
     @abc.abstractmethod
     def get_overlay_info(self) -> dict:
@@ -112,30 +115,47 @@ class SARLEnvironment(BaseEnvironment[SARLObservation]):
 
         image_state = self._image_state(reset=True) if self.image_observation else None
 
-        return SARLObservation(vector_state=state, image_state=image_state)
+        self.observation = SARLObservation(vector_state=state, image_state=image_state)
+        return self.observation
 
     @abc.abstractmethod
     def _step(self, action):
         raise NotImplementedError("Override this method")
 
-    def step(self, action: np.ndarray) -> tuple:
+    def step(self, action: np.ndarray) -> SingleAgentExperience:
         # Apply action noise
+        action_noise = action
         if self.action_std > 0:
-            action = self._add_relative_noise(action, self.action_std)
-            action = np.clip(action, self.min_action_value, self.max_action_value)
+            action_noise = self._add_relative_noise(action, self.action_std)
+            action_noise = np.clip(
+                action_noise, self.min_action_value, self.max_action_value
+            )
 
         # Execute environment step (existing logic)
-        vector_state, reward, done, truncated, info = self._step(action)
-
+        vector_state, reward, done, truncated, info = self._step(action_noise)
         image_state = self._image_state() if self.image_observation else None
 
         # Apply observation noise
         if self.state_std > 0:
             vector_state = self._add_relative_noise(vector_state, self.state_std)
 
-        state = SARLObservation(vector_state=vector_state, image_state=image_state)
+        next_observation = SARLObservation(
+            vector_state=vector_state, image_state=image_state
+        )
 
-        return state, reward, done, truncated, info
+        experience = SingleAgentExperience(
+            observation=self.observation,
+            action=action,
+            reward=reward,
+            next_observation=next_observation,
+            done=done,
+            truncated=truncated,
+            info=info,
+        )
+
+        self.observation = next_observation
+
+        return experience
 
     @abc.abstractmethod
     def grab_frame(self, height: int = 240, width: int = 300) -> np.ndarray:

@@ -200,23 +200,19 @@ class BaseRunner(ABC):
         # Reset environment
         state = self.env_eval.reset(training=False)
 
-        all_done = False
-        all_truncated = False
-
-        while not all_done and not all_truncated:
+        episode_end = False
+        while not episode_end:
             episode_stats.step()
 
             # Action selection
             action = self.agent.select_action_from_policy(state, evaluation=True)
 
             # Step environment
-            state, reward, done, truncated, env_info = self.env_eval.step(action)
+            experience = self.env_eval.step(action)
 
-            all_done = all(done) if isinstance(done, list) else done
-            all_truncated = all(truncated) if isinstance(truncated, list) else truncated
-            episode_end = all_done or all_truncated
+            episode_end = experience.done_flag | experience.truncated_flag
 
-            episode_stats.update_reward(reward)
+            episode_stats.update_reward(experience.reward)
 
             # Collect data for bias calculation
             episode_states.append(state)
@@ -242,7 +238,7 @@ class BaseRunner(ABC):
             "episode_states": episode_states,
             "episode_actions": episode_actions,
             "episode_rewards": episode_rewards,
-            "env_info": env_info,
+            "env_info": experience.info,
         }
 
         if episode_end:
@@ -258,7 +254,7 @@ class BaseRunner(ABC):
                     total_steps=log_step,
                     episode=episode_counter + 1,
                     display=True,
-                    **env_info,
+                    **experience.info,
                     **bias_data,
                     **episode_stats.summary(),
                 )

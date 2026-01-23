@@ -283,21 +283,14 @@ class TrainingRunner(BaseRunner):
             self.repetition_manager.record_action(action)
             info |= self.repetition_manager.get_status_info()
 
-            # TODO handle done or truncated per agent
-            next_state, reward_extrinsic, done, truncated, env_info = self.env.step(
-                action
-            )
+            experience = self.env.step(action)
 
-            all_done = all(done) if isinstance(done, list) else done
-            all_truncated = all(truncated) if isinstance(truncated, list) else truncated
-            episode_end = all_done or all_truncated
+            episode_end = experience.done_flag | experience.truncated_flag
 
             if self.display:
                 self.env.render()
 
             # Calculate total reward (extrinsic + intrinsic)
-            total_reward = reward_extrinsic
-
             # TODO bring back for intrinsic rewards and modify for MARL
             # if train_step_counter > self.max_steps_exploration:
             #     intrinsic_reward = self.agent.get_intrinsic_reward(
@@ -307,11 +300,9 @@ class TrainingRunner(BaseRunner):
             #     info["intrinsic_reward"] = intrinsic_reward
 
             # Store experience in memory
-            self.memory_buffer.add(state, action, total_reward, next_state, done)
+            self.memory_buffer.add(experience)
 
-            state = next_state
-
-            episode_stats.update_reward(reward_extrinsic)
+            episode_stats.update_reward(experience.reward)
 
             # Train policy if conditions are met
             if (
@@ -326,6 +317,10 @@ class TrainingRunner(BaseRunner):
                     episode_end,
                 )
                 info |= train_info
+
+                print(experience.observation)
+                print(experience.next_observation)
+                exit()
 
             # Evaluate agent periodically
             if (train_step_counter + 1) % self.number_steps_per_evaluation == 0:
@@ -345,7 +340,7 @@ class TrainingRunner(BaseRunner):
                     total_steps=train_step_counter + 1,
                     episode=episode_num + 1,
                     episode_time=episode_time,
-                    **env_info,
+                    **experience.info,
                     **info,
                     display=True,
                 )
@@ -356,7 +351,7 @@ class TrainingRunner(BaseRunner):
                 )
 
                 # Reset for next episode
-                state = self.env.reset()
+                self.env.reset()
                 episode_stats.reset()
 
                 episode_num += 1
