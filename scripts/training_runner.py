@@ -166,9 +166,9 @@ class TrainingRunner(BaseRunner):
 
     def _select_exploration_action(self, train_step_counter: int) -> tuple:
         """Handle exploration phase action selection."""
-        self.logger.info(
-            f"Running Exploration Steps {train_step_counter + 1}/{self.max_steps_exploration}"
-        )
+        # self.logger.info(
+        #     f"Running Exploration Steps {train_step_counter + 1}/{self.max_steps_exploration}"
+        # )
 
         denormalised_action = self.env.sample_action()
         normalised_action = denormalised_action
@@ -354,9 +354,7 @@ class TrainingRunner(BaseRunner):
             # Store experience in memory
 
             extras = self.agent.get_extras()
-            self.memory.add(
-                state, normalised_action, total_reward, next_state, done, extras
-            )
+            self.memory.add(state, normalised_action, total_reward, next_state, done, extras)
 
             state = next_state
 
