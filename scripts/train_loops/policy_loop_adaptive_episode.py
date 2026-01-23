@@ -93,7 +93,8 @@ def policy_based_train(
 
     batch_size = alg_config.batch_size
     G = alg_config.G
-    explore_time = 10000
+    RF = 10000
+    RN = 1
     episode_timesteps = 0
     episode_reward = 0
     episode_num = 0
@@ -235,8 +236,8 @@ def policy_based_train(
         if (total_step_counter + 1) % number_steps_per_evaluation == 0:
             evaluate = True
         
-        if (total_step_counter +1) % explore_time == 0 and episode_reward>0: #and total_step_counter >10000:
-                 number_of_crusial_episodes = 6   
+        if (total_step_counter +1) % RF == 0 and episode_reward>0: #and total_step_counter >10000:
+                 number_of_crusial_episodes = RN+1   
                  #crucial_steps = False
                  #print(f"crucial steps:{crucial_steps}")
               
