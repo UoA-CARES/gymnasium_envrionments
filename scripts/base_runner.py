@@ -165,7 +165,10 @@ class BaseRunner(ABC):
             f"[SEED {self.train_seed} | {self.eval_seed}] Algorithm: {self.alg_config.algorithm}"
         )
         self.agent: Algorithm = self.network_factory.create_network(
-            self.env.observation_space, self.env.action_num, self.alg_config, len(self.env.env.tasks)
+            self.env.observation_space,
+            self.env.action_num,
+            self.alg_config,
+            len(self.env.env.tasks),
         )
 
         # Validate agent creation
@@ -224,10 +227,10 @@ class BaseRunner(ABC):
             # Action selection
             available_actions = self.env_eval.get_available_actions()
             action_context = ActionContext(
-                state=state, 
-                evaluation=True, 
-                available_actions=available_actions, 
-                extras={"tasks": self.env_eval.env.tasks}
+                state=state,
+                evaluation=True,
+                available_actions=available_actions,
+                extras={"tasks": self.env_eval.env.tasks},
             )
             normalised_action = self.agent.select_action_from_policy(action_context)
 
@@ -253,8 +256,14 @@ class BaseRunner(ABC):
             episode_stats.update_reward(reward)
 
             with torch.no_grad():
-                state_tensor = torch.tensor(state, dtype=torch.float32).to(hlp.get_device()).unsqueeze(0)
-                recons_state = self.agent.autoencoder(state_tensor)["reconstructed_observation"]
+                state_tensor = (
+                    torch.tensor(state, dtype=torch.float32)
+                    .to(hlp.get_device())
+                    .unsqueeze(0)
+                )
+                recons_state = self.agent.autoencoder(state_tensor)[
+                    "reconstructed_observation"
+                ]
                 recons_last_frame = recons_state.squeeze()[-1] * 255 * 8
                 recons_image = recons_last_frame.cpu().numpy().astype(np.uint8)
                 recons_image = cv2.cvtColor(recons_image, cv2.COLOR_GRAY2BGR)
@@ -336,10 +345,12 @@ class BaseRunner(ABC):
             # recons_image = cv2.cvtColor(recons_frame, cv2.COLOR_GRAY2BGR)
             # recons_image = cv2.resize(recons_image, (160, 144), interpolation=cv2.INTER_NEAREST)
             # # Pokemon
-            recons_frame = self.env_eval.env.screen.ndarray.transpose(2,0,1)[:1, :, :]
+            recons_frame = self.env_eval.env.screen.ndarray.transpose(2, 0, 1)[:1, :, :]
             recons_image = recons_frame.squeeze()
             recons_image = cv2.cvtColor(recons_image, cv2.COLOR_GRAY2BGR)
-            self.recons_record.start_video(f"{video_label}_recons", recons_image, fps=self.fps)
+            self.recons_record.start_video(
+                f"{video_label}_recons", recons_image, fps=self.fps
+            )
 
             log_path = self.record.current_sub_directory
             self.env_eval.set_log_path(log_path, log_step)
