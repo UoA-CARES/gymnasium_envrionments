@@ -203,7 +203,12 @@ class TrainingRunner(BaseRunner):
         """Handle policy-based action selection."""
         available_actions = self.env.get_available_actions()
         action_context = ActionContext(
-            state=state, evaluation=False, available_actions=available_actions
+            state=state, 
+            evaluation=False, 
+            available_actions=available_actions, 
+            extras={
+                "tasks": self.env.env.tasks
+            }
         )
         normalised_action = self.agent.select_action_from_policy(action_context)
 
@@ -354,6 +359,7 @@ class TrainingRunner(BaseRunner):
             # Store experience in memory
 
             extras = self.agent.get_extras()
+            extras.extend(self.env.env.tasks) # pokemon brock only
             self.memory.add(state, normalised_action, total_reward, next_state, done, extras)
 
             state = next_state
