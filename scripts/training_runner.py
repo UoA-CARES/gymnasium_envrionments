@@ -318,10 +318,6 @@ class TrainingRunner(BaseRunner):
                 )
                 info |= train_info
 
-                print(experience.observation)
-                print(experience.next_observation)
-                exit()
-
             # Evaluate agent periodically
             if (train_step_counter + 1) % self.number_steps_per_evaluation == 0:
                 self._report_progress(
