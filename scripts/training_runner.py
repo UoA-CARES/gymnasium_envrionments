@@ -349,7 +349,7 @@ class TrainingRunner(BaseRunner):
                 )
 
                 # Reset for next episode
-                self.env.reset()
+                state = self.env.reset()
                 episode_stats.reset()
 
                 episode_num += 1
