@@ -186,6 +186,10 @@ class MPE2Environment(MARLEnvironment):
             info=infos,
         )
 
+        if all(dones) or all(truncations):
+            print(experience)
+            exit()
+
         self.observation = next_observation
 
         return experience
