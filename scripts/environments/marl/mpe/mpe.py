@@ -119,10 +119,15 @@ class MPE2Environment(MARLEnvironment):
             action = space.sample()
             actions.append(action)
 
+        print(actions)
+
         if self.apply_action_normalization:
             actions = hlp.normalize(
                 actions, self.max_action_value, self.min_action_value
             )
+
+        print(actions)
+
         return actions
 
     def set_seed(self, seed: int) -> None:
@@ -150,10 +155,15 @@ class MPE2Environment(MARLEnvironment):
         return self.observation
 
     def step(self, action: list[int] | list[np.ndarray]) -> MultiAgentExperience:
+        print(action)
+
         if self.apply_action_normalization:
             action = hlp.denormalize(
                 action, self.max_action_value, self.min_action_value
             )
+
+        print(action)
+        exit()
 
         # Convert list of actions to dict for PettingZoo
         action_dict = {agent: act for agent, act in zip(self.possible_agents, action)}
@@ -185,10 +195,6 @@ class MPE2Environment(MARLEnvironment):
             truncated=truncations,
             info=infos,
         )
-
-        if all(dones) or all(truncations):
-            print(experience)
-            exit()
 
         self.observation = next_observation
 
