@@ -169,10 +169,10 @@ class MPE2Environment(MARLEnvironment):
         truncations = [truncations[a] for a in self.possible_agents]
 
         experience = MultiAgentExperience(
-            observation=self.observation,
+            observation=self.observation.clone(),
             action=action,
             reward=rewards,
-            next_observation=next_observation,
+            next_observation=next_observation.clone(),
             done=dones,
             truncated=truncations,
             info=infos,
