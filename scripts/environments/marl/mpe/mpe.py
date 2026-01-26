@@ -139,12 +139,12 @@ class MPE2Environment(MARLEnvironment):
         """Reset PettingZoo parallel env and return MARL-compatible state dict."""
         obs_dict, _ = self.env.reset()
 
-        marl_state = MARLObservation(
+        self.observation = MARLObservation(
             global_state=self.env.state(),
             agent_states=obs_dict,
             avail_actions=self.get_available_actions(),
         )
-        return marl_state
+        return self.observation
 
     def step(self, action: list[int] | list[np.ndarray]) -> MultiAgentExperience:
         if self.apply_action_normalization:
