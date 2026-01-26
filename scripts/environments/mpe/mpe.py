@@ -107,10 +107,10 @@ class MPE2Environment(MARLEnvironment):
 
         self.env.reset(seed=self.seed)
 
-        # Seed action and observation spaces
-        for agent in self.env.agents:
-            self.env.action_space(agent).seed(self.seed)
-            self.env.observation_space(agent).seed(self.seed)
+        # Seed action and observation spaces - different seed per agent to avoid produciong the same values
+        for i, agent in enumerate(self.env.agents):
+            self.env.action_space(agent).seed(self.seed + i)
+            self.env.observation_space(agent).seed(self.seed + i)
 
     def reset(self, training: bool = True) -> dict[str, Any]:
         """Reset PettingZoo parallel env and return MARL-compatible state dict."""
