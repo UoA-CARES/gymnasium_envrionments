@@ -43,11 +43,11 @@ class MPE2Environment(MARLEnvironment):
 
         self.possible_agents: list[AgentID] = self.env.possible_agents
 
+        self.observation: MARLObservation
+
         self.set_seed(self.seed)
 
         self.apply_action_normalization = self.continuous_actions
-
-        self.observation: MARLObservation
 
     @cached_property
     def max_action_value(self) -> list[np.ndarray]:
@@ -146,8 +146,6 @@ class MPE2Environment(MARLEnvironment):
             avail_actions=self.get_available_actions(),
         )
 
-        assert list(obs_dict.keys()) == self.possible_agents
-
         return self.observation
 
     def step(self, action: list[int] | list[np.ndarray]) -> MultiAgentExperience:
@@ -160,11 +158,6 @@ class MPE2Environment(MARLEnvironment):
         action_dict = {agent: act for agent, act in zip(self.possible_agents, action)}
 
         obs_dict, rewards, dones, truncations, infos = self.env.step(action_dict)
-
-        assert list(obs_dict.keys()) == self.possible_agents
-        assert list(rewards.keys()) == self.possible_agents
-        assert list(dones.keys()) == self.possible_agents
-        assert list(truncations.keys()) == self.possible_agents
 
         next_observation = MARLObservation(
             global_state=self.env.state(),

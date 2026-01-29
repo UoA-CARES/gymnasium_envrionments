@@ -79,7 +79,7 @@ class SARLEnvironment(BaseEnvironment[SARLObservation]):
 
         if self.grey_scale:
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-            frame.resize((self.frame_height, self.frame_width, 1))
+            frame = frame.reshape((self.frame_height, self.frame_width, 1))
 
         frame = np.moveaxis(frame, -1, 0)
         if reset:
