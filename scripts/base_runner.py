@@ -128,20 +128,9 @@ class BaseRunner(ABC):
             logger=self.logger,
         )
 
-        self.recons_record = Record(
-            base_directory=base_log_dir,
-            algorithm=self.alg_config.algorithm,
-            task=self.env_config.task,
-            agent=None,
-            record_video=self.training_config.record_eval_video,
-            record_checkpoints=bool(self.env_config.save_train_checkpoints),
-            checkpoint_interval=self.training_config.checkpoint_interval,
-            logger=self.logger,
-        )
 
         # Set up record with subdirectory
         self.record.set_sub_directory(f"{self.train_seed}")
-        self.recons_record.set_sub_directory(f"{self.train_seed}")
 
         # Save configurations if requested
         if save_configurations:
@@ -179,7 +168,6 @@ class BaseRunner(ABC):
 
         # Set up record with agent
         self.record.set_agent(self.agent)
-        self.recons_record.set_agent(self.agent)
 
         # Runtime behavior - action normalisation
         self.apply_action_normalisation = self.agent.policy_type in ["policy", "usd"]
@@ -255,23 +243,6 @@ class BaseRunner(ABC):
 
             episode_stats.update_reward(reward)
 
-            with torch.no_grad():
-                state_tensor = (
-                    torch.tensor(state, dtype=torch.float32)
-                    .to(hlp.get_device())
-                    .unsqueeze(0)
-                )
-                recons_state = self.agent.autoencoder(state_tensor)[
-                    "reconstructed_observation"
-                ]
-                recons_last_frame = recons_state.squeeze()[-1] * 255 * 8
-                recons_image = recons_last_frame.cpu().numpy().astype(np.uint8)
-                recons_image = cv2.cvtColor(recons_image, cv2.COLOR_GRAY2BGR)
-
-                # Mario
-                # recons_image = cv2.resize(recons_image, (160, 144), interpolation=cv2.INTER_NEAREST)
-
-                self.recons_record.log_video(recons_image)
 
             # Collect data for bias calculation
             episode_states.append(state)
@@ -340,17 +311,6 @@ class BaseRunner(ABC):
         if self.record is not None:
             frame = self.env_eval.grab_frame()
             self.record.start_video(video_label, frame, fps=self.fps)
-            # Mario
-            # recons_frame = self.env_eval.env.game_area().astype(np.uint8) * 8
-            # recons_image = cv2.cvtColor(recons_frame, cv2.COLOR_GRAY2BGR)
-            # recons_image = cv2.resize(recons_image, (160, 144), interpolation=cv2.INTER_NEAREST)
-            # # Pokemon
-            recons_frame = self.env_eval.env.screen.ndarray.transpose(2, 0, 1)[:1, :, :]
-            recons_image = recons_frame.squeeze()
-            recons_image = cv2.cvtColor(recons_image, cv2.COLOR_GRAY2BGR)
-            self.recons_record.start_video(
-                f"{video_label}_recons", recons_image, fps=self.fps
-            )
 
             log_path = self.record.current_sub_directory
             self.env_eval.set_log_path(log_path, log_step)
@@ -375,7 +335,6 @@ class BaseRunner(ABC):
 
         if self.record is not None:
             self.record.stop_video()
-            self.recons_record.stop_video()
 
         # Calculate statistics
         if episode_rewards:
