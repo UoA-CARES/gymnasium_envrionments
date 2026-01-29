@@ -1,19 +1,25 @@
 from functools import cached_property
+from typing import cast
 
 import numpy as np
 from cares_reinforcement_learning.util import helpers as hlp
-from drone_gym import move_to_position
+from drone_gym import task_factory
 from environments.sarl.sarl_environment import SARLEnvironment
-from util.configurations import GymEnvironmentConfig
+from typing_extensions import Literal
+from util.configurations import DroneConfig
 
 
 class DroneEnvironment(SARLEnvironment):
-    def __init__(
-        self, config: GymEnvironmentConfig, seed: int, image_observation: bool
-    ) -> None:
+    def __init__(self, config: DroneConfig, seed: int, image_observation: bool) -> None:
         super().__init__(config, seed, image_observation)
 
-        self.env = move_to_position.MoveToPosition()
+        if config.use_simulator not in [0, 1]:
+            raise ValueError("use_simulator must be 0 (real drone) or 1 (simulator)")
+
+        # Instantiate the task
+        self.env = task_factory.make(
+            config.task, use_simulator=cast(Literal[0, 1], config.use_simulator)
+        )
 
         self.set_seed(self.seed)
 
