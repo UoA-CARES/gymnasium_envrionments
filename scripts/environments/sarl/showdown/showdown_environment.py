@@ -4,15 +4,21 @@ from functools import cached_property
 
 import cv2
 import numpy as np
-from environments.gym_environment import GymEnvironment
+from environments.sarl.sarl_environment import SARLEnvironment
 from gymnasium import spaces
 from showdown_gym.showdown_environment import SingleShowdownWrapper
 from util.configurations import ShowdownConfig
 
 
-class ShowdownEnvironment(GymEnvironment):
-    def __init__(self, config: ShowdownConfig, evaluation: bool = False) -> None:
-        super().__init__(config)
+class ShowdownEnvironment(SARLEnvironment):
+    def __init__(
+        self,
+        config: ShowdownConfig,
+        seed: int,
+        image_observation: bool,
+        evaluation: bool = False,
+    ) -> None:
+        super().__init__(config, seed, image_observation)
 
         # "random", "uber", "ou", "uu", "ru", "nu"
         team_type: str = config.domain
@@ -25,8 +31,9 @@ class ShowdownEnvironment(GymEnvironment):
             opponent_type=opponent_type,
             evaluation=evaluation,
         )
-
         time.sleep(3)  # Allow the environment to initialize properly
+
+        self.set_seed(self.seed)
 
     def set_log_path(self, log_path: str, step_count: int) -> None:
         path = f"{log_path}/replays/{step_count}"
@@ -43,7 +50,7 @@ class ShowdownEnvironment(GymEnvironment):
         return self.env.action_space.low[0]
 
     @cached_property
-    def observation_space(self) -> int:
+    def _vector_space(self) -> int:
         return self.env.observation_space.shape[0]
 
     @cached_property
@@ -66,7 +73,7 @@ class ShowdownEnvironment(GymEnvironment):
         # Note issues: https://github.com/rail-berkeley/softlearning/issues/75
         self.env.action_space.seed(seed)
 
-    def reset(self, training: bool = True) -> np.ndarray:
+    def _reset(self, training: bool = True) -> np.ndarray:
         state, _ = self.env.reset()
         return state
 

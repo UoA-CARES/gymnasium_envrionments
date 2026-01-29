@@ -5,11 +5,7 @@ from typing import Any
 
 from base_runner import BaseRunner, EpisodeStats
 from cares_reinforcement_learning.memory.memory_buffer import MemoryBuffer
-from cares_reinforcement_learning.util import helpers as hlp
-from cares_reinforcement_learning.util.training_context import (
-    ActionContext,
-    TrainingContext,
-)
+from cares_reinforcement_learning.types.episode import EpisodeContext
 from util.repetition_manager import RepetitionManager
 
 
@@ -60,18 +56,18 @@ class TrainingRunner(BaseRunner):
         self.display = bool(self.env_config.display)
 
         # Create memory (needed for training)
-        self.memory = self.memory_factory.create_memory(self.alg_config)
+        self.memory_buffer = self.memory_factory.create_memory(self.alg_config)
 
         # Handle resume logic - this must modify our local variables
         self.start_training_step = 0
         if resume_path is not None:
-            self.start_training_step, self.memory = self._handle_resume(
+            self.start_training_step, self.memory_buffer = self._handle_resume(
                 resume_path,
                 self.alg_config.algorithm,
             )
 
         # Set up memory in record
-        self.record.set_memory_buffer(self.memory)
+        self.record.set_memory_buffer(self.memory_buffer)
 
         # Algorithm Training parameters
         self.max_steps_training = self.alg_config.max_steps_training
@@ -116,7 +112,7 @@ class TrainingRunner(BaseRunner):
             self.logger.warning(
                 f"[SEED {self.train_seed}] No checkpoint found at {restart_path}, starting fresh training"
             )
-            return 0, self.memory
+            return 0, self.memory_buffer
 
         self.logger.info(
             f"[SEED {self.train_seed}] Restarting from path: {restart_path}"
@@ -134,7 +130,7 @@ class TrainingRunner(BaseRunner):
             self.logger.warning(
                 f"[SEED {self.train_seed}] No memory buffer found at {restart_path / 'memory'}, starting with empty memory"
             )
-            loaded_memory = self.memory
+            loaded_memory = self.memory_buffer
 
         self.logger.info(f"[SEED {self.train_seed}] Loading agent models")
         try:
@@ -164,72 +160,35 @@ class TrainingRunner(BaseRunner):
                 }
             )
 
-    def _select_exploration_action(self, train_step_counter: int) -> tuple:
+    def _select_exploration_action(self, train_step_counter: int) -> Any:
         """Handle exploration phase action selection."""
         self.logger.info(
             f"Running Exploration Steps {train_step_counter + 1}/{self.max_steps_exploration}"
         )
 
-        denormalised_action = self.env.sample_action()
-        normalised_action = denormalised_action
+        return self.env.sample_action()
 
-        if self.apply_action_normalisation:
-            normalised_action = hlp.normalize(
-                denormalised_action,
-                self.env.max_action_value,
-                self.env.min_action_value,
-            )
-
-        return normalised_action, denormalised_action
-
-    def _select_repetition_action(self, episode_timesteps: int) -> tuple:
+    def _select_repetition_action(self, episode_timesteps: int) -> Any:
         """Handle episode repetition action selection."""
-        denormalised_action = self.repetition_manager.get_repetition_action(
-            episode_timesteps
-        )
+        action = self.repetition_manager.get_repetition_action(episode_timesteps)
 
-        # For repetition, assume we stored denormalized actions
-        normalised_action = denormalised_action
-        if self.apply_action_normalisation:
-            normalised_action = hlp.normalize(
-                denormalised_action,
-                self.env.max_action_value,
-                self.env.min_action_value,
-            )
+        return action
 
-        return normalised_action, denormalised_action
-
-    def _select_policy_action(self, state) -> tuple:
+    def _select_policy_action(self, state) -> Any:
         """Handle policy-based action selection."""
-        available_actions = self.env.get_available_actions()
-        action_context = ActionContext(
-            state=state, evaluation=False, available_actions=available_actions
-        )
-        normalised_action = self.agent.select_action_from_policy(action_context)
+        action = self.agent.select_action_from_policy(state, evaluation=False)
 
-        denormalised_action = normalised_action
-        if self.apply_action_normalisation:
-            denormalised_action = hlp.denormalize(
-                normalised_action, self.env.max_action_value, self.env.min_action_value
-            )
+        return action
 
-        return normalised_action, denormalised_action
-
-    def _select_action(
-        self, train_step_counter: int, episode_step: int, state
-    ) -> tuple:
+    def _select_action(self, train_step_counter: int, episode_step: int, state) -> Any:
         if train_step_counter < self.max_steps_exploration:
-            normalised_action, denormalised_action = self._select_exploration_action(
-                train_step_counter
-            )
+            action = self._select_exploration_action(train_step_counter)
         elif self.repetition_manager.should_repeat(episode_step):
-            normalised_action, denormalised_action = self._select_repetition_action(
-                episode_step
-            )
+            action = self._select_repetition_action(episode_step)
         else:
-            normalised_action, denormalised_action = self._select_policy_action(state)
+            action = self._select_policy_action(state)
 
-        return normalised_action, denormalised_action
+        return action
 
     def _update_policy(
         self,
@@ -240,9 +199,7 @@ class TrainingRunner(BaseRunner):
         episode_done: bool,
     ) -> dict:
         """Execute policy training step."""
-        training_context = TrainingContext(
-            memory=self.memory,
-            batch_size=self.batch_size,
+        episode_context = EpisodeContext(
             training_step=train_step_counter,
             episode=episode_num + 1,
             episode_steps=episode_timesteps,
@@ -252,7 +209,7 @@ class TrainingRunner(BaseRunner):
 
         train_info = {}
         for _ in range(self.G):
-            train_info = self.agent.train_policy(training_context)
+            train_info = self.agent.train_policy(self.memory_buffer, episode_context)
 
         return train_info
 
@@ -320,43 +277,33 @@ class TrainingRunner(BaseRunner):
             self._report_progress(episode_num + 1, train_step_counter + 1, status)
 
             # Determine action based on training phase
-            normalised_action, denormalised_action = self._select_action(
-                train_step_counter, episode_stats.steps, state
-            )
+            action = self._select_action(train_step_counter, episode_stats.steps, state)
 
             # Record action and execute step
-            self.repetition_manager.record_action(denormalised_action)
+            self.repetition_manager.record_action(action)
             info |= self.repetition_manager.get_status_info()
 
-            # TODO handle done or truncated per agent
-            next_state, reward_extrinsic, done, truncated, env_info = self.env.step(
-                denormalised_action
-            )
+            experience = self.env.step(action)
+            state = experience.next_observation
 
-            all_done = all(done) if isinstance(done, list) else done
-            all_truncated = all(truncated) if isinstance(truncated, list) else truncated
-            episode_end = all_done or all_truncated
+            episode_end = experience.done_flag | experience.truncated_flag
 
             if self.display:
                 self.env.render()
 
             # Calculate total reward (extrinsic + intrinsic)
-            total_reward = reward_extrinsic
-
             # TODO bring back for intrinsic rewards and modify for MARL
             # if train_step_counter > self.max_steps_exploration:
             #     intrinsic_reward = self.agent.get_intrinsic_reward(
-            #         state, normalised_action, next_state
+            #         state, action, next_state
             #     )
             #     total_reward += intrinsic_reward
             #     info["intrinsic_reward"] = intrinsic_reward
 
             # Store experience in memory
-            self.memory.add(state, normalised_action, total_reward, next_state, done)
+            self.memory_buffer.add(experience)
 
-            state = next_state
-
-            episode_stats.update_reward(reward_extrinsic)
+            episode_stats.update_reward(experience.reward)
 
             # Train policy if conditions are met
             if (
@@ -390,7 +337,7 @@ class TrainingRunner(BaseRunner):
                     total_steps=train_step_counter + 1,
                     episode=episode_num + 1,
                     episode_time=episode_time,
-                    **env_info,
+                    **experience.info,
                     **info,
                     display=True,
                 )

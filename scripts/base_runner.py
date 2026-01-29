@@ -19,7 +19,6 @@ from cares_reinforcement_learning.util.configurations import (
     TrainingConfig,
 )
 from cares_reinforcement_learning.util.network_factory import NetworkFactory
-from cares_reinforcement_learning.util.training_context import ActionContext
 from environments.environment_factory import EnvironmentFactory
 from util.configurations import GymEnvironmentConfig
 from util.overlay import overlay_info
@@ -136,14 +135,16 @@ class BaseRunner(ABC):
         self.logger.info(
             f"[SEED {self.train_seed} | {self.eval_seed}] Loading Environment: {self.env_config.gym}"
         )
+
         self.env, self.env_eval = self.env_factory.create_environment(
-            self.env_config, self.alg_config.image_observation
+            self.env_config,
+            self.train_seed,
+            self.eval_seed,
+            self.alg_config.image_observation,
         )
 
         # Set the seed for everything
         hlp.set_seed(self.train_seed)
-        self.env.set_seed(self.train_seed)
-        self.env_eval.set_seed(self.eval_seed)
 
         # Create the algorithm
         self.logger.info(
@@ -199,43 +200,24 @@ class BaseRunner(ABC):
         # Reset environment
         state = self.env_eval.reset(training=False)
 
-        all_done = False
-        all_truncated = False
-
-        while not all_done and not all_truncated:
+        episode_end = False
+        while not episode_end:
             episode_stats.step()
 
             # Action selection
-            available_actions = self.env_eval.get_available_actions()
-            action_context = ActionContext(
-                state=state, evaluation=True, available_actions=available_actions
-            )
-            normalised_action = self.agent.select_action_from_policy(action_context)
-
-            denormalised_action = (
-                hlp.denormalize(
-                    normalised_action,
-                    self.env_eval.max_action_value,
-                    self.env_eval.min_action_value,
-                )
-                if self.apply_action_normalisation
-                else normalised_action
-            )
+            action = self.agent.select_action_from_policy(state, evaluation=True)
 
             # Step environment
-            state, reward, done, truncated, env_info = self.env_eval.step(
-                denormalised_action
-            )
+            experience = self.env_eval.step(action)
+            state = experience.next_observation
 
-            all_done = all(done) if isinstance(done, list) else done
-            all_truncated = all(truncated) if isinstance(truncated, list) else truncated
-            episode_end = all_done or all_truncated
+            episode_end = experience.done_flag | experience.truncated_flag
 
-            episode_stats.update_reward(reward)
+            episode_stats.update_reward(experience.reward)
 
             # Collect data for bias calculation
             episode_states.append(state)
-            episode_actions.append(normalised_action)
+            episode_actions.append(action)
 
             # Just taking the sum reward for processing bias
             episode_rewards.append(episode_stats.get_episode_reward())
@@ -257,7 +239,7 @@ class BaseRunner(ABC):
             "episode_states": episode_states,
             "episode_actions": episode_actions,
             "episode_rewards": episode_rewards,
-            "env_info": env_info,
+            "env_info": experience.info,
         }
 
         if episode_end:
@@ -273,7 +255,7 @@ class BaseRunner(ABC):
                     total_steps=log_step,
                     episode=episode_counter + 1,
                     display=True,
-                    **env_info,
+                    **experience.info,
                     **bias_data,
                     **episode_stats.summary(),
                 )

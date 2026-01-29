@@ -3,22 +3,53 @@ from typing import Any
 
 import cv2
 import numpy as np
-from environments.marl_environment import MARLEnvironment
-from smac.env import StarCraft2Env
-from util.configurations import SMACConfig
+from cares_reinforcement_learning.types.experience import MultiAgentExperience
+from cares_reinforcement_learning.types.observation import MARLObservation
+from environments.marl.marl_environment import MARLEnvironment
+from smacv2.env.starcraft2.wrapper import StarCraftCapabilityEnvWrapper
+from util.configurations import SMAC2Config
 
 
-class SMACEnvironment(MARLEnvironment):
-    def __init__(self, config: SMACConfig, evaluation: bool = False) -> None:
-        super().__init__(config)
+class SMAC2Environment(MARLEnvironment):
+    def __init__(self, config: SMAC2Config, seed: int) -> None:
+        super().__init__(config, seed)
 
-        self.env = StarCraft2Env(map_name=self.task)
+        self.distribution_config = {
+            "n_units": config.n_units,
+            "n_enemies": config.n_enemies,
+            "team_gen": {
+                "dist_type": "weighted_teams",
+                "unit_types": ["marine"],
+                "weights": [1.0],
+                "observe": True,
+            },
+            "start_positions": {
+                "dist_type": "surrounded_and_reflect",
+                "p": 0.5,
+                "n_enemies": 3,
+                "map_x": 32,
+                "map_y": 32,
+            },
+        }
+
+        self.env = StarCraftCapabilityEnvWrapper(
+            capability_config=self.distribution_config,
+            map_name=self.task,
+            debug=False,
+            conic_fov=False,
+            obs_own_pos=True,
+            use_unit_ranges=True,
+            min_attack_range=2,
+            seed=self.seed,
+        )
 
         self.env_info = self.env.get_env_info()
 
         self.agent_ids = [f"agent_{i}" for i in range(self.env_info["n_agents"])]
 
-        self.reset(training=not evaluation)
+        self.observation: MARLObservation
+
+        self.reset()
 
     @cached_property
     def max_action_value(self) -> list[np.ndarray]:
@@ -74,42 +105,65 @@ class SMACEnvironment(MARLEnvironment):
         return actions
 
     def set_seed(self, seed: int) -> None:
-        self.env = StarCraft2Env(map_name=self.task, seed=seed)
+        self.env = StarCraftCapabilityEnvWrapper(
+            capability_config=self.distribution_config,
+            map_name="10gen_terran",
+            debug=False,
+            conic_fov=False,
+            obs_own_pos=True,
+            use_unit_ranges=True,
+            min_attack_range=2,
+            seed=seed,
+        )
 
         self.env_info = self.env.get_env_info()
 
         self.reset()
 
-    def reset(self, training: bool = True) -> dict[str, Any]:
-        marl_state = {}
+    def reset(self, training: bool = True) -> MARLObservation:
         obs, state = self.env.reset()
 
         # Convert obs list → dict[str -> obs_i]
         obs_dict = {agent_id: obs[i] for i, agent_id in enumerate(self.agent_ids)}
 
-        marl_state["state"] = state
-        marl_state["obs"] = obs_dict
-        marl_state["avail_actions"] = self.env.get_avail_actions()
+        self.observation = MARLObservation(
+            global_state=state,
+            agent_states=obs_dict,
+            avail_actions=self.env.get_avail_actions(),
+        )
 
-        return marl_state
+        return self.observation
 
-    def _step(self, actions: list[int]) -> tuple:
-        marl_state = {}
-        reward, done, info = self.env.step(actions)
+    def step(self, action: list[int]) -> MultiAgentExperience:  # type: ignore[override]
+        reward, done, info = self.env.step(action)
 
         obs = self.env.get_obs()
         # Convert obs list → dict[str -> obs_i]
         obs_dict = {agent_id: obs[i] for i, agent_id in enumerate(self.agent_ids)}
 
-        marl_state["state"] = self.env.get_state()
-        marl_state["obs"] = obs_dict
-        marl_state["avail_actions"] = self.env.get_avail_actions()
+        next_observation = MARLObservation(
+            global_state=self.env.get_state(),
+            agent_states=obs_dict,
+            avail_actions=self.env.get_avail_actions(),
+        )
 
         rewards = [0] * self.env_info["n_agents"]
         rewards[0] = reward  # Assuming reward is for all agents equally
         dones = [done] * self.env_info["n_agents"]
 
-        return marl_state, rewards, dones, dones, info
+        experience = MultiAgentExperience(
+            observation=self.observation,
+            action=action,
+            reward=rewards,
+            next_observation=next_observation,
+            done=dones,
+            truncated=dones,
+            info=info,
+        )
+
+        self.observation = next_observation
+
+        return experience
 
     def grab_frame(self, height: int = 240, width: int = 300) -> np.ndarray:
         frame = self.env.render(mode="rgb_array")

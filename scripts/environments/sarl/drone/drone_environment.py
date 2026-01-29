@@ -1,39 +1,43 @@
 from functools import cached_property
 from typing import cast
-from typing_extensions import Literal
 
 import numpy as np
-from environments.gym_environment import GymEnvironment
-from util.configurations import DroneConfig
+from cares_reinforcement_learning.util import helpers as hlp
 from drone_gym import task_factory
+from environments.sarl.sarl_environment import SARLEnvironment
+from typing_extensions import Literal
+from util.configurations import DroneConfig
 
 
-class DroneEnvironment(GymEnvironment):
-    def __init__(self, config: DroneConfig, evaluation: bool = False) -> None:
-        super().__init__(config)
+class DroneEnvironment(SARLEnvironment):
+    def __init__(self, config: DroneConfig, seed: int, image_observation: bool) -> None:
+        super().__init__(config, seed, image_observation)
 
         if config.use_simulator not in [0, 1]:
             raise ValueError("use_simulator must be 0 (real drone) or 1 (simulator)")
 
         # Instantiate the task
-
         self.env = task_factory.make(
             config.task, use_simulator=cast(Literal[0, 1], config.use_simulator)
         )
 
-    def reset(self, training: bool = True):
+        self.set_seed(self.seed)
+
+    def _reset(self, training: bool = True):
         return self.env.reset(training)
 
     def sample_action(self):
-        return self.env.sample_action()
+        action = self.env.sample_action()
+        return hlp.normalize(action, self.max_action_value, self.min_action_value)
 
     def set_seed(self, seed: int) -> None:
-        self.env.set_seed()
+        self.env.set_seed(seed)
 
     def get_overlay_info(self) -> dict:
         return self.env.get_overlay_info()
 
     def _step(self, action):
+        action = hlp.denormalize(action, self.max_action_value, self.min_action_value)
         return self.env.step(action)
 
     @cached_property
@@ -45,7 +49,7 @@ class DroneEnvironment(GymEnvironment):
         return self.env.min_action_value
 
     @cached_property
-    def observation_space(self) -> int:
+    def _vector_space(self) -> int:
         return self.env.observation_space
 
     @cached_property
