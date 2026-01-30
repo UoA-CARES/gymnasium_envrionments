@@ -304,7 +304,7 @@ class TrainingRunner(BaseRunner):
         episode_stats = EpisodeStats(n_agents=self.env.num_agents)
 
         state = self.env.reset()
-        episode_start_task = self.env.env.tasks.index(1) # pokemon brock only
+        episode_start_task = self.env.env.tasks.index(1)  # pokemon brock only
         episode_start = time.time()
 
         info: dict = {}
@@ -412,7 +412,7 @@ class TrainingRunner(BaseRunner):
 
                 # Reset for next episode
                 state = self.env.reset()
-                episode_start_task = self.env.env.tasks.index(1) # pokemon brock only
+                episode_start_task = self.env.env.tasks.index(1)  # pokemon brock only
                 episode_stats.reset()
 
                 episode_num += 1

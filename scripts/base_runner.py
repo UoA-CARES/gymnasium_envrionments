@@ -128,7 +128,6 @@ class BaseRunner(ABC):
             logger=self.logger,
         )
 
-
         # Set up record with subdirectory
         self.record.set_sub_directory(f"{self.train_seed}")
 
@@ -242,7 +241,6 @@ class BaseRunner(ABC):
             episode_end = all_done or all_truncated
 
             episode_stats.update_reward(reward)
-
 
             # Collect data for bias calculation
             episode_states.append(state)
