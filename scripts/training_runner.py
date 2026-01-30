@@ -1,10 +1,12 @@
 import time
+from dataclasses import replace
 from multiprocessing.queues import Queue
 from pathlib import Path
 from typing import Any
 
 from base_runner import BaseRunner, EpisodeStats
 from cares_reinforcement_learning.memory.memory_buffer import MemoryBuffer
+from cares_reinforcement_learning.types.action import ActionSample
 from cares_reinforcement_learning.types.episode import EpisodeContext
 from util.repetition_manager import RepetitionManager
 
@@ -160,27 +162,29 @@ class TrainingRunner(BaseRunner):
                 }
             )
 
-    def _select_exploration_action(self, train_step_counter: int) -> Any:
+    def _select_exploration_action(self, train_step_counter: int) -> ActionSample:
         """Handle exploration phase action selection."""
         self.logger.info(
             f"Running Exploration Steps {train_step_counter + 1}/{self.max_steps_exploration}"
         )
 
-        return self.env.sample_action()
+        return ActionSample(self.env.sample_action(), source="exploration")
 
-    def _select_repetition_action(self, episode_timesteps: int) -> Any:
+    def _select_repetition_action(self, episode_timesteps: int) -> ActionSample:
         """Handle episode repetition action selection."""
         action = self.repetition_manager.get_repetition_action(episode_timesteps)
 
         return action
 
-    def _select_policy_action(self, state) -> Any:
+    def _select_policy_action(self, state) -> ActionSample:
         """Handle policy-based action selection."""
         action = self.agent.select_action_from_policy(state, evaluation=False)
 
         return action
 
-    def _select_action(self, train_step_counter: int, episode_step: int, state) -> Any:
+    def _select_action(
+        self, train_step_counter: int, episode_step: int, state
+    ) -> ActionSample:
         if train_step_counter < self.max_steps_exploration:
             action = self._select_exploration_action(train_step_counter)
         elif self.repetition_manager.should_repeat(episode_step):
@@ -277,13 +281,19 @@ class TrainingRunner(BaseRunner):
             self._report_progress(episode_num + 1, train_step_counter + 1, status)
 
             # Determine action based on training phase
-            action = self._select_action(train_step_counter, episode_stats.steps, state)
+            action_sample = self._select_action(
+                train_step_counter, episode_stats.steps, state
+            )
 
             # Record action and execute step
-            self.repetition_manager.record_action(action)
+            self.repetition_manager.record_action(action_sample)
             info |= self.repetition_manager.get_status_info()
 
-            experience = self.env.step(action)
+            experience = self.env.step(action_sample.action)
+            experience = replace(
+                experience, train_data={**experience.train_data, **action_sample.extras}
+            )
+
             state = experience.next_observation
 
             episode_end = experience.done_flag | experience.truncated_flag
