@@ -355,6 +355,20 @@ class TrainingRunner(BaseRunner):
             #self.memory.add(state, normalised_action, total_reward, next_state, done)
             self.memory.add(state, normalised_action, total_reward, next_state, done, episode_end) # add episode_end for PPO2
 
+            # SIL step
+            target_algs = ["SACSIL", "TD3SIL", "PPO2SIL"]
+            is_target_alg = self.agent.__class__.__name__ in target_algs
+
+            if is_target_alg and getattr(self.agent, "use_SIL", False):
+                self.agent.SIL.observe_step(
+                    state,
+                    normalised_action,
+                    total_reward,
+                    next_state,
+                    done,
+                    episode_end
+                )
+
             state = next_state
 
             episode_stats.update_reward(reward_extrinsic)
