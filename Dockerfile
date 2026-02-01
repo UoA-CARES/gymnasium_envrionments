@@ -1,4 +1,4 @@
-# docker build -t oculux314/cares:base .
+# docker build -t oculux314/cares:base . (use --no-cache to rebuild from start)
 # docker run -it --gpus all oculux314/cares:base
 FROM nvidia/cuda:12.1.1-cudnn8-runtime-ubuntu22.04
 ENV MUJOCO_GL=osmesa
@@ -42,8 +42,6 @@ RUN git clone https://github.com/UoA-CARES/cares_reinforcement_learning.git
 # -------------------------------------------------------------------
 
 WORKDIR /app/cares_reinforcement_learning
-RUN git checkout main
-RUN git pull
 RUN pip install -r requirements.txt
 RUN pip install -e .
 
@@ -52,8 +50,6 @@ RUN pip install -e .
 # -------------------------------------------------------------------
 
 WORKDIR /app/gymnasium_envrionments
-RUN git checkout main
-RUN git pull
 RUN pip install -r requirements.txt
 
 # -------------------------------------------------------------------
@@ -62,4 +58,5 @@ RUN pip install -r requirements.txt
 
 ENV CARES_LOG_PATH_TEMPLATE="{algorithm}/{run_name}{algorithm}-{date}"
 WORKDIR /app/gymnasium_envrionments/scripts
-CMD [ "bash" ]
+CMD ["bash", "-c", "echo '======================================================================\nRun `python run.py train cli --gym openai --task HalfCheetah-v4 SAC` to start a training run.\n======================================================================' && \
+    bash"]
