@@ -205,10 +205,10 @@ class BaseRunner(ABC):
             episode_stats.step()
 
             # Action selection
-            action = self.agent.select_action_from_policy(state, evaluation=True)
+            action_sample = self.agent.act(state, evaluation=True)
 
             # Step environment
-            experience = self.env_eval.step(action)
+            experience = self.env_eval.step(action_sample.action)
             state = experience.next_observation
 
             episode_end = experience.done_flag | experience.truncated_flag
@@ -217,7 +217,7 @@ class BaseRunner(ABC):
 
             # Collect data for bias calculation
             episode_states.append(state)
-            episode_actions.append(action)
+            episode_actions.append(action_sample.action)
 
             # Just taking the sum reward for processing bias
             episode_rewards.append(episode_stats.get_episode_reward())
