@@ -205,7 +205,7 @@ class BaseRunner(ABC):
             episode_stats.step()
 
             # Action selection
-            action_sample = self.agent.select_action_from_policy(state, evaluation=True)
+            action_sample = self.agent.act(state, evaluation=True)
 
             # Step environment
             experience = self.env_eval.step(action_sample.action)

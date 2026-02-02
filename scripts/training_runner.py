@@ -178,7 +178,7 @@ class TrainingRunner(BaseRunner):
 
     def _select_policy_action(self, state) -> ActionSample:
         """Handle policy-based action selection."""
-        action = self.agent.select_action_from_policy(state, evaluation=False)
+        action = self.agent.act(state, evaluation=False)
 
         return action
 
