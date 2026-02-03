@@ -352,7 +352,10 @@ class TrainingRunner(BaseRunner):
             #     info["intrinsic_reward"] = intrinsic_reward
 
             # Store experience in memory
-            self.memory.add(state, normalised_action, total_reward, next_state, done)
+            extras = self.agent.get_extras()
+            self.memory.add(
+                state, normalised_action, total_reward, next_state, done, extras
+            )
 
             state = next_state
 

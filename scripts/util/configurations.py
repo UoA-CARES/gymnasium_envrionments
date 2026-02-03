@@ -7,6 +7,9 @@ from typing import ClassVar
 
 from cares_reinforcement_learning.util.configurations import SubscriptableClass
 
+# from rl_corrective_gym.space_env_config import SpaceEnvironmentConfig
+from gtoc13_violet.GA_config import GAConfig
+
 file_path = Path(__file__).parent.resolve()
 
 
@@ -87,6 +90,21 @@ class SMACConfig(GymEnvironmentConfig):
     task: str = "3m"
 
     record_video_fps: int = 5
+
+    # gripper_config: str = (
+    #     f"{Path.home()}/cares_rl_configs/12DOF_ID2/gripper_config.json"  # Path to the gripper configuration file
+    # )
+
+
+# TODO: for now separate but clean up later
+# multi-inheritance may not work as it requires external dependencies to run
+# unrelated enviornments...
+class SpaceConfig(GymEnvironmentConfig):
+    gym: ClassVar[str] = "space"
+
+
+class GTOC13Config(GAConfig, GymEnvironmentConfig):
+    gym: ClassVar[str] = "gtoc13"
 
 
 class SMAC2Config(GymEnvironmentConfig):
