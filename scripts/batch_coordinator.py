@@ -35,7 +35,9 @@ leaky_a_sac: MLPConfig = MLPConfig(
 )
 leaky_a_td3: MLPConfig = MLPConfig(
     layers=[
-        TrainableLayer(layer_type="Linear"),
+        TrainableLayer(layer_type="Linear", out_features=256),
+        FunctionLayer(layer_type="LeakyReLU"),
+        TrainableLayer(layer_type="Linear", in_features=256),
         FunctionLayer(layer_type="Tanh"),
     ]
 )
@@ -56,7 +58,9 @@ prelu_a_sac: MLPConfig = MLPConfig(
 )
 prelu_a_td3: MLPConfig = MLPConfig(
     layers=[
-        TrainableLayer(layer_type="Linear"),
+        TrainableLayer(layer_type="Linear", out_features=256),
+        FunctionLayer(layer_type="PReLU"),
+        TrainableLayer(layer_type="Linear", in_features=256),
         FunctionLayer(layer_type="Tanh"),
     ]
 )
