@@ -373,6 +373,9 @@ class TrainingRunner(BaseRunner):
 
             episode_stats.update_reward(reward_extrinsic)
 
+            # [Action] Add policy_update_triggered for PPO-based algorithms to enable immediate logging.
+            # Non-PPO algorithms (e.g., SAC, TD3) retain their original episode-based logging logic.
+            policy_update_triggered = False
             # Train policy if conditions are met
             if (
                 train_step_counter >= self.max_steps_exploration
@@ -387,6 +390,8 @@ class TrainingRunner(BaseRunner):
                 )
                 info |= train_info
 
+                policy_update_triggered = True
+
             # Evaluate agent periodically
             if (train_step_counter + 1) % self.number_steps_per_evaluation == 0:
                 self._report_progress(
@@ -394,10 +399,15 @@ class TrainingRunner(BaseRunner):
                 )
                 self._run_evaluation(train_step_counter)
 
+            is_ppo_series = self.agent.__class__.__name__ in ["PPO2", "PPO2SIL"]
+
             # Handle episode completion
-            if episode_end:
+            # add PPO2/PPO2SIL trigger condition
+            if episode_end or (is_ppo_series and policy_update_triggered):
                 episode_time = time.time() - episode_start
 
+                # Need episode stats info to avoid KeyError, even during an ongoing episode.
+                # To do: confirm if logging mid-episode rewards affects the final reward summary in record?
                 info.update(episode_stats.summary())
 
                 # Log training data
@@ -410,19 +420,24 @@ class TrainingRunner(BaseRunner):
                     display=True,
                 )
 
-                # Handle any logic at episode end
-                self._finalise_episode(
-                    train_step_counter, episode_stats.get_episode_reward()
-                )
+                if is_ppo_series and policy_update_triggered and not episode_end:
+                    # Clear info after PPO update to prevent duplicate logs at episode_end.
+                    info = {}
 
-                # Reset for next episode
-                state = self.env.reset()
-                episode_stats.reset()
+                if episode_end:
+                    # Handle any logic at episode end
+                    self._finalise_episode(
+                        train_step_counter, episode_stats.get_episode_reward()
+                    )
 
-                episode_num += 1
-                self.agent.episode_done()
+                    # Reset for next episode
+                    state = self.env.reset()
+                    episode_stats.reset()
 
-                episode_start = time.time()
+                    episode_num += 1
+                    self.agent.episode_done()
+
+                    episode_start = time.time()
 
         end_time = time.time()
         elapsed_time = end_time - start_time
