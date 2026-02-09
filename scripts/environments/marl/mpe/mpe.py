@@ -149,13 +149,16 @@ class MPE2Environment(MARLEnvironment):
         return self.observation
 
     def step(self, action: list[int] | list[np.ndarray]) -> MultiAgentExperience:
+        envrionment_action = action
         if self.apply_action_normalization:
-            action = hlp.denormalize(
+            envrionment_action = hlp.denormalize(
                 action, self.max_action_value, self.min_action_value
             )
 
         # Convert list of actions to dict for PettingZoo
-        action_dict = {agent: act for agent, act in zip(self.possible_agents, action)}
+        action_dict = {
+            agent: act for agent, act in zip(self.possible_agents, envrionment_action)
+        }
 
         obs_dict, rewards, dones, truncations, infos = self.env.step(action_dict)
 

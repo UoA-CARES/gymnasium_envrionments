@@ -3,6 +3,7 @@ from functools import cached_property
 
 import cv2
 import numpy as np
+from cares_reinforcement_learning.util import helpers as hlp
 from dm_control import suite
 from environments.sarl.sarl_environment import SARLEnvironment
 from util.configurations import DMCSConfig
@@ -51,6 +52,8 @@ class DMCSEnvironment(SARLEnvironment):
         return observation
 
     def _step(self, action: int) -> tuple:
+        action = hlp.normalize(action, self.max_action_value, self.min_action_value)
+
         time_step = self.env.step(action)
         state, reward, done = (
             np.hstack(list(time_step.observation.values())),
