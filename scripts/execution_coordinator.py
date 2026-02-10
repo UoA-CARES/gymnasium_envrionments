@@ -8,6 +8,8 @@ import concurrent.futures
 import logging
 import multiprocessing
 import time
+import gc
+import torch
 from multiprocessing.queues import Queue
 from queue import Empty
 from typing import Any
@@ -41,7 +43,7 @@ class ExecutionCoordinator:
     - Testing: Testing final models only with specified episodes
     """
 
-    def __init__(self, configurations: dict[str, Any]):
+    def __init__(self, configurations: dict[str, Any], options: dict[str, Any] = {}):
         """
         Initialize the ExecutionCoordinator with parsed configurations.
 
@@ -63,7 +65,8 @@ class ExecutionCoordinator:
         self.base_log_dir: str | None = None
 
         # Log all configurations for debugging
-        self._print_configurations()
+        if not options.get("noprint", False):
+            self._print_configurations()
 
     def _print_configurations(self) -> None:
         """Log all configurations for debugging and reproducibility."""
@@ -486,3 +489,7 @@ class ExecutionCoordinator:
             self._test()
         else:
             raise ValueError(f"Unknown command: {self.run_config.command}")
+
+        # Clean up resources after execution
+        gc.collect()
+        torch.cuda.empty_cache()
