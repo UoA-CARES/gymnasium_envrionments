@@ -1,5 +1,7 @@
 # docker build -t oculux314/cares:base . (use --no-cache to rebuild from start)
 # docker run -it --gpus all oculux314/cares:base
+
+# Container CUDA version needs to be less than or equal to the host CUDA version. If you get an error about CUDA version mismatch, try using an older image (e.g. nvidia/cuda:12.0.1-cudnn8-runtime-ubuntu22.04) and rebuilding the container.
 FROM nvidia/cuda:12.1.1-cudnn8-runtime-ubuntu22.04
 ENV MUJOCO_GL=osmesa
 ENV CARES_LOG_BASE_DIR=/app/cares_rl_logs
