@@ -9,6 +9,9 @@ from abc import ABC
 from dataclasses import dataclass, field
 from typing import Any
 
+import cv2
+import torch
+
 import execution_logger as logs
 import numpy as np
 from cares_reinforcement_learning.algorithm.algorithm import Algorithm
@@ -150,7 +153,10 @@ class BaseRunner(ABC):
             f"[SEED {self.train_seed} | {self.eval_seed}] Algorithm: {self.alg_config.algorithm}"
         )
         self.agent: Algorithm = self.network_factory.create_network(
-            self.env.observation_space, self.env.action_num, self.alg_config
+            self.env.observation_space,
+            self.env.action_num,
+            self.alg_config,
+            len(self.env.env.tasks),
         )
 
         # Validate agent creation
@@ -208,7 +214,10 @@ class BaseRunner(ABC):
             # Action selection
             available_actions = self.env_eval.get_available_actions()
             action_context = ActionContext(
-                state=state, evaluation=True, available_actions=available_actions
+                state=state,
+                evaluation=True,
+                available_actions=available_actions,
+                extras={"tasks": self.env_eval.env.tasks},
             )
             normalised_action = self.agent.select_action_from_policy(action_context)
 

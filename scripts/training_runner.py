@@ -166,9 +166,9 @@ class TrainingRunner(BaseRunner):
 
     def _select_exploration_action(self, train_step_counter: int) -> tuple:
         """Handle exploration phase action selection."""
-        self.logger.info(
-            f"Running Exploration Steps {train_step_counter + 1}/{self.max_steps_exploration}"
-        )
+        # self.logger.info(
+        #     f"Running Exploration Steps {train_step_counter + 1}/{self.max_steps_exploration}"
+        # )
 
         denormalised_action = self.env.sample_action()
         normalised_action = denormalised_action
@@ -203,7 +203,10 @@ class TrainingRunner(BaseRunner):
         """Handle policy-based action selection."""
         available_actions = self.env.get_available_actions()
         action_context = ActionContext(
-            state=state, evaluation=False, available_actions=available_actions
+            state=state,
+            evaluation=False,
+            available_actions=available_actions,
+            extras={"tasks": self.env.env.tasks},
         )
         normalised_action = self.agent.select_action_from_policy(action_context)
 
@@ -301,15 +304,16 @@ class TrainingRunner(BaseRunner):
         episode_stats = EpisodeStats(n_agents=self.env.num_agents)
 
         state = self.env.reset()
+        episode_start_task = self.env.env.tasks.index(1)  # pokemon brock only
         episode_start = time.time()
+
+        info: dict = {}
 
         # Main training loop
         train_step_counter = self.start_training_step
         for train_step_counter in range(
             self.start_training_step, int(self.max_steps_training)
         ):
-            info: dict = {}
-
             episode_stats.step()
 
             status = (
@@ -352,7 +356,12 @@ class TrainingRunner(BaseRunner):
             #     info["intrinsic_reward"] = intrinsic_reward
 
             # Store experience in memory
-            self.memory.add(state, normalised_action, total_reward, next_state, done)
+
+            extras = self.agent.get_extras()
+            extras.extend(self.env.env.tasks)  # pokemon brock only
+            self.memory.add(
+                state, normalised_action, total_reward, next_state, done, extras
+            )
 
             state = next_state
 
@@ -384,6 +393,7 @@ class TrainingRunner(BaseRunner):
                 episode_time = time.time() - episode_start
 
                 info.update(episode_stats.summary())
+                env_info["starting_task"] = episode_start_task
 
                 # Log training data
                 self.record.log_train(
@@ -402,6 +412,7 @@ class TrainingRunner(BaseRunner):
 
                 # Reset for next episode
                 state = self.env.reset()
+                episode_start_task = self.env.env.tasks.index(1)  # pokemon brock only
                 episode_stats.reset()
 
                 episode_num += 1

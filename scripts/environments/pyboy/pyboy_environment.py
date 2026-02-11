@@ -8,7 +8,7 @@ from pyboy_environment import suite
 
 
 class PyboyEnvironment(GymEnvironment):
-    def __init__(self, config: PyBoyConfig) -> None:
+    def __init__(self, config: PyBoyConfig, image_observation: bool = False) -> None:
         super().__init__(config)
 
         self.env = suite.make(
@@ -17,6 +17,7 @@ class PyboyEnvironment(GymEnvironment):
             config.act_freq,
             config.emulation_speed,
             config.headless,
+            image_observation,
         )
 
     @cached_property
