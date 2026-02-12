@@ -213,7 +213,7 @@ class TrainingRunner(BaseRunner):
 
         train_info = {}
         for _ in range(self.G):
-            train_info = self.agent.train_policy(self.memory_buffer, episode_context)
+            train_info = self.agent.train(self.memory_buffer, episode_context)
 
         return train_info
 
