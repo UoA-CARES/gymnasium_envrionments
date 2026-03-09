@@ -3,18 +3,19 @@ from functools import cached_property
 
 import cv2
 import numpy as np
+from cares_reinforcement_learning.util import helpers as hlp
 from dm_control import suite
-from environments.gym_environment import GymEnvironment
+from environments.sarl.sarl_environment import SARLEnvironment
 from util.configurations import DMCSConfig
 
 
-class DMCSEnvironment(GymEnvironment):
-    def __init__(self, config: DMCSConfig) -> None:
-        super().__init__(config)
+class DMCSEnvironment(SARLEnvironment):
+    def __init__(self, config: DMCSConfig, seed: int, image_observation: bool) -> None:
+        super().__init__(config, seed, image_observation)
         logging.info(f"Training on Domain {config.domain}")
 
         self.domain = config.domain
-        self.env = suite.load(self.domain, self.task)
+        self.env = suite.load(self.domain, self.task, task_kwargs={"random": self.seed})
 
     @cached_property
     def min_action_value(self) -> np.ndarray:
@@ -25,7 +26,7 @@ class DMCSEnvironment(GymEnvironment):
         return self.env.action_spec().maximum
 
     @cached_property
-    def observation_space(self) -> int:
+    def _vector_space(self) -> int:
         time_step = self.env.reset()
         # e.g. position, orientation, joint_angles
         observation = np.hstack(list(time_step.observation.values()))
@@ -43,7 +44,7 @@ class DMCSEnvironment(GymEnvironment):
     def set_seed(self, seed: int) -> None:
         self.env = suite.load(self.domain, self.task, task_kwargs={"random": seed})
 
-    def reset(self, training: bool = True) -> np.ndarray:
+    def _reset(self, training: bool = True) -> np.ndarray:
         time_step = self.env.reset()
         observation = np.hstack(
             list(time_step.observation.values())
@@ -51,6 +52,8 @@ class DMCSEnvironment(GymEnvironment):
         return observation
 
     def _step(self, action: int) -> tuple:
+        action = hlp.normalize(action, self.max_action_value, self.min_action_value)
+
         time_step = self.env.step(action)
         state, reward, done = (
             np.hstack(list(time_step.observation.values())),

@@ -6,11 +6,11 @@ from pathlib import Path
 
 import cares_reinforcement_learning.util.plotter as plt
 import cv2
+import execution_logger as logs
 import numpy as np
 import pandas as pd
-import execution_logger as logs
 from cares_reinforcement_learning.algorithm.algorithm import Algorithm
-from cares_reinforcement_learning.memory import MemoryBuffer
+from cares_reinforcement_learning.memory.memory_buffer import MemoryBuffer
 from cares_reinforcement_learning.util.configurations import SubscriptableClass
 
 

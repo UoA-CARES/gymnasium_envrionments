@@ -1,8 +1,6 @@
 import util.configurations as cfg
-from environments.base_environment import BaseEnvironment
-from environments.gym_environment import GymEnvironment
-from environments.marl_environment import MARLEnvironment
-from environments.multimodal_wrapper import MultiModalWrapper
+from environments.marl.marl_environment import MARLEnvironment
+from environments.sarl.sarl_environment import SARLEnvironment
 from util.configurations import GymEnvironmentConfig
 
 # Disable these as this is a deliberate use of dynamic imports
@@ -14,69 +12,104 @@ class EnvironmentFactory:
         pass
 
     def create_environment(
-        self, config: GymEnvironmentConfig, image_observation
-    ) -> tuple[
-        BaseEnvironment | MultiModalWrapper,
-        BaseEnvironment | MultiModalWrapper,
-    ]:
+        self,
+        config: GymEnvironmentConfig,
+        train_seed: int,
+        eval_seed: int,
+        image_observation: bool,
+    ) -> tuple[SARLEnvironment | MARLEnvironment, SARLEnvironment | MARLEnvironment]:
 
-        env: BaseEnvironment | MultiModalWrapper
-        eval_env: BaseEnvironment | MultiModalWrapper
-        if isinstance(config, cfg.DMCSConfig):
-            from environments.dmcs.dmcs_environment import DMCSEnvironment
+        env: SARLEnvironment | MARLEnvironment
+        eval_env: SARLEnvironment | MARLEnvironment
+        match config:
+            # ---------- SARL ----------
+            case cfg.DMCSConfig():
+                from environments.sarl.dmcs.dmcs_environment import DMCSEnvironment
 
-            env = DMCSEnvironment(config)
-            eval_env = DMCSEnvironment(config)
-        elif isinstance(config, cfg.OpenAIConfig):
-            from environments.openai.openai_environment import OpenAIEnvironment
+                env = DMCSEnvironment(
+                    config, train_seed, image_observation=image_observation
+                )
+                eval_env = DMCSEnvironment(
+                    config, eval_seed, image_observation=image_observation
+                )
 
-            env = OpenAIEnvironment(config)
-            eval_env = OpenAIEnvironment(config)
-        elif isinstance(config, cfg.PyBoyConfig):
-            from environments.pyboy.pyboy_environment import PyboyEnvironment
+            case cfg.OpenAIConfig():
+                from environments.sarl.openai.openai_environment import (
+                    OpenAIEnvironment,
+                )
 
-            env = PyboyEnvironment(config)
-            eval_env = PyboyEnvironment(config)
-        elif isinstance(config, cfg.ShowdownConfig):
-            from environments.showdown.showdown_environment import ShowdownEnvironment
+                env = OpenAIEnvironment(
+                    config, train_seed, image_observation=image_observation
+                )
+                eval_env = OpenAIEnvironment(
+                    config, eval_seed, image_observation=image_observation
+                )
 
-            env = ShowdownEnvironment(config, evaluation=False)
-            eval_env = env
+            case cfg.PyBoyConfig():
+                from environments.sarl.pyboy.pyboy_environment import PyboyEnvironment
 
-        elif isinstance(config, cfg.DroneConfig):
-            from environments.drone.drone_environment import DroneEnvironment
+                env = PyboyEnvironment(
+                    config, train_seed, image_observation=image_observation
+                )
+                eval_env = PyboyEnvironment(
+                    config, eval_seed, image_observation=image_observation
+                )
 
-            env = DroneEnvironment(config)
-            eval_env = env
-        elif isinstance(config, cfg.GripperConfig):
-            from environments.gripper.gripper_environment import GripperEnvironment
+            case cfg.ShowdownConfig():
+                from environments.sarl.showdown.showdown_environment import (
+                    ShowdownEnvironment,
+                )
 
-            env = GripperEnvironment(config)
-            eval_env = env
-        elif isinstance(config, cfg.MPEConfig):
-            from environments.mpe.mpe import MPE2Environment
+                env = ShowdownEnvironment(
+                    config, train_seed, image_observation=image_observation
+                )
+                eval_env = ShowdownEnvironment(
+                    config,
+                    eval_seed,
+                    image_observation=image_observation,
+                    evaluation=True,
+                )
 
-            env = MPE2Environment(config, evaluation=False)
-            eval_env = MPE2Environment(config, evaluation=True)
+            case cfg.DroneConfig():
+                from environments.sarl.drone.drone_environment import DroneEnvironment
 
-        elif isinstance(config, cfg.SMACConfig):
-            from environments.smac.smac import SMACEnvironment
+                env = DroneEnvironment(
+                    config, train_seed, image_observation=image_observation
+                )
+                # intentional: shared env
+                eval_env = env
 
-            env = SMACEnvironment(config, evaluation=False)
-            eval_env = SMACEnvironment(config, evaluation=True)
-        elif isinstance(config, cfg.SMAC2Config):
-            from environments.smac2.smac2 import SMAC2Environment
+            case cfg.GripperConfig():
+                from environments.sarl.gripper.gripper_environment import (
+                    GripperEnvironment,
+                )
 
-            env = SMAC2Environment(config, evaluation=False)
-            eval_env = SMAC2Environment(config, evaluation=True)
-        else:
-            raise ValueError(f"Unkown environment: {type(config)}")
+                env = GripperEnvironment(
+                    config, train_seed, image_observation=image_observation
+                )
+                # intentional: shared env
+                eval_env = env
 
-        if isinstance(env, GymEnvironment) and isinstance(eval_env, GymEnvironment):
-            env = MultiModalWrapper(config, env) if bool(image_observation) else env
-            eval_env = (
-                MultiModalWrapper(config, eval_env)
-                if bool(image_observation)
-                else eval_env
-            )
+            # ---------- MARL ----------
+            case cfg.MPEConfig():
+                from environments.marl.mpe.mpe import MPE2Environment
+
+                env = MPE2Environment(config, train_seed)
+                eval_env = MPE2Environment(config, eval_seed)
+
+            case cfg.SMACConfig():
+                from environments.marl.smac.smac import SMACEnvironment
+
+                env = SMACEnvironment(config, train_seed)
+                eval_env = SMACEnvironment(config, eval_seed)
+
+            case cfg.SMAC2Config():
+                from environments.marl.smac2.smac2 import SMAC2Environment
+
+                env = SMAC2Environment(config, train_seed)
+                eval_env = SMAC2Environment(config, eval_seed)
+
+            case _:
+                raise ValueError(f"Unknown environment: {type(config)}")
+
         return env, eval_env
