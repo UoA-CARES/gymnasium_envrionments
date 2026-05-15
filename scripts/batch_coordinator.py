@@ -424,17 +424,18 @@ first_critic_swish_c: MLPConfig = MLPConfig(
 
 # python3 run.py train cli --gym dmcs --domain cartpole --task swingup --batch 1 TD3 --seeds 10 20 30 40 50 --max_workers 5
 batch_config_dmcs: dict[str, list[Any | tuple[Any, str]]] = {
-    "alg_config.actor_config": [(first_actor_gelu_a_td3, "first_actor_gelu"), (first_actor_swish_a_td3, "first_actor_swish")],
-    "alg_config.critic_config": [(first_actor_gelu_c, "first_actor_gelu"), (first_actor_swish_c, "first_actor_swish")],
+    "alg_config.actor_config": [(all_both_gelu_a_td3, "all_both_gelu"), (all_both_swish_a_td3, "all_both_swish")],
+    "alg_config.critic_config": [(all_both_gelu_c, "all_both_gelu"), (all_both_swish_c, "all_both_swish")],
     "env_config.domain": ["cheetah", "cartpole", "finger", "walker"],
     "env_config.task": ["run", "swingup", "spin", "walk"],
 }
-# python3 run.py train cli --gym openai --task HalfCheetah-v4 --batch 1 TD3 --seeds 10 20 30 40 50 --max_workers 5
+
 batch_config_openai: dict[str, list[Any | tuple[Any, str]]] = {
-    "alg_config.actor_config": [(first_actor_gelu_a_td3, "first_actor_gelu"), (first_actor_swish_a_td3, "first_actor_swish")],
-    "alg_config.critic_config": [(first_actor_gelu_c, "first_actor_gelu"), (first_actor_swish_c, "first_actor_swish")],
+    "alg_config.actor_config": [(all_both_gelu_a_td3, "all_both_gelu"), (all_both_swish_a_td3, "all_both_swish")],
+    "alg_config.critic_config": [(all_both_gelu_c, "all_both_gelu"), (all_both_swish_c, "all_both_swish")],
     "env_config.task": ["HalfCheetah-v4", "Humanoid-v4", "Ant-v4", "Hopper-v4"],
 }
+
 batch_config = batch_config_openai
 
 # This function can be customized to skip certain invalid or undesired configurations.
