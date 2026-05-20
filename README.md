@@ -1,196 +1,309 @@
-# gymnasium_environment
-We have created a standardised general purpose gym that wraps the most common simulated environments used in reinforcement learning into a single easy to use place. This package serves as an example of how to develop and setup new environments - perticularly for the robotic environments. This package utilises the algorithms implemented in the repository https://github.com/UoA-CARES/cares_reinforcement_learning/ - consult that repository for algorithm implementations. 
+# Fractional Activation Experiments for CARES RL
 
-## Installation Instructions
-![Python](https://img.shields.io/badge/python-3.10--3.12-blue.svg)
+This branch extends the `gymnasium_envrionments` training framework with fractional and smooth nonlinear activation function experiments for reinforcement learning.
 
-Follow the instructions at https://github.com/UoA-CARES/cares_reinforcement_learning/ to first install the CARES RL dependency first.
+The repository provides training orchestration, environment wrappers, batch execution, and experiment configuration for evaluating custom activation functions in actor-critic reinforcement learning algorithms.
 
-`git clone` this repository into your desired directory on your local machine
+The underlying reinforcement learning algorithms are provided by the CARES RL repository:
 
-Run `pip3 install -r requirements.txt` in the **root directory** of the package
+https://github.com/UoA-CARES/cares_reinforcement_learning
 
-Install the environments dependent on pyboy here https://github.com/UoA-CARES/pyboy_environment
+---
 
-# Usage
-This package is a basic example of running the CARES RL algorithms on OpenAI/DMCS/pyboy. 
+# Implemented Fractional Activations
 
-## Running Training and Evaluation
-The packagage is called using `run.py`. This takes in specific commands list below for training and evaluation purposes.
+- FractionalSwish
+- FractionalSwishBeta
+- FALU
+- FractionalGELU
+- SafeFractionalSwish
+- SafeFALU
+- SafeFractionalGELU
+- SafeGLFractionalGELU
 
-Use `python3 run.py -h` for help on what parameters are available for customisation.
+Custom activations are implemented in:
 
-### Train
-The train command in the run.py script is used to initiate the training process for reinforcement learning models within specified gym environments. This command can be customized using various hyperparameters to tailor the training environment and the RL algorithm. You can use python `run.py train cli -h` to view all available options for customization and start a run directly through the terminal. This flexibility enables users to experiment with different settings and optimize their models effectively.
-
-Specific and larger configuration changes can be loaded using python `run.py train config --data_path <PATH_TO_TRAINING_CONFIGS>`, allowing for a more structured and repeatable training setup through configuration files including modification of network structures for given algorithms.
-
-```
-python run.py train cli -h
-python run.py train config --data_path <PATH_TO_TRAINING_CONFIGS>
+```text
+cares_reinforcement_learning/networks/fractional_activations.py
 ```
 
-Training can run training across seeds in parrellel using the `--max_workers` parameter which will run each training seed in its own process. 
+and dynamically loaded through:
 
-```
-python run.py train cli --gym openai --task HalfCheetah-v4 TD3 --seeds 10 20 30 40 50 --max_workers 5
-```
-
-<p align="center">
-    <img src="./media/par.gif" alt="par gif" style="width: 100%;" />
-</p>
-
-
-### Resume (Experimental)
-The resume command allows you to continue training from a previously saved checkpoint. This is useful if training was interrupted or if you want to further improve a model. You can specify the path to the checkpoint and resume training with your desired settings.
-
-Note: to enable a training to be resumable you need to enable the `--save_train_checkpoints 1` when using the train command. Checkpoint saving does not default to true, this is because saving a checkpoint of the memory, and training parameters increases data storage on the HD - especially for image based learning. This is also an experimental feature and the `resume` does not set all parameters/evnrioments to the same state as before - this will change the training outcomes, it is not a true resume command but it is useful for restarting training.
-
-```
-python run.py resume --data_path <PATH_TO_TRAINING_DATA>
+```text
+cares_reinforcement_learning/networks/common.py
 ```
 
-### Evaluate
-The evaluate command is used to re-run the evaluation loops from a prior training run - this will reproduce the evaluation graphs and data from a given training experiment. Useful if you have updated metrics you want to capture without having to re-run the entire training process.
+---
 
-```
-python run.py evaluate --data_path <PATH_TO_TRAINING_DATA>
-```
+# Installation
 
-### Test
-The test command is used to run evaluation loops on a trained reinforcement learning model on the envrionment, users can load the trained model to evaluate how well the model performs on the given task with different evaluation seeds and over any number of episodes. 
+First install the CARES RL dependency:
 
-```
-python run.py test --data_path <PATH_TO_TRAINING_DATA> --eval_seed <EVAL_SEED> --episodes <NUM_EPISODES>
+```bash
+git clone https://github.com/UoA-CARES/cares_reinforcement_learning.git
 ```
 
-## Gym Environments
-This package contains wrappers for the following gym environments:
+Clone this repository:
 
-#### Deep Mind Control Suite
-The standard Deep Mind Control suite: https://github.com/google-deepmind/dm_control
-
-```
-python3 run.py train cli --gym dmcs --domain ball_in_cup --task catch TD3
+```bash
+git clone <YOUR_REPOSITORY_URL>
 ```
 
-<p align="center">
-    <img src="./media/dmcs.png" style="width: 80%;"/>
-</p>
+Install requirements:
 
-#### OpenAI Gymnasium
-The standard OpenAI Gymnasium: https://github.com/Farama-Foundation/Gymnasium 
-
+```bash
+pip3 install -r requirements.txt
 ```
-python run.py train cli --gym openai --task CartPole-v1 DQN
 
+Optional pyboy environments:
+
+https://github.com/UoA-CARES/pyboy_environment
+
+---
+
+# Supported Algorithms
+
+- TD3
+- SAC
+
+---
+
+# Supported Environments
+
+## OpenAI Gymnasium
+
+```bash
 python run.py train cli --gym openai --task HalfCheetah-v4 TD3
 ```
 
-<p align="center">
-    <img src="./media/openai.jpg" style="width: 80%;" />
-</p>
+## DeepMind Control Suite
 
-#### Game Boy Emulator
-Environment running Gameboy games utilising the pyboy wrapper: https://github.com/UoA-CARES/pyboy_environment 
-
-```
-python3 run.py train cli --gym pyboy --task mario SACAE
+```bash
+python3 run.py train cli --gym dmcs --domain cheetah --task run TD3
 ```
 
-<p align="center">
-    <img src="./media/mario.png" style="width: 40%;" />
-    <img src="./media/pokemon.png" style="width: 40%;"/>
-</p>
+---
 
-# Data Outputs
-All data from a training run is saved into the directory specified in the `CARES_LOG_BASE_DIR` environment variable. If not specified, this will default to `'~/cares_rl_logs'`.
+# Fractional Activation Experiment Configuration
 
-You may specify a custom log directory format using the `CARES_LOG_PATH_TEMPLATE` environment variable. This path supports variable interpolation such as the algorithm used, seed, date etc. This defaults to `"{algorithm}/{algorithm}-{domain_task}-{date}"`.
+Experiments are configured using environment variables.
 
-This folder will contain the following directories and information saved during the training session:
+| Variable | Description |
+|---|---|
+| `ACTIVATION` | Fractional activation class name |
+| `ALGORITHM` | TD3 or SAC |
+| `LAYERS` | 1 or 2 |
+| `PLACEMENT` | Activation placement strategy |
+
+---
+
+# Placement Strategies
+
+## 1-Layer Networks
+
+Only:
 
 ```text
-├─ <log_path>
-|  ├─ env_config.json
-|  ├─ alg_config.json
-|  ├─ train_config.json
-|  ├─ *_config.json
-|  ├─ ...
-|  ├─ SEED_N
-|  |  ├─ data
-|  |  |  ├─ train.csv
-|  |  |  ├─ eval.csv
-|  |  ├─ figures
-|  |  |  ├─ eval.png
-|  |  |  ├─ train.png
-|  |  ├─ models
-|  |  |  ├─ model.pht
-|  |  |  ├─ CHECKPOINT_N.pht
-|  |  |  ├─ ...
-|  |  ├─ videos
-|  |  |  ├─ STEP.mp4
-|  |  |  ├─ ...
-|  ├─ SEED_N
-|  |  ├─ ...
-|  ├─ ...
+PLACEMENT=all_both
 ```
+
+is supported.
+
+---
+
+## 2-Layer Networks
+
+| Placement | Description |
+|---|---|
+| `all_both` | Fractional activation in all actor and critic hidden layers |
+| `all_actor` | Fractional activation only in actor hidden layers |
+| `all_critic` | Fractional activation only in critic hidden layers |
+| `first_both` | Fractional activation only in the first hidden layer of actor and critic |
+| `first_actor` | Fractional activation only in the first actor hidden layer |
+| `first_critic` | Fractional activation only in the first critic hidden layer |
+
+---
+
+# Example Commands
+
+## TD3 1-Layer Example
+
+```bash
+ACTIVATION=FractionalSwish \
+ALGORITHM=TD3 \
+LAYERS=1 \
+PLACEMENT=all_both \
+python3 run.py train cli \
+--gym openai \
+--task HalfCheetah-v4 \
+--batch 1 \
+TD3 \
+--seeds 10 \
+--max_workers 1
+```
+
+---
+
+## TD3 2-Layer Example
+
+```bash
+ACTIVATION=SafeFractionalGELU \
+ALGORITHM=TD3 \
+LAYERS=2 \
+PLACEMENT=all_actor \
+python3 run.py train cli \
+--gym openai \
+--task HalfCheetah-v4 \
+--batch 1 \
+TD3 \
+--seeds 10 \
+--max_workers 1
+```
+
+---
+
+## SAC Example
+
+```bash
+ACTIVATION=FALU \
+ALGORITHM=SAC \
+LAYERS=2 \
+PLACEMENT=first_both \
+python3 run.py train cli \
+--gym openai \
+--task Hopper-v4 \
+--batch 1 \
+SAC \
+--seeds 10 \
+--max_workers 1
+```
+
+---
+
+# Batch Mode
+
+Batch mode enables automated execution of multiple experiment configurations.
+
+Example:
+
+```bash
+python run.py train cli --gym openai --task HalfCheetah-v4 TD3 --batch 1
+```
+
+Experiment configurations are defined in:
+
+```text
+scripts/batch_coordinator.py
+```
+
+Parallel execution across seeds is controlled using:
+
+```bash
+--max_workers N
+```
+
+---
+
+# Training Outputs
+
+Training outputs are saved to:
+
+```text
+~/cares_rl_logs
+```
+
+unless overridden using:
+
+```bash
+CARES_LOG_BASE_DIR
+```
+
+Saved outputs include:
+
+```text
+logs/
+├── configs
+├── csv data
+├── figures
+├── trained models
+├── checkpoints
+└── videos
+```
+
+---
 
 # Plotting
-The plotting utility in https://github.com/UoA-CARES/cares_reinforcement_learning/ will plot the data contained in the training data based on the format created by the Record class. An example of how to plot the data from one or multiple training sessions together is shown below.
 
-Running 'python3 plotter.py -h' will provide details on the plotting parameters and control arguments. You can custom set the font size and text for the title, and axis labels - defaults will be taken from the data labels in the csv files.
+Plot single experiment:
 
-```sh
-python3 plotter.py -h
+```bash
+python3 plotter.py \
+-s ~/cares_rl_logs \
+-d <TRAINING_PATH>
 ```
 
-Plot the results of a single training instance
+Compare multiple experiments:
 
-```sh
-python3 plotter.py -s ~/cares_rl_logs -d ~/cares_rl_logs/ALGORITHM/ALGORITHM-TASK-YY_MM_DD:HH:MM:SS
+```bash
+python3 plotter.py \
+-s ~/cares_rl_logs \
+-d <RUN_A> <RUN_B>
 ```
 
-Plot and compare the results of two or more training instances
+---
 
-```sh
-python3 plotter.py -s ~/cares_rl_logs -d ~/cares_rl_logs/ALGORITHM_A/ALGORITHM_A-TASK-YY_MM_DD:HH:MM:SS ~/cares_rl_logs/ALGORITHM_B/ALGORITHM_B-TASK-YY_MM_DD:HH:MM:SS
+# Docker Usage
+
+Run container:
+
+```bash
+docker run -it --gpus all oculux314/cares:base
 ```
 
-# Running in Batch Mode
-A set of different training instances (e.g. comparing different algorithms or environments) can be run in series using batch mode. This is compatible with running seeds in parrallel.
+Open another terminal inside the container:
 
-To use batch mode, append `--batch 1` to any train command, e.g.
-```
-python run.py train cli --gym dmcs --domain humanoid --task walk TD3 --batch 1
+```bash
+docker exec -it <container_name> bash
 ```
 
-The specific instances to run can be configured in the `BATCH CONFIG` section of `scripts/batch_coordinator.py`. The cross product of these lists is used to create the set of instances to be run.
-<p align="center">
-    <img src="./media/batch-config.png" style="width: 80%;"/>
-</p>
+Copy files from container:
 
-The format is `field: [instances]` and mirrors the configuration object used in non-batched runs. It can be useful to set a breakpoint in `run.py` to view the configuration object when editing this file.
-<p align="center">
-    <img src="./media/config-breakpoint.png" style="width: 80%;"/>
-</p>
-
-The `_skip()` function in `scripts/batch_coordinator.py` can be used to filter out undesired combinations - e.g. here, invalid domain-task pairings are skipped.
-<p align="center">
-    <img src="./media/skip-function.png" style="width: 80%;"/>
-</p>
-
-Finally, a specific range of instances can be run by specifying `--b_start` and/or `--b_end`. The run order is deterministic.
+```bash
+docker cp <container_name>:<path> <host-path>
 ```
-python run.py train cli --gym dmcs --domain humanoid --task walk TD3 --batch 1 --b_start 2 --b_end -2
+
+---
+
+# Repository Structure
+
+```text
+gymnasium_envrionments/
+│
+├── scripts/
+│   ├── batch_coordinator.py
+│   └── ...
+│
+├── cares_reinforcement_learning/
+│   ├── networks/
+│   │   ├── common.py
+│   │   ├── fractional_activations.py
+│   │   └── ...
+│   └── ...
+│
+├── run.py
+└── README.md
 ```
-<p align="center">
-    <img src="./media/batch-range.png" style="width: 80%;"/>
-</p>
 
-# Using Docker
-This repository can be run in a docker container using `docker run -it --gpus all oculux314/cares:base`. This will download an image of this repository, start it, and open up a bash terminal inside to run commands as usual. The `gymnasium_envrionments` `cares_reinforcement_learning` and `cares_rl_logs` folders are located in the `/app` directory within the container.
+---
 
-To open another terminal inside the same running docker container use `docker ps -a` to find the name of the container, then `docker exec -it <container> bash`. To copy files out of the docker container, use `docker cp <container>:<path> <host-path>` from the host.
+# Notes
 
-In some situations, you may want to build your own version of the image (e.g. to modify some build steps). To do this run `docker build -t oculux314/cares:base .` from the root of this repository, overwriting any existing image, and then run the image as usual.
+- Activation names must exactly match class names in `fractional_activations.py`
+- Custom activations are dynamically loaded through `common.py`
+- The framework supports easy extension with additional activation functions
+
+---
+
+# Research Motivation
+
+This project investigates whether fractional and smooth nonlinear transformations can improve optimisation stability, representation learning, and actor-critic training dynamics compared to standard activations such as ReLU, GELU, and Swish.
