@@ -1,5 +1,30 @@
 """
 Batch coordinator for testing one fractional activation at a time.
+
+Environment variables:
+    ACTIVATION:
+        FractionalSwish
+        FractionalSwishBeta
+        FALU
+        FractionalGELU
+        SafeFractionalSwish
+        SafeFALU
+        SafeFractionalGELU
+        SafeGLFractionalGELU
+
+    ALGORITHM:
+        TD3 or SAC
+
+    LAYERS:
+        1 or 2
+
+    PLACEMENT:
+        all_both
+        all_actor
+        all_critic
+        first_both
+        first_actor
+        first_critic
 """
 
 import itertools
@@ -27,7 +52,19 @@ FRACTIONAL_ACTIVATIONS = [
     "SafeGLFractionalGELU",
 ]
 
+PLACEMENTS = [
+    "all_both",
+    "all_actor",
+    "all_critic",
+    "first_both",
+    "first_actor",
+    "first_critic",
+]
+
 SELECTED_ACTIVATION = os.environ.get("ACTIVATION", "FractionalSwish")
+ALGORITHM = os.environ.get("ALGORITHM", "TD3")
+LAYERS = int(os.environ.get("LAYERS", "1"))
+PLACEMENT = os.environ.get("PLACEMENT", "all_both")
 
 if SELECTED_ACTIVATION not in FRACTIONAL_ACTIVATIONS:
     raise ValueError(
@@ -35,66 +72,120 @@ if SELECTED_ACTIVATION not in FRACTIONAL_ACTIVATIONS:
         f"Choose from {FRACTIONAL_ACTIVATIONS}"
     )
 
-
-def make_1layer_actor_sac(activation: str) -> MLPConfig:
-    return MLPConfig(
-        layers=[
-            TrainableLayer(layer_type="Linear", out_features=256),
-            FunctionLayer(layer_type=activation),
-        ]
-    )
-
-
-def make_1layer_actor_td3(activation: str) -> MLPConfig:
-    return MLPConfig(
-        layers=[
-            TrainableLayer(layer_type="Linear", out_features=256),
-            FunctionLayer(layer_type=activation),
-            TrainableLayer(layer_type="Linear", in_features=256),
-            FunctionLayer(layer_type="Tanh"),
-        ]
-    )
-
-
-def make_1layer_critic(activation: str) -> MLPConfig:
-    return MLPConfig(
-        layers=[
-            TrainableLayer(layer_type="Linear", out_features=256),
-            FunctionLayer(layer_type=activation),
-            TrainableLayer(layer_type="Linear", in_features=256, out_features=1),
-        ]
-    )
-
-
-ALGORITHM = os.environ.get("ALGORITHM", "TD3")
-
-if ALGORITHM == "SAC":
-    actor_config = make_1layer_actor_sac(SELECTED_ACTIVATION)
-elif ALGORITHM == "TD3":
-    actor_config = make_1layer_actor_td3(SELECTED_ACTIVATION)
-else:
+if ALGORITHM not in ["TD3", "SAC"]:
     raise ValueError("ALGORITHM must be TD3 or SAC")
 
-critic_config = make_1layer_critic(SELECTED_ACTIVATION)
+if LAYERS not in [1, 2]:
+    raise ValueError("LAYERS must be 1 or 2")
+
+if PLACEMENT not in PLACEMENTS:
+    raise ValueError(f"PLACEMENT must be one of {PLACEMENTS}")
+
+if LAYERS == 1 and PLACEMENT != "all_both":
+    raise ValueError("For LAYERS=1, use PLACEMENT=all_both")
+
+
+def make_actor_sac(hidden_activations: list[str]) -> MLPConfig:
+    layers = []
+
+    layers.append(TrainableLayer(layer_type="Linear", out_features=256))
+    layers.append(FunctionLayer(layer_type=hidden_activations[0]))
+
+    if len(hidden_activations) == 2:
+        layers.append(
+            TrainableLayer(layer_type="Linear", in_features=256, out_features=256)
+        )
+        layers.append(FunctionLayer(layer_type=hidden_activations[1]))
+
+    return MLPConfig(layers=layers)
+
+
+def make_actor_td3(hidden_activations: list[str]) -> MLPConfig:
+    layers = []
+
+    layers.append(TrainableLayer(layer_type="Linear", out_features=256))
+    layers.append(FunctionLayer(layer_type=hidden_activations[0]))
+
+    if len(hidden_activations) == 2:
+        layers.append(
+            TrainableLayer(layer_type="Linear", in_features=256, out_features=256)
+        )
+        layers.append(FunctionLayer(layer_type=hidden_activations[1]))
+
+    layers.append(TrainableLayer(layer_type="Linear", in_features=256))
+    layers.append(FunctionLayer(layer_type="Tanh"))
+
+    return MLPConfig(layers=layers)
+
+
+def make_critic(hidden_activations: list[str]) -> MLPConfig:
+    layers = []
+
+    layers.append(TrainableLayer(layer_type="Linear", out_features=256))
+    layers.append(FunctionLayer(layer_type=hidden_activations[0]))
+
+    if len(hidden_activations) == 2:
+        layers.append(
+            TrainableLayer(layer_type="Linear", in_features=256, out_features=256)
+        )
+        layers.append(FunctionLayer(layer_type=hidden_activations[1]))
+
+    layers.append(
+        TrainableLayer(layer_type="Linear", in_features=256, out_features=1)
+    )
+
+    return MLPConfig(layers=layers)
+
+
+def get_hidden_activations() -> tuple[list[str], list[str]]:
+    act = SELECTED_ACTIVATION
+
+    if LAYERS == 1:
+        return [act], [act]
+
+    if PLACEMENT == "all_both":
+        return [act, act], [act, act]
+
+    if PLACEMENT == "all_actor":
+        return [act, act], ["ReLU", "ReLU"]
+
+    if PLACEMENT == "all_critic":
+        return ["ReLU", "ReLU"], [act, act]
+
+    if PLACEMENT == "first_both":
+        return [act, "ReLU"], [act, "ReLU"]
+
+    if PLACEMENT == "first_actor":
+        return [act, "ReLU"], ["ReLU", "ReLU"]
+
+    if PLACEMENT == "first_critic":
+        return ["ReLU", "ReLU"], [act, "ReLU"]
+
+    raise ValueError(f"Unsupported placement {PLACEMENT}")
+
+
+actor_hidden_activations, critic_hidden_activations = get_hidden_activations()
+
+if ALGORITHM == "SAC":
+    actor_config = make_actor_sac(actor_hidden_activations)
+else:
+    actor_config = make_actor_td3(actor_hidden_activations)
+
+critic_config = make_critic(critic_hidden_activations)
+
+experiment_name = f"{LAYERS}layer_{PLACEMENT}_{SELECTED_ACTIVATION}"
+
 
 batch_config_dmcs: dict[str, list[Any | tuple[Any, str]]] = {
-    "alg_config.actor_config": [
-        (actor_config, f"1layer_{SELECTED_ACTIVATION}")
-    ],
-    "alg_config.critic_config": [
-        (critic_config, f"1layer_{SELECTED_ACTIVATION}")
-    ],
+    "alg_config.actor_config": [(actor_config, experiment_name)],
+    "alg_config.critic_config": [(critic_config, experiment_name)],
     "env_config.domain": ["cheetah", "cartpole", "finger", "walker"],
     "env_config.task": ["run", "swingup", "spin", "walk"],
 }
 
 batch_config_openai: dict[str, list[Any | tuple[Any, str]]] = {
-    "alg_config.actor_config": [
-        (actor_config, f"1layer_{SELECTED_ACTIVATION}")
-    ],
-    "alg_config.critic_config": [
-        (critic_config, f"1layer_{SELECTED_ACTIVATION}")
-    ],
+    "alg_config.actor_config": [(actor_config, experiment_name)],
+    "alg_config.critic_config": [(critic_config, experiment_name)],
     "env_config.task": ["HalfCheetah-v4", "Humanoid-v4", "Ant-v4", "Hopper-v4"],
 }
 
