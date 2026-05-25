@@ -11,6 +11,8 @@ Environment variables:
         SafeFALU
         SafeFractionalGELU
         SafeGLFractionalGELU
+        ResidualFractionalGELU
+        AdaptiveResidualFractionalGELU
 
     ALGORITHM:
         TD3 or SAC
@@ -50,6 +52,8 @@ FRACTIONAL_ACTIVATIONS = [
     "SafeFALU",
     "SafeFractionalGELU",
     "SafeGLFractionalGELU",
+    "AdaptiveResidualFractionalGELU",
+    "ResidualFractionalGELU"
 ]
 
 PLACEMENTS = [
