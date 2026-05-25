@@ -1,8 +1,12 @@
 """
-Batch coordinator for testing one fractional activation at a time.
+Batch coordinator for testing fractional and non-fractional activations.
 
 Environment variables:
     ACTIVATION:
+        ReLU
+        GELU
+        SiLU
+        Tanh
         FractionalSwish
         FractionalSwishBeta
         FALU
@@ -13,6 +17,10 @@ Environment variables:
         SafeGLFractionalGELU
         ResidualFractionalGELU
         AdaptiveResidualFractionalGELU
+
+    ALPHAS:
+        Example: 0.1,0.2,0.3,0.4,0.5
+        Only used for fractional activations.
 
     ALGORITHM:
         TD3 or SAC
@@ -43,6 +51,7 @@ from cares_reinforcement_learning.util.configurations import (
     TrainableLayer,
 )
 
+
 FRACTIONAL_ACTIVATIONS = [
     "FractionalSwish",
     "FractionalSwishBeta",
@@ -52,9 +61,18 @@ FRACTIONAL_ACTIVATIONS = [
     "SafeFALU",
     "SafeFractionalGELU",
     "SafeGLFractionalGELU",
+    "ResidualFractionalGELU",
     "AdaptiveResidualFractionalGELU",
-    "ResidualFractionalGELU"
 ]
+
+NON_FRACTIONAL_ACTIVATIONS = [
+    "ReLU",
+    "GELU",
+    "SiLU",
+    "Tanh",
+]
+
+ALL_ACTIVATIONS = FRACTIONAL_ACTIVATIONS + NON_FRACTIONAL_ACTIVATIONS
 
 PLACEMENTS = [
     "all_both",
@@ -65,15 +83,22 @@ PLACEMENTS = [
     "first_critic",
 ]
 
-SELECTED_ACTIVATION = os.environ.get("ACTIVATION", "FractionalSwish")
+
+SELECTED_ACTIVATION = os.environ.get("ACTIVATION", "ResidualFractionalGELU")
 ALGORITHM = os.environ.get("ALGORITHM", "TD3")
 LAYERS = int(os.environ.get("LAYERS", "1"))
 PLACEMENT = os.environ.get("PLACEMENT", "all_both")
 
-if SELECTED_ACTIVATION not in FRACTIONAL_ACTIVATIONS:
+ALPHAS = [
+    float(value)
+    for value in os.environ.get("ALPHAS", "0.1").split(",")
+]
+
+
+if SELECTED_ACTIVATION not in ALL_ACTIVATIONS:
     raise ValueError(
         f"Unknown activation {SELECTED_ACTIVATION}. "
-        f"Choose from {FRACTIONAL_ACTIVATIONS}"
+        f"Choose from {ALL_ACTIVATIONS}"
     )
 
 if ALGORITHM not in ["TD3", "SAC"]:
@@ -89,32 +114,58 @@ if LAYERS == 1 and PLACEMENT != "all_both":
     raise ValueError("For LAYERS=1, use PLACEMENT=all_both")
 
 
-def make_actor_sac(hidden_activations: list[str]) -> MLPConfig:
+def is_fractional_activation(activation_name: str) -> bool:
+    return activation_name in FRACTIONAL_ACTIVATIONS
+
+
+def make_activation_layer(
+    activation_name: str,
+    alpha: float | None = None,
+) -> FunctionLayer:
+    if is_fractional_activation(activation_name):
+        if alpha is None:
+            raise ValueError("Fractional activation requires alpha.")
+
+        return FunctionLayer(
+            layer_type=activation_name,
+            params={"a": alpha},
+        )
+
+    return FunctionLayer(layer_type=activation_name)
+
+
+def make_actor_sac(
+    hidden_activations: list[str],
+    alpha: float | None = None,
+) -> MLPConfig:
     layers = []
 
     layers.append(TrainableLayer(layer_type="Linear", out_features=256))
-    layers.append(FunctionLayer(layer_type=hidden_activations[0]))
+    layers.append(make_activation_layer(hidden_activations[0], alpha))
 
     if len(hidden_activations) == 2:
         layers.append(
             TrainableLayer(layer_type="Linear", in_features=256, out_features=256)
         )
-        layers.append(FunctionLayer(layer_type=hidden_activations[1]))
+        layers.append(make_activation_layer(hidden_activations[1], alpha))
 
     return MLPConfig(layers=layers)
 
 
-def make_actor_td3(hidden_activations: list[str]) -> MLPConfig:
+def make_actor_td3(
+    hidden_activations: list[str],
+    alpha: float | None = None,
+) -> MLPConfig:
     layers = []
 
     layers.append(TrainableLayer(layer_type="Linear", out_features=256))
-    layers.append(FunctionLayer(layer_type=hidden_activations[0]))
+    layers.append(make_activation_layer(hidden_activations[0], alpha))
 
     if len(hidden_activations) == 2:
         layers.append(
             TrainableLayer(layer_type="Linear", in_features=256, out_features=256)
         )
-        layers.append(FunctionLayer(layer_type=hidden_activations[1]))
+        layers.append(make_activation_layer(hidden_activations[1], alpha))
 
     layers.append(TrainableLayer(layer_type="Linear", in_features=256))
     layers.append(FunctionLayer(layer_type="Tanh"))
@@ -122,17 +173,20 @@ def make_actor_td3(hidden_activations: list[str]) -> MLPConfig:
     return MLPConfig(layers=layers)
 
 
-def make_critic(hidden_activations: list[str]) -> MLPConfig:
+def make_critic(
+    hidden_activations: list[str],
+    alpha: float | None = None,
+) -> MLPConfig:
     layers = []
 
     layers.append(TrainableLayer(layer_type="Linear", out_features=256))
-    layers.append(FunctionLayer(layer_type=hidden_activations[0]))
+    layers.append(make_activation_layer(hidden_activations[0], alpha))
 
     if len(hidden_activations) == 2:
         layers.append(
             TrainableLayer(layer_type="Linear", in_features=256, out_features=256)
         )
-        layers.append(FunctionLayer(layer_type=hidden_activations[1]))
+        layers.append(make_activation_layer(hidden_activations[1], alpha))
 
     layers.append(
         TrainableLayer(layer_type="Linear", in_features=256, out_features=1)
@@ -170,26 +224,62 @@ def get_hidden_activations() -> tuple[list[str], list[str]]:
 
 actor_hidden_activations, critic_hidden_activations = get_hidden_activations()
 
-if ALGORITHM == "SAC":
-    actor_config = make_actor_sac(actor_hidden_activations)
-else:
-    actor_config = make_actor_td3(actor_hidden_activations)
 
-critic_config = make_critic(critic_hidden_activations)
+def build_network_entries() -> list[tuple[MLPConfig, MLPConfig, str]]:
+    entries = []
 
-experiment_name = f"{LAYERS}layer_{PLACEMENT}_{SELECTED_ACTIVATION}"
+    if is_fractional_activation(SELECTED_ACTIVATION):
+        alpha_values: list[float | None] = ALPHAS
+    else:
+        alpha_values = [None]
+
+    for alpha in alpha_values:
+        if ALGORITHM == "SAC":
+            actor_config = make_actor_sac(actor_hidden_activations, alpha)
+        else:
+            actor_config = make_actor_td3(actor_hidden_activations, alpha)
+
+        critic_config = make_critic(critic_hidden_activations, alpha)
+
+        if alpha is None:
+            experiment_name = (
+                f"{LAYERS}layer_{PLACEMENT}_{SELECTED_ACTIVATION}"
+            )
+        else:
+            experiment_name = (
+                f"{LAYERS}layer_{PLACEMENT}_{SELECTED_ACTIVATION}_alpha{alpha}"
+            )
+
+        entries.append((actor_config, critic_config, experiment_name))
+
+    return entries
+
+
+network_entries = build_network_entries()
 
 
 batch_config_dmcs: dict[str, list[Any | tuple[Any, str]]] = {
-    "alg_config.actor_config": [(actor_config, experiment_name)],
-    "alg_config.critic_config": [(critic_config, experiment_name)],
+    "alg_config.actor_config": [
+        (actor_config, experiment_name)
+        for actor_config, _, experiment_name in network_entries
+    ],
+    "alg_config.critic_config": [
+        (critic_config, experiment_name)
+        for _, critic_config, experiment_name in network_entries
+    ],
     "env_config.domain": ["cheetah", "cartpole", "finger", "walker"],
     "env_config.task": ["run", "swingup", "spin", "walk"],
 }
 
 batch_config_openai: dict[str, list[Any | tuple[Any, str]]] = {
-    "alg_config.actor_config": [(actor_config, experiment_name)],
-    "alg_config.critic_config": [(critic_config, experiment_name)],
+    "alg_config.actor_config": [
+        (actor_config, experiment_name)
+        for actor_config, _, experiment_name in network_entries
+    ],
+    "alg_config.critic_config": [
+        (critic_config, experiment_name)
+        for _, critic_config, experiment_name in network_entries
+    ],
     "env_config.task": ["HalfCheetah-v4", "Humanoid-v4", "Ant-v4", "Hopper-v4"],
 }
 
@@ -197,6 +287,12 @@ batch_config = batch_config_openai
 
 
 def _skip(config: dict[str, tuple[Any, str]]) -> bool:
+    actor_name = config.get("alg_config.actor_config", (None, ""))[1]
+    critic_name = config.get("alg_config.critic_config", (None, ""))[1]
+
+    if actor_name != critic_name:
+        return True
+
     if config.get("env_config.domain") is None:
         return False
 
@@ -262,7 +358,8 @@ def get_batch_coordinators() -> list[tuple[ExecutionCoordinator, str]]:
 
 
 def _create_config(
-    keys: list[str], config_values: tuple[Any | tuple[Any, str], ...]
+    keys: list[str],
+    config_values: tuple[Any | tuple[Any, str], ...],
 ) -> dict[str, tuple[Any, str]]:
     config: dict[str, tuple[Any, str]] = {}
 
@@ -275,7 +372,10 @@ def _create_config(
     return config
 
 
-def _get_name_from_config(config: dict[str, tuple[Any, str]], index: int) -> str:
+def _get_name_from_config(
+    config: dict[str, tuple[Any, str]],
+    index: int,
+) -> str:
     name_parts = []
 
     for value in config.values():
@@ -284,7 +384,9 @@ def _get_name_from_config(config: dict[str, tuple[Any, str]], index: int) -> str
     return f"[{index}]_" + "_".join(name_parts)
 
 
-def _config_to_coordinator(config: dict[str, tuple[Any, str]]) -> ExecutionCoordinator:
+def _config_to_coordinator(
+    config: dict[str, tuple[Any, str]],
+) -> ExecutionCoordinator:
     parser = RLParser()
     base_configs = parser.parse_args()
     coordinator = ExecutionCoordinator(base_configs, options={"noprint": True})
@@ -294,7 +396,8 @@ def _config_to_coordinator(config: dict[str, tuple[Any, str]]) -> ExecutionCoord
 
 
 def _replace_configurations(
-    coordinator: ExecutionCoordinator, config: dict[str, tuple[Any, str]]
+    coordinator: ExecutionCoordinator,
+    config: dict[str, tuple[Any, str]],
 ):
     for key, value in config.items():
         keys = key.split(".")
