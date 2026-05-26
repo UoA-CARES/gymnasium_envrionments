@@ -283,7 +283,25 @@ batch_config_openai: dict[str, list[Any | tuple[Any, str]]] = {
     "env_config.task": ["HalfCheetah-v4", "Humanoid-v4", "Ant-v4", "Hopper-v4"],
 }
 
-batch_config = batch_config_openai
+def get_selected_gym() -> str:
+    args = os.sys.argv
+
+    if "--gym" in args:
+        gym_index = args.index("--gym")
+        if gym_index + 1 < len(args):
+            return args[gym_index + 1]
+
+    return os.environ.get("GYM", "openai")
+
+
+SELECTED_GYM = get_selected_gym()
+
+if SELECTED_GYM == "dmcs":
+    batch_config = batch_config_dmcs
+elif SELECTED_GYM == "openai":
+    batch_config = batch_config_openai
+else:
+    raise ValueError("GYM must be either dmcs or openai")
 
 
 def _skip(config: dict[str, tuple[Any, str]]) -> bool:
