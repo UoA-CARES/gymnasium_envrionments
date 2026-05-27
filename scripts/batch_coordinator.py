@@ -57,6 +57,7 @@ FRACTIONAL_ACTIVATIONS = [
     "FractionalSwishBeta",
     "FALU",
     "FractionalGELU",
+    "FractionalGELUBeta",
     "SafeFractionalSwish",
     "SafeFALU",
     "SafeFractionalGELU",
