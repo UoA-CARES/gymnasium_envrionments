@@ -7,6 +7,7 @@ training and evaluation runners can inherit from, reducing code duplication.
 
 from abc import ABC
 from typing import Any
+import time
 
 import execution_logger as logs
 from cares_reinforcement_learning.algorithm.algorithm import Algorithm
@@ -183,6 +184,9 @@ class BaseRunner(ABC):
                 else normalised_action
             )
 
+            start_time = time.time()
+
+
             # Step environment
             state, reward, done, truncated, env_info = self.env_eval.step(
                 denormalised_action
@@ -234,6 +238,7 @@ class BaseRunner(ABC):
 
             self.agent.episode_done()
 
+        self.dynamic_sleep(start_time)
         return episode_results
 
     def _evaluate_agent_episodes(
@@ -362,3 +367,14 @@ class BaseRunner(ABC):
             "min_skill_reward": min_skill_reward,
             "total_skills": len(skill_results),
         }
+
+    def dynamic_sleep(self, env_start):
+        process_time = time.time() - env_start
+        logging.debug(
+            f"Time to process training loop: {process_time}/{self.env_config.step_time_period} secs"
+        )
+
+        delay = self.env_config.step_time_period - process_time
+        print(delay)
+        if delay > 0:
+            time.sleep(delay)

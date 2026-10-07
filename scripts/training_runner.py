@@ -336,6 +336,8 @@ class TrainingRunner(BaseRunner):
             if self.display:
                 self.env.render()
 
+            env_start_time = time.time()
+
             # Calculate total reward (extrinsic + intrinsic)
             intrinsic_reward = 0
             if train_step_counter > self.max_steps_exploration:
@@ -400,6 +402,8 @@ class TrainingRunner(BaseRunner):
                 self.agent.episode_done()
                 episode_start = time.time()
 
+            self.dynamic_sleep(env_start_time)
+
         end_time = time.time()
         elapsed_time = end_time - start_time
         self.logger.info(
@@ -409,3 +413,16 @@ class TrainingRunner(BaseRunner):
         # Save record and report completion
         self.record.save()
         self._report_progress(episode_num + 1, train_step_counter + 1, "done")
+
+
+    def dynamic_sleep(self, env_start):
+        step_time_period = 0.2
+        process_time = time.time() - env_start
+        self.logger.debug(
+            f"Time to process training loop: {process_time}/{step_time_period} secs"
+        )
+
+        delay = step_time_period - process_time
+        # print("delay", delay)
+        if delay > 0:
+            time.sleep(delay)
